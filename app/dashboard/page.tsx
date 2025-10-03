@@ -3,10 +3,10 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { isProfileComplete } from '@/lib/firebase/users';
+import { isProfileComplete, getUserById } from '@/lib/firebase/users';
 import { getUserMissions, getAllMissions } from '@/lib/firebase/missions';
 import { getAdminSettings, updateAdminSettings } from '@/lib/firebase/admin-settings';
-import { MissionClient } from '@/types';
+import { MissionClient, UserClient } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
