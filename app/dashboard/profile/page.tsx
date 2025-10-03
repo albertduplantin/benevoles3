@@ -2,12 +2,16 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar';
 import { formatDateTime } from '@/lib/utils/date';
+import { updateUserPreferences } from '@/lib/firebase/users';
+import { toast } from 'sonner';
 import {
   UserIcon,
   MailIcon,
@@ -17,14 +21,71 @@ import {
 } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+
+  // États locaux pour les préférences
+  const [communications, setCommunications] = useState(user?.consents.communications || false);
+  const [emailNotif, setEmailNotif] = useState(user?.notificationPreferences?.email || false);
+  const [smsNotif, setSmsNotif] = useState(user?.notificationPreferences?.sms || false);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (user) {
+      setCommunications(user.consents.communications);
+      setEmailNotif(user.notificationPreferences?.email || false);
+      setSmsNotif(user.notificationPreferences?.sms || false);
+    }
+  }, [user]);
+
+  const handleUpdatePreference = async (
+    type: 'communications' | 'emailNotif' | 'smsNotif',
+    value: boolean
+  ) => {
+    if (!user) return;
+
+    setIsSaving(true);
+    try {
+      let updateData: any = {};
+
+      if (type === 'communications') {
+        updateData = {
+          'consents.communications': value,
+        };
+        setCommunications(value);
+      } else if (type === 'emailNotif') {
+        updateData = {
+          'notificationPreferences.email': value,
+        };
+        setEmailNotif(value);
+      } else if (type === 'smsNotif') {
+        updateData = {
+          'notificationPreferences.sms': value,
+        };
+        setSmsNotif(value);
+      }
+
+      await updateUserPreferences(user.uid, updateData);
+      await refreshUser();
+      toast.success('Préférences mises à jour');
+    } catch (error) {
+      console.error('Error updating preferences:', error);
+      toast.error('Erreur lors de la mise à jour');
+      
+      // Revert sur erreur
+      if (type === 'communications') setCommunications(!value);
+      else if (type === 'emailNotif') setEmailNotif(!value);
+      else if (type === 'smsNotif') setSmsNotif(!value);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (loading || !user) {
     return (
@@ -128,29 +189,37 @@ export default function ProfilePage() {
               Gestion de vos données personnelles
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Traitement des données</p>
-                <p className="text-sm text-gray-500">
-                  Vous avez consenti au traitement de vos données personnelles
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex-1">
+                <Label htmlFor="data-processing" className="text-base font-medium cursor-pointer">
+                  Traitement des données
+                </Label>
+                <p className="text-sm text-gray-500 mt-1">
+                  J'accepte le traitement de mes données personnelles (obligatoire)
                 </p>
               </div>
-              <Badge variant={user.consents.dataProcessing ? 'default' : 'secondary'}>
+              <Badge variant={user.consents.dataProcessing ? 'default' : 'secondary'} className="ml-4">
                 {user.consents.dataProcessing ? 'Accepté' : 'Refusé'}
               </Badge>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Communications</p>
-                <p className="text-sm text-gray-500">
-                  Recevoir des notifications par email
+            <div className="flex items-center justify-between p-4 border-2 rounded-lg hover:border-gray-300 transition-colors">
+              <div className="flex-1">
+                <Label htmlFor="communications" className="text-base font-medium cursor-pointer">
+                  Communications
+                </Label>
+                <p className="text-sm text-gray-500 mt-1">
+                  Recevoir des notifications par email sur les missions
                 </p>
               </div>
-              <Badge variant={user.consents.communications ? 'default' : 'secondary'}>
-                {user.consents.communications ? 'Accepté' : 'Refusé'}
-              </Badge>
+              <Switch
+                id="communications"
+                checked={communications}
+                onCheckedChange={(checked) => handleUpdatePreference('communications', checked)}
+                disabled={isSaving}
+                className="ml-4"
+              />
             </div>
 
             <div className="pt-4 border-t">
@@ -162,41 +231,51 @@ export default function ProfilePage() {
         </Card>
 
         {/* Préférences de notification */}
-        {user.notificationPreferences && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Préférences de notification</CardTitle>
-              <CardDescription>
-                Comment souhaitez-vous être contacté
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Notifications par email</p>
-                  <p className="text-sm text-gray-500">
-                    Recevoir des mises à jour par email
-                  </p>
-                </div>
-                <Badge variant={user.notificationPreferences.email ? 'default' : 'secondary'}>
-                  {user.notificationPreferences.email ? 'Activé' : 'Désactivé'}
-                </Badge>
+        <Card>
+          <CardHeader>
+            <CardTitle>Préférences de notification</CardTitle>
+            <CardDescription>
+              Comment souhaitez-vous être contacté
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 border-2 rounded-lg hover:border-gray-300 transition-colors">
+              <div className="flex-1">
+                <Label htmlFor="email-notif" className="text-base font-medium cursor-pointer">
+                  Notifications par email
+                </Label>
+                <p className="text-sm text-gray-500 mt-1">
+                  Recevoir des mises à jour par email
+                </p>
               </div>
+              <Switch
+                id="email-notif"
+                checked={emailNotif}
+                onCheckedChange={(checked) => handleUpdatePreference('emailNotif', checked)}
+                disabled={isSaving}
+                className="ml-4"
+              />
+            </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Notifications par SMS</p>
-                  <p className="text-sm text-gray-500">
-                    Recevoir des mises à jour par SMS
-                  </p>
-                </div>
-                <Badge variant={user.notificationPreferences.sms ? 'default' : 'secondary'}>
-                  {user.notificationPreferences.sms ? 'Activé' : 'Désactivé'}
-                </Badge>
+            <div className="flex items-center justify-between p-4 border-2 rounded-lg hover:border-gray-300 transition-colors">
+              <div className="flex-1">
+                <Label htmlFor="sms-notif" className="text-base font-medium cursor-pointer">
+                  Notifications par SMS
+                </Label>
+                <p className="text-sm text-gray-500 mt-1">
+                  Recevoir des mises à jour par SMS
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <Switch
+                id="sms-notif"
+                checked={smsNotif}
+                onCheckedChange={(checked) => handleUpdatePreference('smsNotif', checked)}
+                disabled={isSaving}
+                className="ml-4"
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

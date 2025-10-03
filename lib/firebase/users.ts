@@ -62,3 +62,23 @@ export function isProfileComplete(user: User | UserClient | null): boolean {
   );
 }
 
+/**
+ * Mettre à jour les préférences utilisateur (consentements et notifications)
+ */
+export async function updateUserPreferences(
+  userId: string,
+  preferences: {
+    'consents.communications'?: boolean;
+    'notificationPreferences.email'?: boolean;
+    'notificationPreferences.sms'?: boolean;
+  }
+): Promise<void> {
+  try {
+    const userRef = doc(db, COLLECTIONS.USERS, userId);
+    await updateDoc(userRef, preferences);
+  } catch (error) {
+    console.error('Error updating user preferences:', error);
+    throw new Error('Erreur lors de la mise à jour des préférences');
+  }
+}
+
