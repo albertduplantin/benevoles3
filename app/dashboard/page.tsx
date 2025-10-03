@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [missionParticipants, setMissionParticipants] = useState<Map<string, UserClient[]>>(new Map());
+  const [allVolunteersMap, setAllVolunteersMap] = useState<Map<string, UserClient>>(new Map());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -76,6 +77,32 @@ export default function DashboardPage() {
             }
           }
           setMissionParticipants(participantsMap);
+        }
+
+        // Pour les admins, charger tous les bénévoles (pour l'export planning global)
+        if (user.role === 'admin') {
+          const allMissionsForAdmin = await getAllMissions();
+          const uniqueVolunteerIds = new Set<string>();
+          
+          // Collecter tous les UIDs de bénévoles uniques
+          allMissionsForAdmin.forEach((mission) => {
+            mission.volunteers.forEach((uid) => uniqueVolunteerIds.add(uid));
+            mission.responsibles.forEach((uid) => uniqueVolunteerIds.add(uid));
+          });
+
+          // Charger les données de chaque bénévole
+          const volunteersMap = new Map<string, UserClient>();
+          for (const uid of uniqueVolunteerIds) {
+            try {
+              const volunteer = await getUserById(uid);
+              if (volunteer) {
+                volunteersMap.set(uid, volunteer);
+              }
+            } catch (error) {
+              console.error(`Error loading volunteer ${uid}:`, error);
+            }
+          }
+          setAllVolunteersMap(volunteersMap);
         }
       } catch (error) {
         console.error('Error loading missions:', error);
@@ -376,11 +403,7 @@ export default function DashboardPage() {
                   type="global"
                   missions={allMissions}
                   totalVolunteers={totalVolunteers}
-                  allVolunteers={new Map(
-                    allMissions
-                      .flatMap((m) => m.volunteers)
-                      .map((uid) => [uid, { uid } as any])
-                  )}
+                  allVolunteers={allVolunteersMap}
                 />
               </CardContent>
             </Card>
