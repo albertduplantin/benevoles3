@@ -17,6 +17,7 @@ import {
   exportMissionReportPDF,
   exportGlobalStatsPDF,
   exportVolunteerPlanningPDF,
+  exportGlobalPlanningPDF,
 } from '@/lib/utils/pdf-export';
 import {
   exportMissionVolunteersExcel,
@@ -24,6 +25,7 @@ import {
   exportGlobalStatsExcel,
   exportFullDataExcel,
   exportVolunteerPlanningExcel,
+  exportGlobalPlanningExcel,
 } from '@/lib/utils/excel-export';
 
 interface ExportButtonsProps {
@@ -72,12 +74,18 @@ export function ExportButtons({
       } else if (type === 'global' && missions) {
         // Exports globaux
         if (format === 'pdf') {
-          await exportGlobalStatsPDF(missions, totalVolunteers);
+          if (exportType === 'stats') {
+            await exportGlobalStatsPDF(missions, totalVolunteers);
+          } else if (exportType === 'planning' && allVolunteers) {
+            await exportGlobalPlanningPDF(missions, allVolunteers);
+          }
         } else if (format === 'excel') {
           if (exportType === 'stats') {
             exportGlobalStatsExcel(missions, totalVolunteers);
           } else if (exportType === 'full' && allVolunteers) {
             exportFullDataExcel(missions, allVolunteers);
+          } else if (exportType === 'planning' && allVolunteers) {
+            exportGlobalPlanningExcel(missions, allVolunteers);
           }
         }
       } else if (type === 'volunteer-planning' && missions && allParticipants) {
@@ -201,8 +209,22 @@ export function ExportButtons({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>Exporter au format</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuLabel className="text-xs font-normal text-gray-500">
+          Planning Global (avec contacts)
+        </DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => handleExport('pdf', 'planning')}>
+          <FileText className="mr-2 h-4 w-4" />
+          PDF - Planning + Contacts
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport('excel', 'planning')}>
+          <FileSpreadsheet className="mr-2 h-4 w-4" />
+          Excel - Planning + Contacts
+        </DropdownMenuItem>
+        
         <DropdownMenuSeparator />
         
         <DropdownMenuLabel className="text-xs font-normal text-gray-500">
@@ -220,7 +242,7 @@ export function ExportButtons({
         <DropdownMenuSeparator />
         
         <DropdownMenuLabel className="text-xs font-normal text-gray-500">
-          Export complet
+          Export complet (archivage)
         </DropdownMenuLabel>
         <DropdownMenuItem onClick={() => handleExport('excel', 'full')}>
           <FileSpreadsheet className="mr-2 h-4 w-4" />

@@ -309,6 +309,155 @@ export function exportFullDataExcel(
 }
 
 /**
+ * Génère un fichier Excel avec le planning global de toutes les missions (Admin)
+ */
+export function exportGlobalPlanningExcel(
+  missions: MissionClient[],
+  allVolunteers: Map<string, UserClient>
+) {
+  const wb = XLSX.utils.book_new();
+
+  // Trier les missions par date
+  const sortedMissions = missions
+    .filter(m => m.status !== 'cancelled')
+    .sort((a, b) => {
+      if (!a.startDate) return 1;
+      if (!b.startDate) return -1;
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    });
+
+  // Feuille 1: Planning Global
+  const planningData = sortedMissions.map((mission) => ({
+    Titre: mission.title,
+    Date: mission.startDate
+      ? format(new Date(mission.startDate), "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr })
+      : 'Date non définie',
+    'Heure début': mission.startDate
+      ? format(new Date(mission.startDate), 'HH:mm', { locale: fr })
+      : 'N/A',
+    'Heure fin': mission.endDate
+      ? format(new Date(mission.endDate), 'HH:mm', { locale: fr })
+      : 'N/A',
+    Lieu: mission.location,
+    Statut: getStatusLabel(mission.status),
+    Type: mission.type === 'scheduled' ? 'Planifiée' : 'Ponctuelle',
+    'Bénévoles inscrits': mission.volunteers.length,
+    'Places totales': mission.maxVolunteers,
+    'Places restantes': mission.maxVolunteers - mission.volunteers.length,
+    Urgent: mission.isUrgent ? 'Oui' : 'Non',
+    'Nombre responsables': mission.responsibles.length,
+  }));
+
+  const wsPlanning = XLSX.utils.json_to_sheet(planningData);
+  wsPlanning['!cols'] = [
+    { wch: 30 }, // Titre
+    { wch: 35 }, // Date
+    { wch: 12 }, // Heure début
+    { wch: 12 }, // Heure fin
+    { wch: 25 }, // Lieu
+    { wch: 12 }, // Statut
+    { wch: 12 }, // Type
+    { wch: 18 }, // Bénévoles inscrits
+    { wch: 15 }, // Places totales
+    { wch: 18 }, // Places restantes
+    { wch: 10 }, // Urgent
+    { wch: 18 }, // Nombre responsables
+  ];
+  XLSX.utils.book_append_sheet(wb, wsPlanning, 'Planning Global');
+
+  // Feuille 2: Bénévoles par Mission
+  const volunteersData: any[] = [];
+  sortedMissions.forEach((mission) => {
+    // Header de mission
+    volunteersData.push({
+      Mission: `--- ${mission.title.toUpperCase()} ---`,
+      Date: mission.startDate
+        ? format(new Date(mission.startDate), 'dd/MM/yyyy HH:mm', { locale: fr })
+        : 'N/A',
+      Nom: '',
+      Prénom: '',
+      Téléphone: '',
+      Email: '',
+      Rôle: '',
+      'Est Responsable': '',
+    });
+
+    // Bénévoles de la mission
+    mission.volunteers.forEach((volunteerId) => {
+      const volunteer = allVolunteers.get(volunteerId);
+      if (volunteer) {
+        volunteersData.push({
+          Mission: mission.title,
+          Date: mission.startDate
+            ? format(new Date(mission.startDate), 'dd/MM/yyyy', { locale: fr })
+            : 'N/A',
+          Nom: volunteer.lastName,
+          Prénom: volunteer.firstName,
+          Téléphone: volunteer.phone || 'N/A',
+          Email: volunteer.email,
+          Rôle: getRoleLabel(volunteer.role),
+          'Est Responsable': mission.responsibles.includes(volunteerId) ? 'Oui' : 'Non',
+        });
+      }
+    });
+
+    // Ligne vide entre les missions
+    volunteersData.push({
+      Mission: '',
+      Date: '',
+      Nom: '',
+      Prénom: '',
+      Téléphone: '',
+      Email: '',
+      Rôle: '',
+      'Est Responsable': '',
+    });
+  });
+
+  const wsVolunteers = XLSX.utils.json_to_sheet(volunteersData);
+  wsVolunteers['!cols'] = [
+    { wch: 30 }, // Mission
+    { wch: 15 }, // Date
+    { wch: 20 }, // Nom
+    { wch: 20 }, // Prénom
+    { wch: 15 }, // Téléphone
+    { wch: 30 }, // Email
+    { wch: 15 }, // Rôle
+    { wch: 18 }, // Est Responsable
+  ];
+  XLSX.utils.book_append_sheet(wb, wsVolunteers, 'Bénévoles par Mission');
+
+  // Feuille 3: Statistiques par Mission
+  const statsData = sortedMissions.map((mission) => ({
+    Mission: mission.title,
+    Date: mission.startDate
+      ? format(new Date(mission.startDate), 'dd/MM/yyyy', { locale: fr })
+      : 'N/A',
+    'Bénévoles': mission.volunteers.length,
+    'Capacité': mission.maxVolunteers,
+    'Taux remplissage': `${Math.round((mission.volunteers.length / mission.maxVolunteers) * 100)}%`,
+    'Responsables': mission.responsibles.length,
+    Statut: getStatusLabel(mission.status),
+  }));
+
+  const wsStats = XLSX.utils.json_to_sheet(statsData);
+  wsStats['!cols'] = [
+    { wch: 30 }, // Mission
+    { wch: 12 }, // Date
+    { wch: 12 }, // Bénévoles
+    { wch: 10 }, // Capacité
+    { wch: 16 }, // Taux remplissage
+    { wch: 14 }, // Responsables
+    { wch: 12 }, // Statut
+  ];
+  XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiques');
+
+  // Télécharger le fichier
+  const fileName = `planning-global-festival-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
+/**
  * Génère un fichier Excel avec le planning personnel d'un bénévole
  */
 export function exportVolunteerPlanningExcel(

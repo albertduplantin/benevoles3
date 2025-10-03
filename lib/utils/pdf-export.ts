@@ -336,6 +336,171 @@ export async function exportGlobalStatsPDF(
 }
 
 /**
+ * Génère un PDF avec le planning global de toutes les missions (Admin)
+ */
+export async function exportGlobalPlanningPDF(
+  missions: MissionClient[],
+  allVolunteers: Map<string, UserClient>
+) {
+  const doc = new jsPDF();
+  let currentPage = 1;
+
+  // En-tête
+  doc.setFontSize(20);
+  doc.text('Festival Films Courts de Dinan 2025', 105, 20, { align: 'center' });
+
+  doc.setFontSize(16);
+  doc.text('Planning Global du Festival', 105, 30, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.text(
+    `Généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })}`,
+    105,
+    40,
+    { align: 'center' }
+  );
+
+  let yPos = 55;
+
+  // Trier les missions par date
+  const sortedMissions = missions
+    .filter((m) => m.status !== 'cancelled')
+    .sort((a, b) => {
+      if (!a.startDate) return 1;
+      if (!b.startDate) return -1;
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    });
+
+  // Statistiques globales
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Résumé Global', 20, yPos);
+  yPos += 8;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const totalVolunteers = new Set(sortedMissions.flatMap((m) => m.volunteers)).size;
+  const totalSlots = sortedMissions.reduce((sum, m) => sum + m.maxVolunteers, 0);
+  const filledSlots = sortedMissions.reduce((sum, m) => sum + m.volunteers.length, 0);
+  const fillRate = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
+
+  doc.text(`Total missions: ${sortedMissions.length}`, 25, yPos);
+  yPos += 6;
+  doc.text(`Total bénévoles uniques: ${totalVolunteers}`, 25, yPos);
+  yPos += 6;
+  doc.text(`Places remplies: ${filledSlots} / ${totalSlots} (${fillRate}%)`, 25, yPos);
+  yPos += 10;
+
+  // Ligne de séparation
+  doc.setDrawColor(200, 200, 200);
+  doc.line(20, yPos, 190, yPos);
+  yPos += 10;
+
+  // Pour chaque mission
+  sortedMissions.forEach((mission, index) => {
+    // Vérifier si on a besoin d'une nouvelle page
+    if (yPos > 240) {
+      doc.addPage();
+      currentPage++;
+      yPos = 20;
+    }
+
+    // Titre de la mission
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    const missionTitle = `${index + 1}. ${mission.title}`;
+    doc.text(missionTitle, 20, yPos);
+    yPos += 7;
+
+    // Info de la mission
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+
+    if (mission.startDate) {
+      const dateStr = format(
+        new Date(mission.startDate),
+        "EEEE d MMMM yyyy 'de' HH'h'mm",
+        { locale: fr }
+      );
+      const endStr = mission.endDate
+        ? ` à ${format(new Date(mission.endDate), "HH'h'mm", { locale: fr })}`
+        : '';
+      doc.text(`Date: ${dateStr}${endStr}`, 25, yPos);
+      yPos += 5;
+    }
+
+    doc.text(`Lieu: ${mission.location}`, 25, yPos);
+    yPos += 5;
+
+    doc.text(
+      `Bénévoles: ${mission.volunteers.length}/${mission.maxVolunteers} | Statut: ${getStatusLabel(mission.status)}`,
+      25,
+      yPos
+    );
+    yPos += 5;
+
+    if (mission.isUrgent) {
+      doc.setTextColor(239, 68, 68);
+      doc.text('[URGENT]', 25, yPos);
+      doc.setTextColor(0, 0, 0);
+      yPos += 5;
+    }
+
+    // Liste des bénévoles
+    if (mission.volunteers.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Bénévoles inscrits:', 25, yPos);
+      yPos += 5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+
+      mission.volunteers.slice(0, 5).forEach((volunteerId) => {
+        const volunteer = allVolunteers.get(volunteerId);
+        if (volunteer) {
+          const isResponsible = mission.responsibles.includes(volunteerId);
+          const responsibleTag = isResponsible ? ' [RESPONSABLE]' : '';
+          const volunteerInfo = `- ${volunteer.firstName} ${volunteer.lastName}${responsibleTag} | ${volunteer.phone || 'N/A'} | ${volunteer.email}`;
+          const lines = doc.splitTextToSize(volunteerInfo, 165);
+          doc.text(lines, 30, yPos);
+          yPos += lines.length * 4;
+        }
+      });
+
+      if (mission.volunteers.length > 5) {
+        doc.text(`... et ${mission.volunteers.length - 5} autre(s) bénévole(s)`, 30, yPos);
+        yPos += 4;
+      }
+    } else {
+      doc.setTextColor(150, 150, 150);
+      doc.text('Aucun bénévole inscrit', 25, yPos);
+      doc.setTextColor(0, 0, 0);
+      yPos += 5;
+    }
+
+    yPos += 3;
+
+    // Ligne de séparation
+    doc.setDrawColor(220, 220, 220);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 8;
+  });
+
+  // Pied de page sur toutes les pages
+  const totalPages = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Page ${i} / ${totalPages}`, 105, 285, { align: 'center' });
+  }
+
+  // Télécharger le PDF
+  const fileName = `planning-global-festival-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  doc.save(fileName);
+}
+
+/**
  * Génère un PDF avec le planning personnel d'un bénévole
  */
 export async function exportVolunteerPlanningPDF(
