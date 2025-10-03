@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { MissionCalendar } from '@/components/features/calendar/mission-calendar';
+import { VolunteerCallGenerator } from '@/components/features/admin/volunteer-call-generator';
 import Link from 'next/link';
 import {
   CalendarIcon,
@@ -310,12 +311,27 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Section inférieure : Paramètres Admin ou Missions Coordonnées */}
+      {/* Section inférieure : Appel Bénévoles et Paramètres Admin ou Missions Coordonnées */}
       {isAdmin && !isLoadingSettings && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Paramètres Administrateur</CardTitle>
-            <CardDescription>
+        <>
+          {/* Générateur d'appel aux bénévoles */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Communication</CardTitle>
+              <CardDescription>
+                Générez un message d'appel aux bénévoles pour les missions incomplètes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VolunteerCallGenerator missions={allMissions} />
+            </CardContent>
+          </Card>
+
+          {/* Paramètres Admin */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Paramètres Administrateur</CardTitle>
+              <CardDescription>
               Configuration de la validation des demandes
             </CardDescription>
           </CardHeader>
@@ -338,6 +354,7 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Missions Coordonnées (Responsable) */}
