@@ -1,0 +1,78 @@
+# Règles de Développement - Festival Bénévoles
+
+## Conventions de Code
+
+### Naming
+- Variables et fonctions : camelCase
+- Composants React : PascalCase
+- Fichiers : kebab-case
+- Types et Interfaces : PascalCase
+- Constantes : UPPER_SNAKE_CASE
+
+### Imports
+- Utiliser les imports absolus avec `@/`
+- Ordre des imports : 1) React, 2) Libraries, 3) Components, 4) Utils, 5) Types
+
+### Components
+- Préférer Server Components par défaut
+- Utiliser 'use client' uniquement si nécessaire
+- Un composant par fichier
+- Props typées avec TypeScript
+
+### Validation
+- Toujours utiliser Zod pour la validation
+- Valider côté client ET serveur
+- Utiliser React Hook Form pour les formulaires
+
+### State Management
+- Context API pour l'auth
+- TanStack Query pour les données serveur
+- useState/useReducer pour l'UI locale
+
+### Firebase
+- Toujours vérifier l'authentification
+- Utiliser les converters Timestamp → Date
+- Respecter les Firestore Rules
+
+### Error Handling
+- Toujours wrapper les appels Firebase dans try/catch
+- Messages d'erreur en français
+- Logger les erreurs en dev
+
+### Sécurité
+- Ne jamais exposer les clés dans le code
+- Valider toutes les entrées utilisateur
+- Vérifier les permissions côté serveur
+
+## Structure des Commits
+
+```
+feat: ajouter nouvelle fonctionnalité
+fix: corriger un bug
+docs: mettre à jour la documentation
+style: formatage du code
+refactor: refactoriser le code
+test: ajouter des tests
+chore: maintenance du projet
+```
+
+## Testing
+- Tests unitaires pour la logique critique
+- Tests E2E pour les parcours utilisateur
+- Tests des Firestore Rules
+
+## Performance
+- Optimiser les images avec next/image
+- Paginer les listes (max 50 items)
+- Utiliser le cache de TanStack Query
+- Minimiser les re-renders
+
+## Phase Actuelle
+- Phase 0 : ✅ Terminée
+- Phase 1 : ⏳ Prochaine (Authentification & Profils)
+
+## Documentation
+- Voir README.md pour la documentation complète
+- Voir ARCHITECTURE.md pour les décisions techniques
+- Voir FIREBASE_SETUP.md pour la configuration Firebase
+

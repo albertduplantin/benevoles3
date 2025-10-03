@@ -1,0 +1,3 @@
+# Ce dossier contiendra les composants shadcn/ui
+# Les composants seront ajoutés avec: npx shadcn@latest add [component-name]
+

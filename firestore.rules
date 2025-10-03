@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isResponsible() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['mission_responsible', 'admin'];
+    }
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    match /missions/{missionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAdmin() 
+                   || (isResponsible() && request.auth.uid in resource.data.responsibles)
+                   || (isAuthenticated() && isVolunteerRegistration())
+                   || (isAuthenticated() && isResponsibilityRequest());
+      allow delete: if isAdmin();
+    }
+    
+    // Fonction pour vérifier si c'est une inscription/désinscription de bénévole
+    function isVolunteerRegistration() {
+      let oldVolunteers = resource.data.volunteers;
+      let newVolunteers = request.resource.data.volunteers;
+      let userAdded = request.auth.uid in newVolunteers && !(request.auth.uid in oldVolunteers);
+      let userRemoved = !(request.auth.uid in newVolunteers) && request.auth.uid in oldVolunteers;
+      let onlyVolunteersChanged = request.resource.data.diff(resource.data).affectedKeys().hasOnly(['volunteers', 'updatedAt', 'status']);
+      
+      return (userAdded || userRemoved) && onlyVolunteersChanged;
+    }
+    
+    // Fonction pour vérifier si c'est une demande/retrait de responsabilité
+    function isResponsibilityRequest() {
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      let onlyResponsibilityFieldsChanged = affectedKeys.hasOnly(['pendingResponsibles', 'responsibles', 'volunteers', 'updatedAt']);
+      
+      let oldPending = resource.data.get('pendingResponsibles', []);
+      let newPending = request.resource.data.get('pendingResponsibles', []);
+      let oldResponsibles = resource.data.get('responsibles', []);
+      let newResponsibles = request.resource.data.get('responsibles', []);
+      
+      // Demander responsabilité (ajouter à pending) ou auto-approbation (ajouter à responsibles)
+      let addedToPending = request.auth.uid in newPending && !(request.auth.uid in oldPending);
+      let addedToResponsibles = request.auth.uid in newResponsibles && !(request.auth.uid in oldResponsibles);
+      
+      // Annuler demande (retirer de pending)
+      let removedFromPending = !(request.auth.uid in newPending) && request.auth.uid in oldPending;
+      
+      // Se retirer comme responsable
+      let removedFromResponsibles = !(request.auth.uid in newResponsibles) && request.auth.uid in oldResponsibles;
+      
+      let validAction = addedToPending || addedToResponsibles || removedFromPending || removedFromResponsibles;
+      
+      return onlyResponsibilityFieldsChanged && validAction;
+    }
+    
+    match /volunteerRequests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() 
+                    && request.auth.uid == request.resource.data.userId
+                    && request.resource.data.status == 'pending';
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    match /settings/{document} {
+      allow read: if isAuthenticated(); // Lecture pour tous les utilisateurs authentifiés
+      allow write: if isAdmin(); // Écriture uniquement pour les admins
+    }
+  }
+}

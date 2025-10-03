@@ -1,0 +1,33 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "missions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "missions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "volunteers",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "startDate",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

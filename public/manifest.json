@@ -1,0 +1,18 @@
+{
+  "name": "Festival Films Courts de Dinan - Bénévoles",
+  "short_name": "Festival Bénévoles",
+  "description": "Application de gestion des bénévoles pour le Festival Films Courts de Dinan 2025",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
+

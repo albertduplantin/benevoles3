@@ -1,0 +1,125 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signInWithEmail } from '@/lib/firebase/auth';
+import { loginSchema, LoginInput } from '@/lib/validations/user';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+import { GoogleSignInButton } from './google-sign-in-button';
+
+export function LoginForm() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginInput) => {
+    console.log('Form submitted with data:', data);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('Attempting to sign in...');
+      await signInWithEmail(data.email, data.password);
+      console.log('Sign in successful, redirecting...');
+      // Utiliser window.location pour forcer un rechargement complet
+      window.location.href = '/dashboard';
+    } catch (err: any) {
+      console.error('Sign in error:', err);
+      setError(err.message || 'Une erreur est survenue lors de la connexion');
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Connexion</CardTitle>
+        <CardDescription>
+          Connectez-vous à votre compte bénévole
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {error && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              {...register('email')}
+              placeholder="jean.dupont@example.com"
+              disabled={isLoading}
+            />
+            {errors.email && (
+              <p className="text-sm text-red-600">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Mot de passe</Label>
+              <Link
+                href="/auth/reset-password"
+                className="text-sm text-primary hover:underline"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              {...register('password')}
+              placeholder="••••••••"
+              disabled={isLoading}
+            />
+            {errors.password && (
+              <p className="text-sm text-red-600">{errors.password.message}</p>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Connexion en cours...' : 'Se connecter'}
+          </Button>
+        </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">Ou continuer avec</span>
+          </div>
+        </div>
+
+        <GoogleSignInButton disabled={isLoading} />
+
+        <div className="text-center text-sm">
+          Vous n&apos;avez pas de compte ?{' '}
+          <Link href="/auth/register" className="text-primary underline">
+            S&apos;inscrire
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
