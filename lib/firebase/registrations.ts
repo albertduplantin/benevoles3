@@ -70,14 +70,31 @@ export async function registerToMission(
     // Envoyer l'email de confirmation (sans attendre)
     // On fait ça après la transaction pour ne pas la bloquer
     if (typeof window !== 'undefined') {
+      console.log('📧 Déclenchement email inscription...');
+      console.log('👤 User ID:', userId);
+      console.log('🎯 Mission ID:', missionId);
+      
       fetch('/api/notifications/registration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ volunteerId: userId, missionId }),
-      }).catch(error => {
-        console.error('Failed to send registration email:', error);
-        // On ne fait pas échouer l'inscription si l'email échoue
-      });
+      })
+        .then(response => {
+          console.log('📬 Réponse API notifications:', response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log('📬 Données réponse:', data);
+          if (data.success) {
+            console.log('✅ Email envoyé avec succès !');
+          } else {
+            console.error('❌ Erreur email:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('❌ Failed to send registration email:', error);
+          // On ne fait pas échouer l'inscription si l'email échoue
+        });
     }
   } catch (error: any) {
     console.error('Error registering to mission:', error);
