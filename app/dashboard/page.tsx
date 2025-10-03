@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { MissionCalendar } from '@/components/features/calendar/mission-calendar';
 import { VolunteerCallGenerator } from '@/components/features/admin/volunteer-call-generator';
+import { ExportButtons } from '@/components/features/exports/export-buttons';
 import Link from 'next/link';
 import {
   CalendarIcon,
@@ -314,18 +315,43 @@ export default function DashboardPage() {
       {/* Section inférieure : Appel Bénévoles et Paramètres Admin ou Missions Coordonnées */}
       {isAdmin && !isLoadingSettings && (
         <>
-          {/* Générateur d'appel aux bénévoles */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Communication</CardTitle>
-              <CardDescription>
-                Générez un message d'appel aux bénévoles pour les missions incomplètes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VolunteerCallGenerator missions={allMissions} />
-            </CardContent>
-          </Card>
+          {/* Communication et Exports */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Générateur d'appel aux bénévoles */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Communication</CardTitle>
+                <CardDescription>
+                  Générez un message d'appel aux bénévoles pour les missions incomplètes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <VolunteerCallGenerator missions={allMissions} />
+              </CardContent>
+            </Card>
+
+            {/* Exports de données */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Exports</CardTitle>
+                <CardDescription>
+                  Exportez les statistiques et données du festival au format PDF ou Excel
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ExportButtons
+                  type="global"
+                  missions={allMissions}
+                  totalVolunteers={totalVolunteers}
+                  allVolunteers={new Map(
+                    allMissions
+                      .flatMap((m) => m.volunteers)
+                      .map((uid) => [uid, { uid } as any])
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Paramètres Admin */}
           <Card>

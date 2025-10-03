@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDateTime } from '@/lib/utils/date';
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar';
 import { hasPermission, canEditMission } from '@/lib/utils/permissions';
+import { ExportButtons } from '@/components/features/exports/export-buttons';
 import Link from 'next/link';
 import {
   CalendarIcon,
@@ -364,11 +365,22 @@ export default function MissionDetailPage() {
             </Link>
           </Button>
 
-          {mission && canEditMission(user.role, user.uid, mission.responsibles) && (
-            <Button variant="outline" asChild>
-              <Link href={`/dashboard/missions/${missionId}/edit`}>Modifier</Link>
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {mission && (canEditMission(user.role, user.uid, mission.responsibles) || participants.length > 0) && (
+              <ExportButtons
+                type="mission"
+                mission={mission}
+                volunteers={participants}
+                responsibles={currentResponsibles}
+              />
+            )}
+            
+            {mission && canEditMission(user.role, user.uid, mission.responsibles) && (
+              <Button variant="outline" asChild>
+                <Link href={`/dashboard/missions/${missionId}/edit`}>Modifier</Link>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Alerts */}
