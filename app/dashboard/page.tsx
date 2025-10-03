@@ -3,7 +3,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { signOut } from '@/lib/firebase/auth';
 import { isProfileComplete } from '@/lib/firebase/users';
 import { getUserMissions, getAllMissions } from '@/lib/firebase/missions';
 import { getAdminSettings, updateAdminSettings } from '@/lib/firebase/admin-settings';
@@ -103,15 +102,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.push('/');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -146,22 +136,16 @@ export default function DashboardPage() {
   const isResponsible = user.role === 'mission_responsible' || coordinatingMissions.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">
-              {isAdmin ? 'Dashboard Administrateur' : isResponsible ? 'Dashboard Responsable' : 'Mon Dashboard'}
-            </h1>
-            <p className="text-muted-foreground">
-              Bienvenue, {user.firstName} {user.lastName}
-            </p>
-          </div>
-          <Button onClick={handleSignOut} variant="outline">
-            Déconnexion
-          </Button>
-        </div>
+    <div className="space-y-6">
+      {/* Header simplifié */}
+      <div>
+        <h1 className="text-3xl font-bold">
+          {isAdmin ? 'Tableau de bord' : 'Mon Dashboard'}
+        </h1>
+        <p className="text-muted-foreground">
+          Bienvenue, {user.firstName} 👋
+        </p>
+      </div>
 
         {/* Stats Cards */}
         {isAdmin ? (
@@ -304,113 +288,97 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Calendrier */}
+      {/* Calendrier - Plus central et épuré */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Mon Calendrier</CardTitle>
+          <CardDescription>
+            Visualisez vos missions sur le calendrier
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingMissions ? (
+            <div className="flex items-center justify-center py-8">
+              <p className="text-muted-foreground">Chargement...</p>
+            </div>
+          ) : (
+            <MissionCalendar
+              missions={isAdmin ? allMissions : missions}
+              currentUserId={user.uid}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section inférieure : Paramètres Admin ou Missions Coordonnées */}
+      {isAdmin && !isLoadingSettings && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              {isAdmin
-                ? 'Calendrier des Missions'
-                : isResponsible
-                ? 'Calendrier de Mes Missions'
-                : 'Mon Calendrier'}
-            </CardTitle>
+            <CardTitle>Paramètres Administrateur</CardTitle>
             <CardDescription>
-              {isAdmin
-                ? 'Vue d\'ensemble de toutes les missions'
-                : 'Visualisez vos missions sur le calendrier'}
+              Configuration de la validation des demandes
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingMissions ? (
-              <p>Chargement du calendrier...</p>
-            ) : (
-              <MissionCalendar
-                missions={isAdmin ? allMissions : missions}
-                currentUserId={user.uid}
+            <div className="flex items-center justify-between space-x-4">
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="auto-approve" className="text-base">
+                  Validation automatique des responsables
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Les bénévoles deviennent automatiquement responsables sans validation manuelle
+                </p>
+              </div>
+              <Switch
+                id="auto-approve"
+                checked={autoApprove}
+                onCheckedChange={handleToggleAutoApprove}
+                disabled={isSavingSettings}
               />
-            )}
+            </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Actions Rapides */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions Rapides</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button asChild className="w-full">
-                <Link href="/dashboard/missions">Voir toutes les missions</Link>
-              </Button>
-              {isAdmin && (
-                <Button asChild className="w-full" variant="secondary">
-                  <Link href="/dashboard/missions/new">Créer une mission</Link>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Paramètres Admin */}
-          {isAdmin && !isLoadingSettings && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Paramètres</CardTitle>
-                <CardDescription>
-                  Configuration des validations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between space-x-4">
-                  <div className="flex-1 space-y-1">
-                    <Label htmlFor="auto-approve">Validation automatique</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Approuver automatiquement les demandes de responsabilité
-                    </p>
-                  </div>
-                  <Switch
-                    id="auto-approve"
-                    checked={autoApprove}
-                    onCheckedChange={handleToggleAutoApprove}
-                    disabled={isSavingSettings}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Missions Coordonnées (Responsable) */}
-          {isResponsible && coordinatingMissions.length > 0 && (
-            <Card>
-              <CardHeader>
+      {/* Missions Coordonnées (Responsable) */}
+      {!isAdmin && isResponsible && coordinatingMissions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
                 <CardTitle>Missions que je coordonne</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {coordinatingMissions.slice(0, 3).map((mission) => (
-                    <Link
-                      key={mission.id}
-                      href={`/dashboard/missions/${mission.id}`}
-                      className="block p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
+                <CardDescription>
+                  Les missions dont vous êtes responsable
+                </CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/missions">Voir tout</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {coordinatingMissions.slice(0, 3).map((mission) => (
+                <Link
+                  key={mission.id}
+                  href={`/dashboard/missions/${mission.id}`}
+                  className="block p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
                       <p className="font-semibold">{mission.title}</p>
                       <p className="text-sm text-muted-foreground">
                         {mission.volunteers.length}/{mission.maxVolunteers} bénévoles
                       </p>
-                    </Link>
-                  ))}
-                  {coordinatingMissions.length > 3 && (
-                    <Button asChild variant="outline" className="w-full">
-                      <Link href="/dashboard/missions">
-                        Voir toutes ({coordinatingMissions.length})
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+                    </div>
+                    <Badge className="bg-purple-600">👑 Responsable</Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
