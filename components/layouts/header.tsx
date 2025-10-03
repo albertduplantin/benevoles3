@@ -27,6 +27,7 @@ import {
   LogOutIcon,
   UserIcon,
   PlusCircleIcon,
+  BellIcon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -59,6 +60,12 @@ const navigation: NavItem[] = [
     label: 'Bénévoles',
     href: '/dashboard/volunteers',
     icon: UsersIcon,
+    roles: ['admin'],
+  },
+  {
+    label: 'Notifications',
+    href: '/dashboard/admin/notifications',
+    icon: BellIcon,
     roles: ['admin'],
   },
 ];
