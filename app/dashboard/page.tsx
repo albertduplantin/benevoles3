@@ -140,7 +140,7 @@ export default function DashboardPage() {
       {/* Header simplifié */}
       <div>
         <h1 className="text-3xl font-bold">
-          {isAdmin ? 'Tableau de bord' : 'Mon Dashboard'}
+          {isAdmin ? 'Tableau de bord' : 'Mon Tableau de bord'}
         </h1>
         <p className="text-muted-foreground">
           Bienvenue, {user.firstName} 👋
