@@ -338,6 +338,42 @@ export default function DashboardPage() {
           </div>
         )}
 
+      {/* Communication et Exports (Admin uniquement) - AU DESSUS du calendrier */}
+      {isAdmin && !isLoadingSettings && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Générateur d'appel aux bénévoles */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Communication</CardTitle>
+              <CardDescription>
+                Générez un message d'appel aux bénévoles pour les missions incomplètes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VolunteerCallGenerator missions={allMissions} />
+            </CardContent>
+          </Card>
+
+          {/* Exports de données */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Exports</CardTitle>
+              <CardDescription>
+                Exportez les statistiques et données du festival au format PDF ou Excel
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ExportButtons
+                type="global"
+                missions={allMissions}
+                totalVolunteers={totalVolunteers}
+                allVolunteers={allVolunteersMap}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Calendrier - Plus central et épuré */}
       <Card>
         <CardHeader>
@@ -372,42 +408,9 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Section inférieure : Appel Bénévoles et Paramètres Admin ou Missions Coordonnées */}
+      {/* Paramètres Admin - EN DESSOUS du calendrier */}
       {isAdmin && !isLoadingSettings && (
         <>
-          {/* Communication et Exports */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Générateur d'appel aux bénévoles */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Communication</CardTitle>
-                <CardDescription>
-                  Générez un message d'appel aux bénévoles pour les missions incomplètes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <VolunteerCallGenerator missions={allMissions} />
-              </CardContent>
-            </Card>
-
-            {/* Exports de données */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Exports</CardTitle>
-                <CardDescription>
-                  Exportez les statistiques et données du festival au format PDF ou Excel
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ExportButtons
-                  type="global"
-                  missions={allMissions}
-                  totalVolunteers={totalVolunteers}
-                  allVolunteers={allVolunteersMap}
-                />
-              </CardContent>
-            </Card>
-          </div>
 
           {/* Paramètres Admin */}
           <Card>
