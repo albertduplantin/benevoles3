@@ -254,11 +254,26 @@ export default function MissionsPage() {
                         </span>
                       )}
                     </CardTitle>
-                    {isAdmin && mission.pendingResponsibles && mission.pendingResponsibles.length > 0 && (
-                      <Badge variant="destructive" className="text-xs">
-                        {mission.pendingResponsibles.length} demande{mission.pendingResponsibles.length > 1 ? 's' : ''} responsable
-                      </Badge>
-                    )}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {/* Badge si l'utilisateur est inscrit */}
+                      {user && mission.volunteers.includes(user.uid) && (
+                        <Badge className="bg-blue-600 text-white">
+                          ✓ Inscrit
+                        </Badge>
+                      )}
+                      {/* Badge si l'utilisateur est responsable */}
+                      {user && mission.responsibles.includes(user.uid) && (
+                        <Badge className="bg-purple-600 text-white">
+                          👑 Responsable
+                        </Badge>
+                      )}
+                      {/* Badge pour les admins : demandes en attente (seulement si pas encore de responsable) */}
+                      {isAdmin && mission.pendingResponsibles && mission.pendingResponsibles.length > 0 && mission.responsibles.length === 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          {mission.pendingResponsibles.length} demande{mission.pendingResponsibles.length > 1 ? 's' : ''} responsable
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <span
                     className={`text-xs px-2 py-1 rounded ${
