@@ -335,6 +335,126 @@ export async function exportGlobalStatsPDF(
   doc.save(fileName);
 }
 
+/**
+ * Génère un PDF avec le planning personnel d'un bénévole
+ */
+export async function exportVolunteerPlanningPDF(
+  missions: MissionClient[],
+  volunteerName: string,
+  allParticipants: Map<string, UserClient[]>
+) {
+  const doc = new jsPDF();
+
+  // En-tête
+  doc.setFontSize(20);
+  doc.text('Festival Films Courts de Dinan 2025', 105, 20, { align: 'center' });
+
+  doc.setFontSize(16);
+  doc.text('Mon Planning Bénévole', 105, 30, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.text(volunteerName, 105, 40, { align: 'center' });
+
+  let yPos = 55;
+
+  // Trier les missions par date
+  const sortedMissions = missions.sort((a, b) => {
+    if (!a.startDate) return 1;
+    if (!b.startDate) return -1;
+    return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+  });
+
+  // Pour chaque mission
+  sortedMissions.forEach((mission, index) => {
+    // Vérifier si on a besoin d'une nouvelle page
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Titre de la mission
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${index + 1}. ${mission.title}`, 20, yPos);
+    yPos += 8;
+
+    // Infos de la mission
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+    if (mission.startDate) {
+      const dateStr = format(
+        new Date(mission.startDate),
+        "EEEE d MMMM yyyy 'à' HH'h'mm",
+        { locale: fr }
+      );
+      doc.text(`📅 ${dateStr}`, 25, yPos);
+      yPos += 6;
+    }
+
+    doc.text(`📍 ${mission.location}`, 25, yPos);
+    yPos += 6;
+
+    doc.text(`Statut: ${getStatusLabel(mission.status)}`, 25, yPos);
+    yPos += 6;
+
+    // Description
+    const descLines = doc.splitTextToSize(mission.description, 160);
+    doc.text(descLines, 25, yPos);
+    yPos += descLines.length * 5 + 5;
+
+    // Contacts
+    const participants = allParticipants.get(mission.id) || [];
+    if (participants.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('👥 Contacts:', 25, yPos);
+      yPos += 6;
+
+      doc.setFont('helvetica', 'normal');
+      participants.slice(0, 3).forEach((participant) => {
+        const contact = `• ${participant.firstName} ${participant.lastName} - ${participant.phone || 'N/A'} - ${participant.email}`;
+        const contactLines = doc.splitTextToSize(contact, 155);
+        doc.text(contactLines, 30, yPos);
+        yPos += contactLines.length * 5;
+      });
+
+      if (participants.length > 3) {
+        doc.text(`+ ${participants.length - 3} autre(s) bénévole(s)`, 30, yPos);
+        yPos += 5;
+      }
+    }
+
+    yPos += 5;
+
+    // Ligne de séparation
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 10;
+  });
+
+  // Pied de page
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      `Généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })}`,
+      20,
+      doc.internal.pageSize.height - 10
+    );
+    doc.text(
+      `Page ${i} / ${pageCount}`,
+      doc.internal.pageSize.width - 40,
+      doc.internal.pageSize.height - 10
+    );
+  }
+
+  // Télécharger le PDF
+  const fileName = `mon-planning-benevole-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  doc.save(fileName);
+}
+
 // Helpers
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {

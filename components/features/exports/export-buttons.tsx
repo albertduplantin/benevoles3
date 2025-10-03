@@ -16,22 +16,26 @@ import {
   exportMissionVolunteersPDF,
   exportMissionReportPDF,
   exportGlobalStatsPDF,
+  exportVolunteerPlanningPDF,
 } from '@/lib/utils/pdf-export';
 import {
   exportMissionVolunteersExcel,
   exportMissionReportExcel,
   exportGlobalStatsExcel,
   exportFullDataExcel,
+  exportVolunteerPlanningExcel,
 } from '@/lib/utils/excel-export';
 
 interface ExportButtonsProps {
-  type: 'mission' | 'global';
+  type: 'mission' | 'global' | 'volunteer-planning';
   mission?: MissionClient;
   missions?: MissionClient[];
   volunteers?: UserClient[];
   responsibles?: UserClient[];
   totalVolunteers?: number;
   allVolunteers?: Map<string, UserClient>;
+  volunteerName?: string;
+  allParticipants?: Map<string, UserClient[]>;
 }
 
 export function ExportButtons({
@@ -42,6 +46,8 @@ export function ExportButtons({
   responsibles = [],
   totalVolunteers = 0,
   allVolunteers,
+  volunteerName = '',
+  allParticipants,
 }: ExportButtonsProps) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -73,6 +79,13 @@ export function ExportButtons({
           } else if (exportType === 'full' && allVolunteers) {
             exportFullDataExcel(missions, allVolunteers);
           }
+        }
+      } else if (type === 'volunteer-planning' && missions && allParticipants) {
+        // Export planning personnel bénévole
+        if (format === 'pdf') {
+          await exportVolunteerPlanningPDF(missions, volunteerName, allParticipants);
+        } else if (format === 'excel') {
+          exportVolunteerPlanningExcel(missions, volunteerName, allParticipants);
         }
       }
     } catch (error) {
@@ -129,6 +142,41 @@ export function ExportButtons({
           <DropdownMenuItem onClick={() => handleExport('excel', 'report')}>
             <FileSpreadsheet className="mr-2 h-4 w-4" />
             Excel - Rapport complet
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  if (type === 'volunteer-planning') {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="default" disabled={isExporting}>
+            {isExporting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Export en cours...
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Exporter mon planning
+              </>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>Mon planning personnel</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem onClick={() => handleExport('pdf', 'planning')}>
+            <FileText className="mr-2 h-4 w-4" />
+            PDF - Planning + Contacts
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleExport('excel', 'planning')}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Excel - Planning + Contacts
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

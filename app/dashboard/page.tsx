@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [autoApprove, setAutoApprove] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [missionParticipants, setMissionParticipants] = useState<Map<string, UserClient[]>>(new Map());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -55,6 +56,26 @@ export default function DashboardPage() {
         if (user.role === 'admin' || user.role === 'mission_responsible') {
           const all = await getAllMissions();
           setAllMissions(all);
+        }
+
+        // Charger les participants pour chaque mission du bénévole (pour l'export planning)
+        if (user.role === 'volunteer') {
+          const participantsMap = new Map<string, UserClient[]>();
+          for (const mission of userMissions) {
+            try {
+              const participants: UserClient[] = [];
+              for (const uid of mission.volunteers) {
+                const participant = await getUserById(uid);
+                if (participant) {
+                  participants.push(participant);
+                }
+              }
+              participantsMap.set(mission.id, participants);
+            } catch (error) {
+              console.error(`Error loading participants for mission ${mission.id}:`, error);
+            }
+          }
+          setMissionParticipants(participantsMap);
         }
       } catch (error) {
         console.error('Error loading missions:', error);
@@ -293,10 +314,22 @@ export default function DashboardPage() {
       {/* Calendrier - Plus central et épuré */}
       <Card>
         <CardHeader>
-          <CardTitle>Mon Calendrier</CardTitle>
-          <CardDescription>
-            Visualisez vos missions sur le calendrier
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Mon Calendrier</CardTitle>
+              <CardDescription>
+                Visualisez vos missions sur le calendrier
+              </CardDescription>
+            </div>
+            {!isAdmin && missions.length > 0 && !isLoadingMissions && (
+              <ExportButtons
+                type="volunteer-planning"
+                missions={missions}
+                volunteerName={`${user.firstName} ${user.lastName}`}
+                allParticipants={missionParticipants}
+              />
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoadingMissions ? (

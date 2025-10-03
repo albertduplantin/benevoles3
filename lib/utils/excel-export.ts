@@ -246,15 +246,19 @@ export function exportFullDataExcel(
   XLSX.utils.book_append_sheet(wb, wsMissions, 'Missions');
 
   // Feuille 2: Tous les bénévoles
-  const volunteersData = Array.from(allVolunteers.values()).map((volunteer) => ({
-    ID: volunteer.uid,
-    Nom: volunteer.firstName,
-    Prénom: volunteer.lastName,
-    Email: volunteer.email,
-    Téléphone: volunteer.phone || 'N/A',
-    Rôle: getRoleLabel(volunteer.role),
-    'Inscrit le': format(new Date(volunteer.createdAt), 'dd/MM/yyyy HH:mm', { locale: fr }),
-  }));
+  const volunteersData = Array.from(allVolunteers.values())
+    .filter((volunteer) => volunteer.email) // Filtrer les entrées vides
+    .map((volunteer) => ({
+      ID: volunteer.uid,
+      Nom: volunteer.firstName,
+      Prénom: volunteer.lastName,
+      Email: volunteer.email,
+      Téléphone: volunteer.phone || 'N/A',
+      Rôle: getRoleLabel(volunteer.role),
+      'Inscrit le': volunteer.createdAt 
+        ? format(new Date(volunteer.createdAt), 'dd/MM/yyyy HH:mm', { locale: fr })
+        : 'N/A',
+    }));
 
   const wsVolunteers = XLSX.utils.json_to_sheet(volunteersData);
   wsVolunteers['!cols'] = [
@@ -301,6 +305,99 @@ export function exportFullDataExcel(
 
   // Télécharger le fichier
   const fileName = `export-complet-festival-${format(new Date(), 'yyyy-MM-dd-HHmm')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
+/**
+ * Génère un fichier Excel avec le planning personnel d'un bénévole
+ */
+export function exportVolunteerPlanningExcel(
+  missions: MissionClient[],
+  volunteerName: string,
+  allParticipants: Map<string, UserClient[]> // Map mission.id -> participants
+) {
+  const wb = XLSX.utils.book_new();
+
+  // Feuille 1: Mon Planning
+  const planningData = missions
+    .sort((a, b) => {
+      if (!a.startDate) return 1;
+      if (!b.startDate) return -1;
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    })
+    .map((mission) => ({
+      Titre: mission.title,
+      Date: mission.startDate
+        ? format(new Date(mission.startDate), "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr })
+        : 'Date non définie',
+      Heure: mission.startDate
+        ? format(new Date(mission.startDate), 'HH:mm', { locale: fr })
+        : 'N/A',
+      Lieu: mission.location,
+      Statut: getStatusLabel(mission.status),
+      Description: mission.description.length > 100
+        ? mission.description.substring(0, 100) + '...'
+        : mission.description,
+    }));
+
+  const wsPlanning = XLSX.utils.json_to_sheet(planningData);
+  wsPlanning['!cols'] = [
+    { wch: 30 }, // Titre
+    { wch: 30 }, // Date
+    { wch: 10 }, // Heure
+    { wch: 25 }, // Lieu
+    { wch: 12 }, // Statut
+    { wch: 50 }, // Description
+  ];
+  XLSX.utils.book_append_sheet(wb, wsPlanning, 'Mon Planning');
+
+  // Feuille 2: Contacts par Mission
+  const contactsData: any[] = [];
+  missions.forEach((mission) => {
+    const participants = allParticipants.get(mission.id) || [];
+    
+    // Ajouter un header pour chaque mission
+    contactsData.push({
+      Mission: `=== ${mission.title.toUpperCase()} ===`,
+      Nom: '',
+      Téléphone: '',
+      Email: '',
+      Rôle: '',
+    });
+
+    // Ajouter les participants
+    participants.forEach((participant) => {
+      contactsData.push({
+        Mission: mission.title,
+        Nom: `${participant.firstName} ${participant.lastName}`,
+        Téléphone: participant.phone || 'N/A',
+        Email: participant.email,
+        Rôle: getRoleLabel(participant.role),
+      });
+    });
+
+    // Ligne vide entre les missions
+    contactsData.push({
+      Mission: '',
+      Nom: '',
+      Téléphone: '',
+      Email: '',
+      Rôle: '',
+    });
+  });
+
+  const wsContacts = XLSX.utils.json_to_sheet(contactsData);
+  wsContacts['!cols'] = [
+    { wch: 30 }, // Mission
+    { wch: 25 }, // Nom
+    { wch: 15 }, // Téléphone
+    { wch: 30 }, // Email
+    { wch: 15 }, // Rôle
+  ];
+  XLSX.utils.book_append_sheet(wb, wsContacts, 'Contacts');
+
+  // Télécharger le fichier
+  const fileName = `mon-planning-benevole-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
 
