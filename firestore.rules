@@ -82,5 +82,11 @@ service cloud.firestore {
       allow read: if isAuthenticated(); // Lecture pour tous les utilisateurs authentifiés
       allow write: if isAdmin(); // Écriture uniquement pour les admins
     }
+    
+    match /notificationLogs/{logId} {
+      allow read: if isAdmin(); // Seuls les admins peuvent lire les logs
+      allow create: if true; // Permettre la création depuis l'API (via Admin SDK si nécessaire)
+      allow update, delete: if false; // Les logs ne peuvent pas être modifiés ou supprimés
+    }
   }
 }
