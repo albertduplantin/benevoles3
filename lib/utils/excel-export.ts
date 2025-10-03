@@ -358,7 +358,7 @@ export function exportVolunteerPlanningExcel(
     
     // Ajouter un header pour chaque mission
     contactsData.push({
-      Mission: `=== ${mission.title.toUpperCase()} ===`,
+      Mission: `--- ${mission.title.toUpperCase()} ---`,
       Nom: '',
       Téléphone: '',
       Email: '',

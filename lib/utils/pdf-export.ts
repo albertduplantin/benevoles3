@@ -134,13 +134,13 @@ export async function exportMissionReportPDF(
 
   if (mission.isUrgent) {
     doc.setTextColor(239, 68, 68);
-    doc.text('🔴 Mission Urgente', 25, yPos);
+    doc.text('[URGENT] Mission Urgente', 25, yPos);
     doc.setTextColor(0, 0, 0);
     yPos += 7;
   }
 
   if (mission.isRecurrent) {
-    doc.text('🔄 Mission Récurrente', 25, yPos);
+    doc.text('[RECURRENT] Mission Récurrente', 25, yPos);
     yPos += 7;
   }
 
@@ -388,11 +388,11 @@ export async function exportVolunteerPlanningPDF(
         "EEEE d MMMM yyyy 'à' HH'h'mm",
         { locale: fr }
       );
-      doc.text(`📅 ${dateStr}`, 25, yPos);
+      doc.text(`Date: ${dateStr}`, 25, yPos);
       yPos += 6;
     }
 
-    doc.text(`📍 ${mission.location}`, 25, yPos);
+    doc.text(`Lieu: ${mission.location}`, 25, yPos);
     yPos += 6;
 
     doc.text(`Statut: ${getStatusLabel(mission.status)}`, 25, yPos);
@@ -407,7 +407,7 @@ export async function exportVolunteerPlanningPDF(
     const participants = allParticipants.get(mission.id) || [];
     if (participants.length > 0) {
       doc.setFont('helvetica', 'bold');
-      doc.text('👥 Contacts:', 25, yPos);
+      doc.text('Contacts:', 25, yPos);
       yPos += 6;
 
       doc.setFont('helvetica', 'normal');
