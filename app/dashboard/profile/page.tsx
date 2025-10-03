@@ -111,7 +111,7 @@ export default function ProfilePage() {
                   <div>
                     <p className="text-sm text-gray-500">Membre depuis</p>
                     <p className="font-medium">
-                      {formatDateTime(user.createdAt)}
+                      {formatDateTime(user.createdAt instanceof Date ? user.createdAt : new Date((user.createdAt as any).seconds * 1000))}
                     </p>
                   </div>
                 </div>
@@ -155,7 +155,7 @@ export default function ProfilePage() {
 
             <div className="pt-4 border-t">
               <p className="text-xs text-gray-500">
-                Date du consentement : {formatDateTime(user.consents.consentDate)}
+                Date du consentement : {formatDateTime(user.consents.consentDate instanceof Date ? user.consents.consentDate : new Date((user.consents.consentDate as any).seconds * 1000))}
               </p>
             </div>
           </CardContent>

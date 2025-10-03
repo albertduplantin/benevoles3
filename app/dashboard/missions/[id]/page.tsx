@@ -203,9 +203,12 @@ export default function MissionDetailPage() {
             phone: user.phone,
             photoURL: user.photoURL,
             role: user.role,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-            consents: user.consents,
+            createdAt: user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt.seconds * 1000),
+            updatedAt: user.updatedAt ? (user.updatedAt instanceof Date ? user.updatedAt : new Date(user.updatedAt.seconds * 1000)) : undefined,
+            consents: {
+              ...user.consents,
+              consentDate: user.consents.consentDate instanceof Date ? user.consents.consentDate : new Date(user.consents.consentDate.seconds * 1000),
+            },
           }]);
         }
       }
