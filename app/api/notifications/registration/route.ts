@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendMissionRegistrationEmail } from '@/lib/email/send-notifications';
-import { getUserById } from '@/lib/firebase/users';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { COLLECTIONS } from '@/lib/firebase/collections';
-import { MissionClient } from '@/types';
+import { getUserByIdAdmin } from '@/lib/firebase/users-admin';
+import { getMissionByIdAdmin } from '@/lib/firebase/missions-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,9 +21,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Récupérer les données du bénévole
+    // Récupérer les données du bénévole (côté serveur avec Admin SDK)
     console.log('🔍 Récupération du bénévole...');
-    const volunteer = await getUserById(volunteerId);
+    const volunteer = await getUserByIdAdmin(volunteerId);
     if (!volunteer) {
       console.error('❌ Bénévole non trouvé');
       return NextResponse.json(
@@ -38,38 +35,17 @@ export async function POST(request: NextRequest) {
     console.log('📧 Notifications email activées:', volunteer.notificationPreferences?.email);
     console.log('📢 Communications activées:', volunteer.consents.communications);
 
-    // Récupérer les données de la mission
+    // Récupérer les données de la mission (côté serveur avec Admin SDK)
     console.log('🔍 Récupération de la mission...');
-    const missionDoc = await getDoc(doc(db, COLLECTIONS.MISSIONS, missionId));
-    if (!missionDoc.exists()) {
+    const mission = await getMissionByIdAdmin(missionId);
+    if (!mission) {
       console.error('❌ Mission non trouvée');
       return NextResponse.json(
         { error: 'Mission not found' },
         { status: 404 }
       );
     }
-    console.log('✅ Mission trouvée:', missionDoc.id);
-
-    const missionData = missionDoc.data();
-    const mission: MissionClient = {
-      id: missionDoc.id,
-      title: missionData.title,
-      description: missionData.description,
-      location: missionData.location,
-      startDate: missionData.startDate?.toDate() || null,
-      endDate: missionData.endDate?.toDate() || null,
-      maxVolunteers: missionData.maxVolunteers,
-      volunteers: missionData.volunteers || [],
-      responsibles: missionData.responsibles || [],
-      pendingResponsibles: missionData.pendingResponsibles || [],
-      status: missionData.status,
-      type: missionData.type,
-      isUrgent: missionData.isUrgent || false,
-      isRecurrent: missionData.isRecurrent || false,
-      createdBy: missionData.createdBy,
-      createdAt: missionData.createdAt?.toDate() || new Date(),
-      updatedAt: missionData.updatedAt?.toDate() || null,
-    };
+    console.log('✅ Mission trouvée:', mission.title);
 
     // Envoyer l'email
     console.log('📤 Tentative d\'envoi de l\'email...');
