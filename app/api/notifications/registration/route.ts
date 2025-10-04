@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendMissionRegistrationEmail } from '@/lib/email/send-notifications';
+import { sendMissionRegistrationEmailJS } from '@/lib/email/send-notifications-emailjs';
 import { getUserByIdAdmin } from '@/lib/firebase/users-admin';
 import { getMissionByIdAdmin } from '@/lib/firebase/missions-admin';
 
@@ -47,9 +47,9 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ Mission trouvée:', mission.title);
 
-    // Envoyer l'email
-    console.log('📤 Tentative d\'envoi de l\'email...');
-    const result = await sendMissionRegistrationEmail(volunteer, mission);
+    // Envoyer l'email via EmailJS
+    console.log('📤 Tentative d\'envoi de l\'email via EmailJS...');
+    const result = await sendMissionRegistrationEmailJS(volunteer, mission);
 
     if (!result.success) {
       console.error('❌ Échec de l\'envoi:', result.error);
