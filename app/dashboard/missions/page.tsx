@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { getPublishedMissions, getAllMissions, deleteMission } from '@/lib/firebase/missions';
+import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
 import { MissionClient, MissionStatus, MissionType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,7 @@ import {
 import { isProfileComplete } from '@/lib/firebase/users';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
-import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon } from 'lucide-react';
+import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function MissionsPage() {
@@ -41,6 +42,9 @@ export default function MissionsPage() {
   // État pour la suppression
   const [missionToDelete, setMissionToDelete] = useState<MissionClient | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // État pour l'inscription/désinscription
+  const [isRegistering, setIsRegistering] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -88,6 +92,50 @@ export default function MissionsPage() {
       toast.error(error.message || 'Erreur lors de la suppression');
     } finally {
       setIsDeleting(false);
+    }
+  };
+  
+  // Fonction pour s'inscrire à une mission
+  const handleRegister = async (missionId: string) => {
+    if (!user) return;
+    
+    setIsRegistering(missionId);
+    try {
+      await registerToMission(missionId, user.uid);
+      // Mettre à jour la mission dans l'état local
+      setMissions(missions.map(m => 
+        m.id === missionId 
+          ? { ...m, volunteers: [...m.volunteers, user.uid] }
+          : m
+      ));
+      toast.success('Inscription réussie !');
+    } catch (error: any) {
+      console.error('Error registering:', error);
+      toast.error(error.message || 'Erreur lors de l\'inscription');
+    } finally {
+      setIsRegistering(null);
+    }
+  };
+  
+  // Fonction pour se désinscrire d'une mission
+  const handleUnregister = async (missionId: string) => {
+    if (!user) return;
+    
+    setIsRegistering(missionId);
+    try {
+      await unregisterFromMission(missionId, user.uid);
+      // Mettre à jour la mission dans l'état local
+      setMissions(missions.map(m => 
+        m.id === missionId 
+          ? { ...m, volunteers: m.volunteers.filter(id => id !== user.uid) }
+          : m
+      ));
+      toast.success('Désinscription réussie');
+    } catch (error: any) {
+      console.error('Error unregistering:', error);
+      toast.error(error.message || 'Erreur lors de la désinscription');
+    } finally {
+      setIsRegistering(null);
     }
   };
 
@@ -349,7 +397,8 @@ export default function MissionsPage() {
                   <Button variant="outline" className="flex-1" asChild>
                     <Link href={`/dashboard/missions/${mission.id}`}>Voir détails</Link>
                   </Button>
-                  {isAdmin && (
+                  
+                  {isAdmin ? (
                     <>
                       <Button
                         variant="outline"
@@ -370,6 +419,50 @@ export default function MissionsPage() {
                       >
                         <TrashIcon className="h-4 w-4" />
                       </Button>
+                    </>
+                  ) : (
+                    <>
+                      {user && mission.volunteers.includes(user.uid) ? (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleUnregister(mission.id)}
+                          disabled={isRegistering === mission.id}
+                          title="Se désinscrire"
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          {isRegistering === mission.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-600 border-t-transparent"></div>
+                          ) : (
+                            <UserMinusIcon className="h-4 w-4" />
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleRegister(mission.id)}
+                          disabled={
+                            isRegistering === mission.id ||
+                            mission.status !== 'published' ||
+                            mission.volunteers.length >= mission.maxVolunteers
+                          }
+                          title={
+                            mission.status !== 'published'
+                              ? 'Mission non publiée'
+                              : mission.volunteers.length >= mission.maxVolunteers
+                              ? 'Mission complète'
+                              : 'S\'inscrire'
+                          }
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          {isRegistering === mission.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent"></div>
+                          ) : (
+                            <UserPlusIcon className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>
