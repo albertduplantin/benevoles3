@@ -7,8 +7,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export { resend };
 
 // Email par défaut pour les envois
-export const DEFAULT_FROM_EMAIL = 'Festival Dinan <noreply@votredomaine.fr>';
+// Utiliser l'email de test Resend (fonctionne sans configuration)
+export const DEFAULT_FROM_EMAIL = 'Festival Dinan <onboarding@resend.dev>';
 
-// Note: Pour l'instant, utilisez votre email vérifié sur Resend
-// Plus tard, vous pourrez configurer votre propre domaine
+// Note: Plus tard, vous pourrez configurer votre propre domaine
+// En ajoutant et vérifiant votre domaine sur https://resend.com/domains
 
