@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar';
+import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
 import {
   MenuIcon,
   HomeIcon,
@@ -129,6 +130,7 @@ export function Header() {
 
         {/* Profil utilisateur & Déconnexion Desktop */}
         <div className="hidden md:flex items-center gap-4">
+          <InstallPWAButton />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
