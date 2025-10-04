@@ -127,12 +127,28 @@ const testMissions = [
 
 async function createTestMissions() {
   console.log('🎬 Création des missions de test...\n');
+  console.log('⚠️  IMPORTANT : Vous devez être connecté en tant qu\'admin dans l\'app');
+  console.log('   et remplacer "ADMIN_UID_HERE" par votre UID admin dans le script.\n');
+  
+  // TODO: Remplacez ceci par votre UID admin
+  const adminUid = 'ADMIN_UID_HERE';
+  
+  if (adminUid === 'ADMIN_UID_HERE') {
+    console.error('❌ Erreur : Veuillez remplacer "ADMIN_UID_HERE" par votre UID admin dans le script');
+    console.log('\n💡 Pour trouver votre UID :');
+    console.log('   1. Connectez-vous à l\'app en tant qu\'admin');
+    console.log('   2. Allez dans "Mon Profil"');
+    console.log('   3. Copiez votre UID depuis la console du navigateur (user.uid)');
+    console.log('   4. Ou créez les missions manuellement via l\'interface admin\n');
+    process.exit(1);
+  }
 
   try {
     for (const mission of testMissions) {
       // Convertir les dates en Timestamp Firestore
       const missionData = {
         ...mission,
+        createdBy: adminUid, // Ajouter le créateur
         startDate: Timestamp.fromDate(mission.startDate),
         endDate: Timestamp.fromDate(mission.endDate),
         createdAt: Timestamp.fromDate(mission.createdAt),

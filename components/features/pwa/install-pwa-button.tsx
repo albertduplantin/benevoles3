@@ -22,14 +22,20 @@ export function InstallPWAButton() {
       return;
     }
 
+    // Vérifier si l'utilisateur a déjà fermé le banner (localStorage)
+    const bannerDismissed = localStorage.getItem('pwa-banner-dismissed');
+    if (bannerDismissed === 'true') {
+      return;
+    }
+
     // Écouter l'événement beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
       
-      // Afficher le banner après 5 secondes
-      setTimeout(() => setShowBanner(true), 5000);
+      // Ne PAS afficher le banner automatiquement
+      // setShowBanner(true) est supprimé
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -60,6 +66,8 @@ export function InstallPWAButton() {
       console.log('✅ Utilisateur a accepté l\'installation');
     } else {
       console.log('❌ Utilisateur a refusé l\'installation');
+      // Mémoriser que l'utilisateur a refusé
+      localStorage.setItem('pwa-banner-dismissed', 'true');
     }
 
     // Réinitialiser
@@ -67,56 +75,29 @@ export function InstallPWAButton() {
     setIsInstallable(false);
     setShowBanner(false);
   };
+  
+  const handleDismissBanner = () => {
+    setShowBanner(false);
+    // Mémoriser que l'utilisateur a fermé le banner
+    localStorage.setItem('pwa-banner-dismissed', 'true');
+  };
 
   // Ne rien afficher si déjà installé ou non installable
   if (isInstalled || !isInstallable) {
     return null;
   }
 
-  // Banner flottant
-  if (showBanner) {
-    return (
-      <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 animate-slide-up">
-        <div className="bg-blue-600 text-white p-4 rounded-lg shadow-2xl">
-          <button
-            onClick={() => setShowBanner(false)}
-            className="absolute top-2 right-2 text-white/80 hover:text-white"
-          >
-            <XIcon className="h-5 w-5" />
-          </button>
-          <div className="flex items-start gap-3">
-            <div className="text-3xl">🎬</div>
-            <div className="flex-1">
-              <h3 className="font-semibold mb-1">Installer l'application</h3>
-              <p className="text-sm text-white/90 mb-3">
-                Accédez rapidement à vos missions, même hors ligne !
-              </p>
-              <Button
-                onClick={handleInstallClick}
-                variant="secondary"
-                size="sm"
-                className="w-full"
-              >
-                <DownloadIcon className="mr-2 h-4 w-4" />
-                Installer
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Bouton compact dans le header (optionnel)
+  // Seulement un bouton discret dans le header, pas de banner automatique
   return (
     <Button
       onClick={handleInstallClick}
       variant="outline"
       size="sm"
       className="hidden md:flex"
+      title="Installer l'application"
     >
       <DownloadIcon className="mr-2 h-4 w-4" />
-      Installer l'app
+      Installer
     </Button>
   );
 }
