@@ -7,6 +7,17 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { MissionClient } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { formatDateTime } from '@/lib/utils/date';
+import { EditIcon, TrashIcon, EyeIcon } from 'lucide-react';
 import './calendar.css';
 
 moment.locale('fr');
@@ -15,6 +26,8 @@ const localizer = momentLocalizer(moment);
 interface MissionCalendarProps {
   missions: MissionClient[];
   currentUserId?: string; // Pour afficher les badges
+  isAdmin?: boolean; // Pour afficher les options d'édition/suppression
+  onDelete?: (missionId: string) => void; // Callback pour la suppression
 }
 
 interface CalendarEvent extends Event {
@@ -43,10 +56,11 @@ const messages = {
   showMore: (total: number) => `+ ${total} mission(s)`,
 };
 
-export function MissionCalendar({ missions, currentUserId }: MissionCalendarProps) {
+export function MissionCalendar({ missions, currentUserId, isAdmin, onDelete }: MissionCalendarProps) {
   const router = useRouter();
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
+  const [selectedMission, setSelectedMission] = useState<MissionClient | null>(null);
 
   // Convertir les missions en événements calendrier
   const events: CalendarEvent[] = missions
@@ -112,7 +126,16 @@ export function MissionCalendar({ missions, currentUserId }: MissionCalendarProp
   };
 
   const handleSelectEvent = (event: CalendarEvent) => {
-    router.push(`/dashboard/missions/${event.resource.missionId}`);
+    if (isAdmin) {
+      // Pour les admins, ouvrir le modal avec les options
+      const mission = missions.find(m => m.id === event.resource.missionId);
+      if (mission) {
+        setSelectedMission(mission);
+      }
+    } else {
+      // Pour les autres, rediriger directement
+      router.push(`/dashboard/missions/${event.resource.missionId}`);
+    }
   };
 
   const handleNavigate = useCallback((newDate: Date) => {
@@ -168,6 +191,79 @@ export function MissionCalendar({ missions, currentUserId }: MissionCalendarProp
           style={{ height: '100%' }}
         />
       </div>
+      
+      {/* Modal Admin pour les actions rapides */}
+      {isAdmin && selectedMission && (
+        <Dialog open={!!selectedMission} onOpenChange={(open) => !open && setSelectedMission(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{selectedMission.title}</DialogTitle>
+              <DialogDescription>
+                {selectedMission.location} • {selectedMission.startDate && formatDateTime(selectedMission.startDate)}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant={selectedMission.status === 'published' ? 'default' : 'secondary'}>
+                  {selectedMission.status === 'published' && 'Publiée'}
+                  {selectedMission.status === 'draft' && 'Brouillon'}
+                  {selectedMission.status === 'full' && 'Complète'}
+                  {selectedMission.status === 'cancelled' && 'Annulée'}
+                  {selectedMission.status === 'completed' && 'Terminée'}
+                </Badge>
+                {selectedMission.isUrgent && (
+                  <Badge variant="destructive">URGENT</Badge>
+                )}
+                <Badge variant="outline">
+                  {selectedMission.volunteers.length}/{selectedMission.maxVolunteers} bénévoles
+                </Badge>
+              </div>
+              
+              <p className="text-sm text-muted-foreground line-clamp-3">
+                {selectedMission.description}
+              </p>
+              
+              <div className="flex flex-col gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    router.push(`/dashboard/missions/${selectedMission.id}`);
+                    setSelectedMission(null);
+                  }}
+                >
+                  <EyeIcon className="h-4 w-4" />
+                  Voir les détails
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    router.push(`/dashboard/missions/${selectedMission.id}/edit`);
+                    setSelectedMission(null);
+                  }}
+                >
+                  <EditIcon className="h-4 w-4" />
+                  Éditer la mission
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => {
+                    if (onDelete) {
+                      onDelete(selectedMission.id);
+                      setSelectedMission(null);
+                    }
+                  }}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  Supprimer la mission
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

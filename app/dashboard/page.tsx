@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { MissionCalendar } from '@/components/features/calendar/mission-calendar';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
-import { VolunteerCallCard } from '@/components/features/admin/volunteer-call-card';
+import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
 import Link from 'next/link';
 import {
   CalendarIcon,
@@ -338,27 +338,35 @@ export default function DashboardPage() {
           </div>
         )}
 
-              {/* Appel aux bénévoles (Admin uniquement) */}
-              {isAdmin && !isLoadingSettings && (
-                <VolunteerCallCard missions={allMissions} />
-              )}
-
-              {/* Exports (Admin uniquement) - AU DESSUS du calendrier */}
+              {/* Actions Admin - AU DESSUS du calendrier */}
               {isAdmin && !isLoadingSettings && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Exports</CardTitle>
-                    <CardDescription>
-                      Exportez les statistiques et données du festival au format PDF ou Excel
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Actions Administrateur</CardTitle>
+                        <CardDescription>
+                          Communication et exports de données
+                        </CardDescription>
+                      </div>
+                      <VolunteerCallModal missions={allMissions} />
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <ExportButtons
-                      type="global"
-                      missions={allMissions}
-                      totalVolunteers={totalVolunteers}
-                      allVolunteers={allVolunteersMap}
-                    />
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium">Exports</Label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Exportez les statistiques au format PDF ou Excel
+                        </p>
+                        <ExportButtons
+                          type="global"
+                          missions={allMissions}
+                          totalVolunteers={totalVolunteers}
+                          allVolunteers={allVolunteersMap}
+                        />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -392,6 +400,12 @@ export default function DashboardPage() {
             <MissionCalendar
               missions={isAdmin ? allMissions : missions}
               currentUserId={user.uid}
+              isAdmin={isAdmin}
+              onDelete={(missionId) => {
+                // Callback pour supprimer la mission du calendrier
+                setAllMissions(allMissions.filter(m => m.id !== missionId));
+                setMissions(missions.filter(m => m.id !== missionId));
+              }}
             />
           )}
         </CardContent>

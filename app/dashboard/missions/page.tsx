@@ -3,17 +3,28 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { getPublishedMissions, getAllMissions } from '@/lib/firebase/missions';
+import { getPublishedMissions, getAllMissions, deleteMission } from '@/lib/firebase/missions';
 import { MissionClient, MissionStatus, MissionType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { isProfileComplete } from '@/lib/firebase/users';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
-import { SearchIcon, FilterIcon, XIcon } from 'lucide-react';
+import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function MissionsPage() {
   const { user, loading } = useAuth();
@@ -26,6 +37,10 @@ export default function MissionsPage() {
   const [filterType, setFilterType] = useState<MissionType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<MissionStatus | 'all'>('all');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+  
+  // État pour la suppression
+  const [missionToDelete, setMissionToDelete] = useState<MissionClient | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -57,6 +72,24 @@ export default function MissionsPage() {
 
     fetchMissions();
   }, [user]);
+  
+  // Fonction pour supprimer une mission
+  const handleDeleteMission = async () => {
+    if (!missionToDelete || !user) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteMission(missionToDelete.id);
+      setMissions(missions.filter(m => m.id !== missionToDelete.id));
+      toast.success('Mission supprimée avec succès');
+      setMissionToDelete(null);
+    } catch (error: any) {
+      console.error('Error deleting mission:', error);
+      toast.error(error.message || 'Erreur lors de la suppression');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Filtrer les missions
   const filteredMissions = useMemo(() => {
@@ -312,14 +345,62 @@ export default function MissionsPage() {
                     👥 {mission.volunteers.length}/{mission.maxVolunteers} bénévoles
                   </p>
                 </div>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href={`/dashboard/missions/${mission.id}`}>Voir détails</Link>
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" asChild>
+                    <Link href={`/dashboard/missions/${mission.id}`}>Voir détails</Link>
+                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        asChild
+                        title="Éditer"
+                      >
+                        <Link href={`/dashboard/missions/${mission.id}/edit`}>
+                          <EditIcon className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setMissionToDelete(mission)}
+                        title="Supprimer"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+      
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={!!missionToDelete} onOpenChange={(open) => !open && setMissionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette mission ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer la mission "{missionToDelete?.title}" ?
+              Cette action est irréversible et supprimera également toutes les inscriptions associées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteMission}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
