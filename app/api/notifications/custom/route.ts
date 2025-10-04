@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { render } from '@react-email/components';
 import { resend, DEFAULT_FROM_EMAIL } from '@/lib/email/resend-config';
 import { CustomAnnouncementEmail } from '@/lib/email/templates/custom-announcement';
-import { getAllVolunteers } from '@/lib/firebase/volunteers';
+import { getAllVolunteersAdmin } from '@/lib/firebase/users-admin';
 import { createNotificationLog } from '@/lib/firebase/notification-logs';
 import { UserClient } from '@/types';
 
@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
 
     if (targetAll) {
       // Envoyer à tous les bénévoles
-      recipients = await getAllVolunteers();
+      recipients = await getAllVolunteersAdmin();
     } else if (targetVolunteerIds && Array.isArray(targetVolunteerIds)) {
       // Envoyer uniquement aux bénévoles spécifiés
-      const allVolunteers = await getAllVolunteers();
+      const allVolunteers = await getAllVolunteersAdmin();
       recipients = allVolunteers.filter(v => targetVolunteerIds.includes(v.uid));
     } else {
       return NextResponse.json(
