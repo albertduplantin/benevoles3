@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Générer l'email
-    const emailHtml = render(
+    const emailHtml = await render(
       CustomAnnouncementEmail({
         subject,
         message,
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
           from: DEFAULT_FROM_EMAIL,
           to: volunteer.email,
           subject,
-          html: emailHtml,
+          html: String(emailHtml),
         });
 
         if (error) {

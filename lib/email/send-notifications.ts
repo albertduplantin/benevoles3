@@ -30,7 +30,7 @@ export async function sendMissionRegistrationEmail(
 
     const missionUrl = `${process.env.NEXT_PUBLIC_APP_BASE_URL}/dashboard/missions/${mission.id}`;
 
-    const emailHtml = render(
+    const emailHtml = await render(
       MissionRegistrationEmail({
         volunteerName: volunteer.firstName,
         missionTitle: mission.title,
@@ -41,11 +41,14 @@ export async function sendMissionRegistrationEmail(
       })
     );
 
+    console.log('🔍 Type de emailHtml:', typeof emailHtml);
+    console.log('🔍 emailHtml preview:', emailHtml?.substring(0, 100));
+
     const { data, error } = await resend.emails.send({
       from: DEFAULT_FROM_EMAIL,
       to: volunteer.email,
       subject: `Confirmation d'inscription - ${mission.title}`,
-      html: emailHtml,
+      html: String(emailHtml),
     });
 
     if (error) {
@@ -86,7 +89,7 @@ export async function sendMissionReminderEmail(
 
     const missionUrl = `${process.env.NEXT_PUBLIC_APP_BASE_URL}/dashboard/missions/${mission.id}`;
 
-    const emailHtml = render(
+    const emailHtml = await render(
       MissionReminderEmail({
         volunteerName: volunteer.firstName,
         missionTitle: mission.title,
@@ -103,7 +106,7 @@ export async function sendMissionReminderEmail(
       from: DEFAULT_FROM_EMAIL,
       to: volunteer.email,
       subject: `⏰ Rappel : Mission demain - ${mission.title}`,
-      html: emailHtml,
+      html: String(emailHtml),
     });
 
     if (error) {
