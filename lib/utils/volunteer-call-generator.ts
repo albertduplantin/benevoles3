@@ -38,6 +38,7 @@ export function generateVolunteerCallMessage(incompleteMissions: MissionClient[]
       message += `   [URGENT]\n`;
     }
     
+    message += `   👉 S'inscrire : https://benevoles3.vercel.app/dashboard/missions/${mission.id}\n`;
     message += `\n`;
   });
 
@@ -95,6 +96,10 @@ export function generateVolunteerCallHTML(incompleteMissions: MissionClient[]): 
         <p style="margin: 4px 0; color: #2563eb; font-weight: bold;">
           ${placesRemaining} place${placesRemaining > 1 ? 's' : ''} disponible${placesRemaining > 1 ? 's' : ''} (sur ${mission.maxVolunteers})
         </p>
+        <a href="https://benevoles3.vercel.app/dashboard/missions/${mission.id}" 
+           style="display: inline-block; margin-top: 8px; background: #2563eb; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
+          👉 S'inscrire à cette mission
+        </a>
       </div>
     `;
   });
