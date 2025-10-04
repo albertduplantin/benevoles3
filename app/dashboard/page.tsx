@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { MissionCalendar } from '@/components/features/calendar/mission-calendar';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
+import { VolunteerCallCard } from '@/components/features/admin/volunteer-call-card';
 import Link from 'next/link';
 import {
   CalendarIcon,
@@ -337,25 +338,30 @@ export default function DashboardPage() {
           </div>
         )}
 
-      {/* Exports (Admin uniquement) - AU DESSUS du calendrier */}
-      {isAdmin && !isLoadingSettings && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Exports</CardTitle>
-            <CardDescription>
-              Exportez les statistiques et données du festival au format PDF ou Excel
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ExportButtons
-              type="global"
-              missions={allMissions}
-              totalVolunteers={totalVolunteers}
-              allVolunteers={allVolunteersMap}
-            />
-          </CardContent>
-        </Card>
-      )}
+              {/* Appel aux bénévoles (Admin uniquement) */}
+              {isAdmin && !isLoadingSettings && (
+                <VolunteerCallCard missions={allMissions} />
+              )}
+
+              {/* Exports (Admin uniquement) - AU DESSUS du calendrier */}
+              {isAdmin && !isLoadingSettings && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Exports</CardTitle>
+                    <CardDescription>
+                      Exportez les statistiques et données du festival au format PDF ou Excel
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ExportButtons
+                      type="global"
+                      missions={allMissions}
+                      totalVolunteers={totalVolunteers}
+                      allVolunteers={allVolunteersMap}
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
       {/* Calendrier - Plus central et épuré */}
       <Card>
