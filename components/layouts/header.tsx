@@ -28,6 +28,7 @@ import {
   LogOutIcon,
   UserIcon,
   PlusCircleIcon,
+  CheckCircle2Icon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -49,6 +50,12 @@ const navigation: NavItem[] = [
     href: '/dashboard/missions',
     icon: ListIcon,
     roles: ['volunteer', 'mission_responsible', 'admin'],
+  },
+  {
+    label: 'Mes missions',
+    href: '/dashboard/missions?filter=my',
+    icon: CheckCircle2Icon,
+    roles: ['volunteer', 'mission_responsible'],
   },
   {
     label: 'Nouvelle mission',
@@ -87,7 +94,11 @@ export function Header() {
     if (href === '/dashboard') {
       return pathname === href;
     }
-    return pathname.startsWith(href);
+    // Gérer le cas spécial de "Mes missions" avec le paramètre URL
+    if (href.includes('?filter=my')) {
+      return pathname === '/dashboard/missions' && typeof window !== 'undefined' && window.location.search.includes('filter=my');
+    }
+    return pathname.startsWith(href.split('?')[0]);
   };
 
   if (!user) {

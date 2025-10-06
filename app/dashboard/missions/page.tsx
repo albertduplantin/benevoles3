@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getPublishedMissions, getAllMissions, deleteMission } from '@/lib/firebase/missions';
 import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
 import { MissionClient, MissionStatus, MissionType } from '@/types';
@@ -29,17 +29,17 @@ import { formatDateTime } from '@/lib/utils/date';
 import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function MissionsPage() {
+function MissionsPageContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [missions, setMissions] = useState<MissionClient[]>([]);
   const [isLoadingMissions, setIsLoadingMissions] = useState(true);
   
   // États pour les filtres
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<MissionType | 'all'>('all');
-  const [filterStatus, setFilterStatus] = useState<MissionStatus | 'all'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [showMyMissionsOnly, setShowMyMissionsOnly] = useState(false);
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   
   // État pour la modale mobile
@@ -51,6 +51,14 @@ export default function MissionsPage() {
   
   // État pour l'inscription/désinscription
   const [isRegistering, setIsRegistering] = useState<string | null>(null);
+
+  // Détecter le paramètre URL "filter=my"
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam === 'my') {
+      setShowMyMissionsOnly(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -153,18 +161,13 @@ export default function MissionsPage() {
         return false;
       }
 
-      // Filtre par type
-      if (filterType !== 'all' && mission.type !== filterType) {
-        return false;
-      }
-
-      // Filtre par statut
-      if (filterStatus !== 'all' && mission.status !== filterStatus) {
-        return false;
-      }
-
       // Filtre par catégorie
       if (filterCategory !== 'all' && mission.category !== filterCategory) {
+        return false;
+      }
+
+      // Filtre "Mes missions" (seulement les missions où l'utilisateur est inscrit)
+      if (showMyMissionsOnly && user && !mission.volunteers.includes(user.uid)) {
         return false;
       }
 
@@ -175,19 +178,20 @@ export default function MissionsPage() {
 
       return true;
     });
-  }, [missions, searchQuery, filterType, filterStatus, filterCategory, showUrgentOnly]);
+  }, [missions, searchQuery, filterCategory, showMyMissionsOnly, showUrgentOnly, user]);
 
   // Réinitialiser tous les filtres
   const resetFilters = () => {
     setSearchQuery('');
-    setFilterType('all');
-    setFilterStatus('all');
     setFilterCategory('all');
+    setShowMyMissionsOnly(false);
     setShowUrgentOnly(false);
+    // Retirer le paramètre URL
+    router.push('/dashboard/missions');
   };
 
   // Vérifier si des filtres sont actifs
-  const hasActiveFilters = searchQuery || filterType !== 'all' || filterStatus !== 'all' || filterCategory !== 'all' || showUrgentOnly;
+  const hasActiveFilters = searchQuery || filterCategory !== 'all' || showMyMissionsOnly || showUrgentOnly;
 
   if (loading || !user) {
     return (
@@ -234,7 +238,7 @@ export default function MissionsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Recherche */}
             <div className="space-y-2">
               <Label htmlFor="search">Recherche</Label>
@@ -273,53 +277,36 @@ export default function MissionsPage() {
               </select>
             </div>
 
-            {/* Filtre Type */}
-            <div className="space-y-2">
-              <Label htmlFor="filterType">Type</Label>
-              <select
-                id="filterType"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as MissionType | 'all')}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background"
-              >
-                <option value="all">Tous les types</option>
-                <option value="scheduled">Planifiée</option>
-                <option value="ongoing">Au long cours</option>
-              </select>
-            </div>
-
-            {/* Filtre Statut */}
-            <div className="space-y-2">
-              <Label htmlFor="filterStatus">Statut</Label>
-              <select
-                id="filterStatus"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as MissionStatus | 'all')}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="draft">Brouillon</option>
-                <option value="published">Publiée</option>
-                <option value="full">Complète</option>
-                <option value="cancelled">Annulée</option>
-                <option value="completed">Terminée</option>
-              </select>
-            </div>
-
-            {/* Filtre Urgentes */}
+            {/* Options de filtrage */}
             <div className="space-y-2">
               <Label>Options</Label>
-              <div className="flex items-center space-x-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="urgent"
-                  checked={showUrgentOnly}
-                  onChange={(e) => setShowUrgentOnly(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300"
-                />
-                <label htmlFor="urgent" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Urgentes uniquement
-                </label>
+              <div className="flex flex-col gap-2 pt-2">
+                {!isAdmin && (
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="myMissions"
+                      checked={showMyMissionsOnly}
+                      onChange={(e) => setShowMyMissionsOnly(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <label htmlFor="myMissions" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Mes missions uniquement
+                    </label>
+                  </div>
+                )}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="urgent"
+                    checked={showUrgentOnly}
+                    onChange={(e) => setShowUrgentOnly(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300"
+                  />
+                  <label htmlFor="urgent" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Urgentes uniquement
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -356,59 +343,37 @@ export default function MissionsPage() {
         </Card>
       ) : (
         <>
-          {/* Vue mobile compacte */}
-          <div className="md:hidden space-y-2">
+          {/* Vue mobile ultra-compacte */}
+          <div className="md:hidden space-y-1.5">
             {filteredMissions.map((mission) => (
               <Card 
                 key={mission.id} 
-                className={`cursor-pointer hover:shadow-md transition-shadow ${mission.isUrgent ? 'border-red-500 border-2' : ''}`}
+                className={`cursor-pointer hover:shadow-md transition-shadow ${mission.isUrgent ? 'border-l-4 border-l-red-500' : ''}`}
                 onClick={() => setSelectedMission(mission)}
               >
-                <CardHeader className="p-4 pb-2">
+                <CardHeader className="p-3 pb-1">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base line-clamp-1 flex-1">
+                    <CardTitle className="text-sm line-clamp-1 flex-1 font-semibold">
                       {mission.title}
                     </CardTitle>
                     {mission.isUrgent && (
-                      <Badge variant="destructive" className="text-xs shrink-0">
+                      <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
                         URGENT
                       </Badge>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    <Badge variant="outline" className="text-xs">
-                      {mission.category}
-                    </Badge>
-                    <Badge 
-                      variant="secondary" 
-                      className={`text-xs ${
-                        mission.status === 'published' ? 'bg-green-100 text-green-800' :
-                        mission.status === 'full' ? 'bg-orange-100 text-orange-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {mission.status === 'published' && 'Publiée'}
-                      {mission.status === 'draft' && 'Brouillon'}
-                      {mission.status === 'full' && 'Complète'}
-                      {mission.status === 'cancelled' && 'Annulée'}
-                      {mission.status === 'completed' && 'Terminée'}
-                    </Badge>
-                    {user && mission.volunteers.includes(user.uid) && (
-                      <Badge className="bg-blue-600 text-white text-xs">
-                        ✓ Inscrit
-                      </Badge>
-                    )}
-                    {user && mission.responsibles.includes(user.uid) && (
-                      <Badge className="bg-purple-600 text-white text-xs">
-                        👑 Responsable
-                      </Badge>
-                    )}
-                  </div>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>📍 {mission.location}</span>
-                    <span>👥 {mission.volunteers.length}/{mission.maxVolunteers}</span>
+                <CardContent className="p-3 pt-0">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <span className="truncate max-w-[140px]">📍 {mission.location}</span>
+                      <span className="shrink-0">👥 {mission.volunteers.length}/{mission.maxVolunteers}</span>
+                    </div>
+                    {user && mission.volunteers.includes(user.uid) && (
+                      <Badge className="bg-blue-600 text-white text-[10px] px-1.5 py-0 h-5 ml-2">
+                        ✓
+                      </Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -778,3 +743,10 @@ export default function MissionsPage() {
   );
 }
 
+export default function MissionsPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p>Chargement...</p></div>}>
+      <MissionsPageContent />
+    </Suspense>
+  );
+}
