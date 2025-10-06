@@ -118,7 +118,7 @@ export function ResetPasswordForm() {
               id="email"
               type="email"
               {...register('email')}
-              placeholder="jean.dupont@example.com"
+              placeholder="Votre email"
               disabled={isLoading}
             />
             {errors.email && (

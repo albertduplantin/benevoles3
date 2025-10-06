@@ -94,7 +94,7 @@ export function LoginForm() {
               id="email"
               type="email"
               {...register('email')}
-              placeholder="jean.dupont@example.com"
+              placeholder="Votre email"
               disabled={isLoading}
             />
             {errors.email && (
@@ -117,7 +117,7 @@ export function LoginForm() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 {...register('password')}
-                placeholder="••••••••"
+                placeholder="Votre mot de passe"
                 disabled={isLoading}
                 className="pr-10"
               />

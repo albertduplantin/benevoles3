@@ -130,7 +130,7 @@ export default function CompleteProfilePage() {
               <Input
                 id="firstName"
                 {...register('firstName')}
-                placeholder="Jean"
+                placeholder="Prénom"
                 disabled={isLoading}
               />
               {errors.firstName && (
@@ -143,7 +143,7 @@ export default function CompleteProfilePage() {
               <Input
                 id="lastName"
                 {...register('lastName')}
-                placeholder="Dupont"
+                placeholder="Nom"
                 disabled={isLoading}
               />
               {errors.lastName && (

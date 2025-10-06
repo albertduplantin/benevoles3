@@ -101,7 +101,7 @@ export function RegisterForm() {
               <Input
                 id="firstName"
                 {...register('firstName')}
-                placeholder="Jean"
+                placeholder="Prénom"
                 disabled={isLoading}
               />
               {errors.firstName && (
@@ -114,7 +114,7 @@ export function RegisterForm() {
               <Input
                 id="lastName"
                 {...register('lastName')}
-                placeholder="Dupont"
+                placeholder="Nom"
                 disabled={isLoading}
               />
               {errors.lastName && (
@@ -129,7 +129,7 @@ export function RegisterForm() {
               id="email"
               type="email"
               {...register('email')}
-              placeholder="jean.dupont@example.com"
+              placeholder="Votre email"
               disabled={isLoading}
             />
             {errors.email && (
@@ -159,7 +159,7 @@ export function RegisterForm() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 {...register('password')}
-                placeholder="••••••••"
+                placeholder="Votre mot de passe"
                 disabled={isLoading}
                 className="pr-10"
               />
