@@ -40,9 +40,9 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   {
-    label: 'Tableau de bord',
+    label: 'Calendrier',
     href: '/dashboard',
-    icon: HomeIcon,
+    icon: CalendarIcon,
     roles: ['volunteer', 'mission_responsible', 'admin'],
   },
   {
@@ -242,6 +242,13 @@ export function Header() {
                     </Link>
                   );
                 })}
+
+                <div className="border-t my-4" />
+
+                {/* Installer l'application (PWA) */}
+                <div className="px-2">
+                  <InstallPWAButton />
+                </div>
 
                 <div className="border-t my-4" />
 

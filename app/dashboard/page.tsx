@@ -197,16 +197,20 @@ export default function DashboardPage() {
       {/* Header simplifié */}
       <div>
         <h1 className="text-3xl font-bold">
-          {isAdmin ? 'Tableau de bord' : 'Mon Tableau de bord'}
+          {isAdmin ? 'Calendrier' : 'Mon Calendrier'}
         </h1>
         <p className="text-muted-foreground">
           Bienvenue, {user.firstName} 👋
         </p>
       </div>
 
-        {/* Stats Cards */}
-        {isAdmin ? (
-          <div className="grid gap-4 md:grid-cols-4">
+      {/* Container avec ordre inversé sur mobile */}
+      <div className="flex flex-col-reverse md:flex-col gap-6">
+        
+        {/* Stats Cards - En bas sur mobile, en haut sur desktop */}
+        <div className="space-y-6">
+          {isAdmin ? (
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Missions</CardTitle>
@@ -305,7 +309,7 @@ export default function DashboardPage() {
             </Card>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Mes Missions</CardTitle>
@@ -377,9 +381,11 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               )}
+        </div>
 
-      {/* Calendrier - Plus central et épuré */}
-      <Card>
+        {/* Calendrier - En haut sur mobile, après stats sur desktop */}
+        <div>
+          <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -416,7 +422,9 @@ export default function DashboardPage() {
             />
           )}
         </CardContent>
-      </Card>
+          </Card>
+        </div>
+      </div>
 
       {/* Paramètres Admin - EN DESSOUS du calendrier */}
       {isAdmin && !isLoadingSettings && (

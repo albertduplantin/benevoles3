@@ -37,7 +37,6 @@ function MissionsPageContent() {
   const [isLoadingMissions, setIsLoadingMissions] = useState(true);
   
   // États pour les filtres
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showMyMissionsOnly, setShowMyMissionsOnly] = useState(false);
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
@@ -57,6 +56,10 @@ function MissionsPageContent() {
     const filterParam = searchParams.get('filter');
     if (filterParam === 'my') {
       setShowMyMissionsOnly(true);
+    } else {
+      // Si on arrive sur /dashboard/missions sans le paramètre ?filter=my,
+      // on décoche "Mes missions uniquement"
+      setShowMyMissionsOnly(false);
     }
   }, [searchParams]);
 
@@ -156,11 +159,6 @@ function MissionsPageContent() {
   // Filtrer les missions
   const filteredMissions = useMemo(() => {
     return missions.filter((mission) => {
-      // Filtre par recherche (titre)
-      if (searchQuery && !mission.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-
       // Filtre par catégorie
       if (filterCategory !== 'all' && mission.category !== filterCategory) {
         return false;
@@ -178,11 +176,10 @@ function MissionsPageContent() {
 
       return true;
     });
-  }, [missions, searchQuery, filterCategory, showMyMissionsOnly, showUrgentOnly, user]);
+  }, [missions, filterCategory, showMyMissionsOnly, showUrgentOnly, user]);
 
   // Réinitialiser tous les filtres
   const resetFilters = () => {
-    setSearchQuery('');
     setFilterCategory('all');
     setShowMyMissionsOnly(false);
     setShowUrgentOnly(false);
@@ -191,7 +188,7 @@ function MissionsPageContent() {
   };
 
   // Vérifier si des filtres sont actifs
-  const hasActiveFilters = searchQuery || filterCategory !== 'all' || showMyMissionsOnly || showUrgentOnly;
+  const hasActiveFilters = filterCategory !== 'all' || showMyMissionsOnly || showUrgentOnly;
 
   if (loading || !user) {
     return (
@@ -238,23 +235,7 @@ function MissionsPageContent() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Recherche */}
-            <div className="space-y-2">
-              <Label htmlFor="search">Recherche</Label>
-              <div className="relative">
-                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  type="text"
-                  placeholder="Rechercher par titre..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Filtre Catégorie */}
             <div className="space-y-2">
               <Label htmlFor="filterCategory">Catégorie</Label>
@@ -296,16 +277,16 @@ function MissionsPageContent() {
                   </div>
                 )}
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="urgent"
-                    checked={showUrgentOnly}
-                    onChange={(e) => setShowUrgentOnly(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300"
-                  />
-                  <label htmlFor="urgent" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Urgentes uniquement
-                  </label>
+                <input
+                  type="checkbox"
+                  id="urgent"
+                  checked={showUrgentOnly}
+                  onChange={(e) => setShowUrgentOnly(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <label htmlFor="urgent" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Urgentes uniquement
+                </label>
                 </div>
               </div>
             </div>
