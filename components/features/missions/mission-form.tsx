@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
+import { GROUPED_CATEGORIES } from '@/lib/constants/mission-categories';
 
 interface MissionFormProps {
   mode?: 'create' | 'edit';
@@ -69,6 +70,7 @@ export function MissionForm({
       reset({
         title: initialData.title,
         description: initialData.description,
+        category: initialData.category,
         type: initialData.type,
         startDate: formatDateForInput(initialData.startDate) as any,
         endDate: formatDateForInput(initialData.endDate) as any,
@@ -160,6 +162,31 @@ export function MissionForm({
             />
             {errors.description && (
               <p className="text-sm text-red-600">{errors.description.message}</p>
+            )}
+          </div>
+
+          {/* Catégorie */}
+          <div className="space-y-2">
+            <Label htmlFor="category">Catégorie *</Label>
+            <select
+              id="category"
+              {...register('category')}
+              disabled={isLoading}
+              className="w-full px-3 py-2 border border-input rounded-md bg-background"
+            >
+              <option value="">Sélectionnez une catégorie</option>
+              {GROUPED_CATEGORIES.map((group) => (
+                <optgroup key={group.group} label={group.group}>
+                  {group.categories.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            {errors.category && (
+              <p className="text-sm text-red-600">{errors.category.message}</p>
             )}
           </div>
 

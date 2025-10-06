@@ -56,6 +56,7 @@ export interface Mission {
   id: string;
   title: string;
   description: string;
+  category: string; // Category of the mission
   type: MissionType;
   startDate?: Timestamp | Date; // Optional for ongoing missions
   endDate?: Timestamp | Date; // Optional for ongoing missions

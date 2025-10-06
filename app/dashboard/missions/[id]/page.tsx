@@ -425,6 +425,17 @@ export default function MissionDetailPage() {
 
             {/* Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Catégorie */}
+              {mission.category && (
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 text-muted-foreground mt-0.5">📂</div>
+                  <div>
+                    <p className="font-semibold">Catégorie</p>
+                    <p className="text-sm text-muted-foreground">{mission.category}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Dates */}
               {mission.type === 'scheduled' && mission.startDate && (
                 <div className="flex items-start gap-3">

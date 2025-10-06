@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ALL_CATEGORIES } from '@/lib/constants/mission-categories';
 
 /**
  * Mission creation/update schema
@@ -9,6 +10,7 @@ export const missionSchema = z
     description: z
       .string()
       .min(10, 'La description doit contenir au moins 10 caractères'),
+    category: z.string().min(1, 'La catégorie est obligatoire'),
     type: z.enum(['scheduled', 'ongoing'], {
       errorMap: () => ({ message: 'Type de mission invalide' }),
     }),

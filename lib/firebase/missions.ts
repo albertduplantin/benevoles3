@@ -25,6 +25,7 @@ export async function createMission(
   missionData: {
     title: string;
     description: string;
+    category: string;
     type: MissionType;
     startDate?: Date;
     endDate?: Date;

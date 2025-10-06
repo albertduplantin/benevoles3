@@ -336,6 +336,12 @@ export default function MissionsPage() {
                       )}
                     </CardTitle>
                     <div className="flex flex-wrap gap-2 mt-2">
+                      {/* Badge catégorie */}
+                      {mission.category && (
+                        <Badge variant="outline" className="text-xs">
+                          {mission.category}
+                        </Badge>
+                      )}
                       {/* Badge si l'utilisateur est inscrit */}
                       {user && mission.volunteers.includes(user.uid) && (
                         <Badge className="bg-blue-600 text-white">
