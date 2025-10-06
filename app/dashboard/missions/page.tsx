@@ -570,45 +570,47 @@ function MissionsPageContent() {
           {selectedMission && (
             <>
               <DialogHeader>
-                <div className="flex items-start gap-2">
-                  <DialogTitle className="flex-1">
+                <DialogTitle className="flex items-start gap-2">
+                  <span className="flex-1">
                     {selectedMission.title}
-                  </DialogTitle>
+                  </span>
                   {selectedMission.isUrgent && (
                     <Badge variant="destructive" className="text-xs shrink-0">
                       URGENT
                     </Badge>
                   )}
-                </div>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  <Badge variant="outline" className="text-xs">
-                    {selectedMission.category}
-                  </Badge>
-                  <Badge 
-                    variant="secondary" 
-                    className={`text-xs ${
-                      selectedMission.status === 'published' ? 'bg-green-100 text-green-800' :
-                      selectedMission.status === 'full' ? 'bg-orange-100 text-orange-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {selectedMission.status === 'published' && 'Publiée'}
-                    {selectedMission.status === 'draft' && 'Brouillon'}
-                    {selectedMission.status === 'full' && 'Complète'}
-                    {selectedMission.status === 'cancelled' && 'Annulée'}
-                    {selectedMission.status === 'completed' && 'Terminée'}
-                  </Badge>
-                  {user && selectedMission.volunteers.includes(user.uid) && (
-                    <Badge className="bg-blue-600 text-white text-xs">
-                      ✓ Inscrit
+                </DialogTitle>
+                <DialogDescription asChild>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Badge variant="outline" className="text-xs">
+                      {selectedMission.category}
                     </Badge>
-                  )}
-                  {user && selectedMission.responsibles.includes(user.uid) && (
-                    <Badge className="bg-purple-600 text-white text-xs">
-                      👑 Responsable
+                    <Badge 
+                      variant="secondary" 
+                      className={`text-xs ${
+                        selectedMission.status === 'published' ? 'bg-green-100 text-green-800' :
+                        selectedMission.status === 'full' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {selectedMission.status === 'published' && 'Publiée'}
+                      {selectedMission.status === 'draft' && 'Brouillon'}
+                      {selectedMission.status === 'full' && 'Complète'}
+                      {selectedMission.status === 'cancelled' && 'Annulée'}
+                      {selectedMission.status === 'completed' && 'Terminée'}
                     </Badge>
-                  )}
-                </div>
+                    {user && selectedMission.volunteers.includes(user.uid) && (
+                      <Badge className="bg-blue-600 text-white text-xs">
+                        ✓ Inscrit
+                      </Badge>
+                    )}
+                    {user && selectedMission.responsibles.includes(user.uid) && (
+                      <Badge className="bg-purple-600 text-white text-xs">
+                        👑 Responsable
+                      </Badge>
+                    )}
+                  </div>
+                </DialogDescription>
               </DialogHeader>
               
               <div className="space-y-4 mt-4">
