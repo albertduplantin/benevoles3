@@ -345,39 +345,83 @@ function MissionsPageContent() {
         <>
           {/* Vue mobile ultra-compacte */}
           <div className="md:hidden space-y-1.5">
-            {filteredMissions.map((mission) => (
-              <Card 
-                key={mission.id} 
-                className={`cursor-pointer hover:shadow-md transition-shadow ${mission.isUrgent ? 'border-l-4 border-l-red-500' : ''}`}
-                onClick={() => setSelectedMission(mission)}
-              >
-                <CardHeader className="p-3 pb-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-sm line-clamp-1 flex-1 font-semibold">
-                      {mission.title}
-                    </CardTitle>
-                    {mission.isUrgent && (
-                      <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
-                        URGENT
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <span className="truncate max-w-[140px]">📍 {mission.location}</span>
-                      <span className="shrink-0">👥 {mission.volunteers.length}/{mission.maxVolunteers}</span>
+            {filteredMissions.map((mission) => {
+              const isRegistered = user && mission.volunteers.includes(user.uid);
+              const isFull = mission.volunteers.length >= mission.maxVolunteers;
+              const canRegister = mission.status === 'published' && !isFull;
+              
+              return (
+                <Card 
+                  key={mission.id} 
+                  className={`hover:shadow-md transition-shadow ${mission.isUrgent ? 'border-l-4 border-l-red-500' : ''}`}
+                >
+                  <div className="p-2.5 space-y-1" onClick={() => setSelectedMission(mission)}>
+                    {/* Ligne 1: Titre et badge urgent */}
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold line-clamp-1 flex-1 cursor-pointer">
+                        {mission.title}
+                      </h3>
+                      {mission.isUrgent && (
+                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 shrink-0">
+                          URG
+                        </Badge>
+                      )}
                     </div>
-                    {user && mission.volunteers.includes(user.uid) && (
-                      <Badge className="bg-blue-600 text-white text-[10px] px-1.5 py-0 h-5 ml-2">
-                        ✓
-                      </Badge>
-                    )}
+                    
+                    {/* Ligne 2: Infos + bouton action */}
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2 text-muted-foreground cursor-pointer">
+                        <span className="truncate max-w-[120px]">📍 {mission.location}</span>
+                        <span className="shrink-0">👥 {mission.volunteers.length}/{mission.maxVolunteers}</span>
+                      </div>
+                      
+                      {/* Bouton d'action discret */}
+                      {!isAdmin && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          {isRegistered ? (
+                            <button
+                              onClick={() => handleUnregister(mission.id)}
+                              disabled={isRegistering === mission.id}
+                              className="p-1 rounded-full hover:bg-orange-100 text-orange-600 transition-colors disabled:opacity-50"
+                              title="Se désinscrire"
+                            >
+                              {isRegistering === mission.id ? (
+                                <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <UserMinusIcon className="w-4 h-4" />
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleRegister(mission.id)}
+                              disabled={isRegistering === mission.id || !canRegister}
+                              className={`p-1 rounded-full transition-colors disabled:opacity-50 ${
+                                canRegister 
+                                  ? 'hover:bg-green-100 text-green-600' 
+                                  : 'text-gray-400'
+                              }`}
+                              title={
+                                !canRegister && mission.status !== 'published'
+                                  ? 'Mission non publiée'
+                                  : isFull
+                                  ? 'Mission complète'
+                                  : 'S\'inscrire'
+                              }
+                            >
+                              {isRegistering === mission.id ? (
+                                <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <UserPlusIcon className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
 
           {/* Vue desktop (grille) */}
