@@ -34,9 +34,15 @@ export function LoginForm() {
     try {
       console.log('Attempting to sign in...');
       await signInWithEmail(data.email, data.password);
-      console.log('Sign in successful, redirecting...');
-      // Utiliser window.location pour forcer un rechargement complet
-      window.location.href = '/dashboard';
+      console.log('Sign in successful');
+      
+      // Attendre que Firebase Auth et Firestore se synchronisent
+      // Ce délai laisse le temps à l'AuthProvider de charger les données utilisateur
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Redirecting to dashboard...');
+      // Utiliser router.push pour une navigation côté client
+      router.push('/dashboard');
     } catch (err: any) {
       console.error('Sign in error:', err);
       setError(err.message || 'Une erreur est survenue lors de la connexion');

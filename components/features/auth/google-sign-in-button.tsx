@@ -23,14 +23,17 @@ export function GoogleSignInButton({ disabled }: GoogleSignInButtonProps) {
     try {
       const firebaseUser = await signInWithGoogle();
       
+      // Attendre un peu pour que Firebase se synchronise
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Récupérer les données Firestore de l'utilisateur
       const userData = await getUserById(firebaseUser.uid);
       
       // Vérifier si le profil est complet (téléphone obligatoire)
       if (userData && !isProfileComplete(userData)) {
-        window.location.href = '/auth/complete-profile';
+        router.push('/auth/complete-profile');
       } else {
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');

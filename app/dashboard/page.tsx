@@ -37,10 +37,17 @@ export default function DashboardPage() {
   const [allVolunteersMap, setAllVolunteersMap] = useState<Map<string, UserClient>>(new Map());
 
   useEffect(() => {
-    if (!loading && !user) {
+    // Attendre que le chargement soit terminé avant de rediriger
+    if (loading) return;
+    
+    if (!user) {
+      console.log('No user found, redirecting to login...');
       router.push('/auth/login');
-    } else if (!loading && user && !isProfileComplete(user)) {
+    } else if (!isProfileComplete(user)) {
+      console.log('Profile incomplete, redirecting to complete-profile...');
       router.push('/auth/complete-profile');
+    } else {
+      console.log('User authenticated and profile complete');
     }
   }, [user, loading, router]);
 
