@@ -48,7 +48,7 @@ export function GoogleSignInButton({ disabled }: GoogleSignInButtonProps) {
       if (userData && !isProfileComplete(userData)) {
         router.push('/auth/complete-profile');
       } else {
-        router.push('/dashboard');
+        router.push('/dashboard/missions');
       }
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');

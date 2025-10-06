@@ -40,6 +40,22 @@ export default function CompleteProfilePage() {
     resolver: zodResolver(completeProfileSchema),
   });
 
+  // Formater le numéro de téléphone automatiquement
+  const formatPhoneNumber = (value: string) => {
+    // Retirer tous les caractères non numériques
+    const numbers = value.replace(/\D/g, '');
+    
+    // Formater par groupes de 2 chiffres
+    const formatted = numbers.match(/.{1,2}/g)?.join(' ') || numbers;
+    
+    return formatted;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setValue('phone', formatted);
+  };
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth/login');
@@ -67,8 +83,8 @@ export default function CompleteProfilePage() {
       // Rafraîchir les données utilisateur
       await refreshUser();
       
-      // Rediriger vers le dashboard avec rechargement complet
-      window.location.href = '/dashboard';
+      // Rediriger vers les missions avec rechargement complet
+      window.location.href = '/dashboard/missions';
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');
       setIsLoading(false);
@@ -141,6 +157,7 @@ export default function CompleteProfilePage() {
                 id="phone"
                 type="tel"
                 {...register('phone')}
+                onChange={handlePhoneChange}
                 placeholder="06 12 34 56 78"
                 disabled={isLoading}
               />
