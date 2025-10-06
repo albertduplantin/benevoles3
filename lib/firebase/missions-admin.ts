@@ -19,6 +19,7 @@ export async function getMissionByIdAdmin(missionId: string): Promise<MissionCli
       id: missionDoc.id,
       title: data.title,
       description: data.description,
+      category: data.category || '', // Catégorie (vide pour les anciennes missions)
       location: data.location,
       startDate: data.startDate?.toDate() || null,
       endDate: data.endDate?.toDate() || null,
