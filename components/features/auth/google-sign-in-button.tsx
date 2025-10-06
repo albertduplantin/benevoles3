@@ -23,11 +23,26 @@ export function GoogleSignInButton({ disabled }: GoogleSignInButtonProps) {
     try {
       const firebaseUser = await signInWithGoogle();
       
-      // Attendre un peu pour que Firebase se synchronise
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Attendre que les données Firestore soient disponibles
+      let attempts = 0;
+      const maxAttempts = 10;
+      let userData = null;
       
-      // Récupérer les données Firestore de l'utilisateur
-      const userData = await getUserById(firebaseUser.uid);
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        userData = await getUserById(firebaseUser.uid);
+        
+        if (userData) {
+          console.log('User data loaded from Firestore');
+          break;
+        }
+        
+        attempts++;
+        console.log(`Attempt ${attempts}/${maxAttempts} - waiting for Firestore...`);
+      }
+      
+      // Attendre encore un peu pour que l'AuthProvider se mette à jour
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Vérifier si le profil est complet (téléphone obligatoire)
       if (userData && !isProfileComplete(userData)) {

@@ -33,15 +33,35 @@ export function LoginForm() {
 
     try {
       console.log('Attempting to sign in...');
-      await signInWithEmail(data.email, data.password);
-      console.log('Sign in successful');
+      const firebaseUser = await signInWithEmail(data.email, data.password);
+      console.log('Sign in successful, user:', firebaseUser.uid);
       
-      // Attendre que Firebase Auth et Firestore se synchronisent
-      // Ce délai laisse le temps à l'AuthProvider de charger les données utilisateur
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Attendre que les données Firestore soient disponibles
+      console.log('Waiting for Firestore data...');
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Vérifier si les données sont chargées via l'AuthProvider
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase/config');
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        
+        if (userDoc.exists()) {
+          console.log('User data loaded from Firestore');
+          break;
+        }
+        
+        attempts++;
+        console.log(`Attempt ${attempts}/${maxAttempts} - waiting for Firestore...`);
+      }
+      
+      // Attendre encore un peu pour que l'AuthProvider se mette à jour
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       console.log('Redirecting to dashboard...');
-      // Utiliser router.push pour une navigation côté client
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Sign in error:', err);
