@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { GROUPED_CATEGORIES } from '@/lib/constants/mission-categories';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +39,11 @@ export default function MissionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<MissionType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<MissionStatus | 'all'>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+  
+  // État pour la modale mobile
+  const [selectedMission, setSelectedMission] = useState<MissionClient | null>(null);
   
   // État pour la suppression
   const [missionToDelete, setMissionToDelete] = useState<MissionClient | null>(null);
@@ -157,6 +163,11 @@ export default function MissionsPage() {
         return false;
       }
 
+      // Filtre par catégorie
+      if (filterCategory !== 'all' && mission.category !== filterCategory) {
+        return false;
+      }
+
       // Filtre urgentes uniquement
       if (showUrgentOnly && !mission.isUrgent) {
         return false;
@@ -164,18 +175,19 @@ export default function MissionsPage() {
 
       return true;
     });
-  }, [missions, searchQuery, filterType, filterStatus, showUrgentOnly]);
+  }, [missions, searchQuery, filterType, filterStatus, filterCategory, showUrgentOnly]);
 
   // Réinitialiser tous les filtres
   const resetFilters = () => {
     setSearchQuery('');
     setFilterType('all');
     setFilterStatus('all');
+    setFilterCategory('all');
     setShowUrgentOnly(false);
   };
 
   // Vérifier si des filtres sont actifs
-  const hasActiveFilters = searchQuery || filterType !== 'all' || filterStatus !== 'all' || showUrgentOnly;
+  const hasActiveFilters = searchQuery || filterType !== 'all' || filterStatus !== 'all' || filterCategory !== 'all' || showUrgentOnly;
 
   if (loading || !user) {
     return (
@@ -222,7 +234,7 @@ export default function MissionsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Recherche */}
             <div className="space-y-2">
               <Label htmlFor="search">Recherche</Label>
@@ -237,6 +249,28 @@ export default function MissionsPage() {
                   className="pl-10"
                 />
               </div>
+            </div>
+
+            {/* Filtre Catégorie */}
+            <div className="space-y-2">
+              <Label htmlFor="filterCategory">Catégorie</Label>
+              <select
+                id="filterCategory"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background"
+              >
+                <option value="all">Toutes les catégories</option>
+                {GROUPED_CATEGORIES.map((group) => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.categories.map((cat) => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
             </div>
 
             {/* Filtre Type */}
@@ -321,7 +355,68 @@ export default function MissionsPage() {
           </CardHeader>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <>
+          {/* Vue mobile compacte */}
+          <div className="md:hidden space-y-2">
+            {filteredMissions.map((mission) => (
+              <Card 
+                key={mission.id} 
+                className={`cursor-pointer hover:shadow-md transition-shadow ${mission.isUrgent ? 'border-red-500 border-2' : ''}`}
+                onClick={() => setSelectedMission(mission)}
+              >
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base line-clamp-1 flex-1">
+                      {mission.title}
+                    </CardTitle>
+                    {mission.isUrgent && (
+                      <Badge variant="destructive" className="text-xs shrink-0">
+                        URGENT
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Badge variant="outline" className="text-xs">
+                      {mission.category}
+                    </Badge>
+                    <Badge 
+                      variant="secondary" 
+                      className={`text-xs ${
+                        mission.status === 'published' ? 'bg-green-100 text-green-800' :
+                        mission.status === 'full' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {mission.status === 'published' && 'Publiée'}
+                      {mission.status === 'draft' && 'Brouillon'}
+                      {mission.status === 'full' && 'Complète'}
+                      {mission.status === 'cancelled' && 'Annulée'}
+                      {mission.status === 'completed' && 'Terminée'}
+                    </Badge>
+                    {user && mission.volunteers.includes(user.uid) && (
+                      <Badge className="bg-blue-600 text-white text-xs">
+                        ✓ Inscrit
+                      </Badge>
+                    )}
+                    {user && mission.responsibles.includes(user.uid) && (
+                      <Badge className="bg-purple-600 text-white text-xs">
+                        👑 Responsable
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>📍 {mission.location}</span>
+                    <span>👥 {mission.volunteers.length}/{mission.maxVolunteers}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Vue desktop (grille) */}
+          <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredMissions.map((mission) => (
             <Card key={mission.id} className={mission.isUrgent ? 'border-red-500 border-2' : ''}>
               <CardHeader>
@@ -476,7 +571,186 @@ export default function MissionsPage() {
             </Card>
           ))}
         </div>
+        </>
       )}
+      
+      {/* Modale détails mission (mobile) */}
+      <Dialog open={!!selectedMission} onOpenChange={(open) => !open && setSelectedMission(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          {selectedMission && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-2">
+                  <DialogTitle className="flex-1">
+                    {selectedMission.title}
+                  </DialogTitle>
+                  {selectedMission.isUrgent && (
+                    <Badge variant="destructive" className="text-xs shrink-0">
+                      URGENT
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  <Badge variant="outline" className="text-xs">
+                    {selectedMission.category}
+                  </Badge>
+                  <Badge 
+                    variant="secondary" 
+                    className={`text-xs ${
+                      selectedMission.status === 'published' ? 'bg-green-100 text-green-800' :
+                      selectedMission.status === 'full' ? 'bg-orange-100 text-orange-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {selectedMission.status === 'published' && 'Publiée'}
+                    {selectedMission.status === 'draft' && 'Brouillon'}
+                    {selectedMission.status === 'full' && 'Complète'}
+                    {selectedMission.status === 'cancelled' && 'Annulée'}
+                    {selectedMission.status === 'completed' && 'Terminée'}
+                  </Badge>
+                  {user && selectedMission.volunteers.includes(user.uid) && (
+                    <Badge className="bg-blue-600 text-white text-xs">
+                      ✓ Inscrit
+                    </Badge>
+                  )}
+                  {user && selectedMission.responsibles.includes(user.uid) && (
+                    <Badge className="bg-purple-600 text-white text-xs">
+                      👑 Responsable
+                    </Badge>
+                  )}
+                </div>
+              </DialogHeader>
+              
+              <div className="space-y-4 mt-4">
+                <DialogDescription className="text-sm">
+                  {selectedMission.description}
+                </DialogDescription>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">📍 Lieu :</span>
+                    <span>{selectedMission.location}</span>
+                  </div>
+                  
+                  {selectedMission.type === 'scheduled' && selectedMission.startDate && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">📅 Date :</span>
+                      <span>{formatDateTime(selectedMission.startDate)}</span>
+                    </div>
+                  )}
+                  
+                  {selectedMission.type === 'ongoing' && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">⏱️ Type :</span>
+                      <span>Mission au long cours</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">👥 Bénévoles :</span>
+                    <span>{selectedMission.volunteers.length}/{selectedMission.maxVolunteers}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1" 
+                    onClick={() => {
+                      setSelectedMission(null);
+                      router.push(`/dashboard/missions/${selectedMission.id}`);
+                    }}
+                  >
+                    Voir détails
+                  </Button>
+                  
+                  {isAdmin ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedMission(null);
+                          router.push(`/dashboard/missions/${selectedMission.id}/edit`);
+                        }}
+                        title="Éditer"
+                      >
+                        <EditIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setMissionToDelete(selectedMission);
+                          setSelectedMission(null);
+                        }}
+                        title="Supprimer"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {user && selectedMission.volunteers.includes(user.uid) ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            handleUnregister(selectedMission.id);
+                            setSelectedMission(null);
+                          }}
+                          disabled={isRegistering === selectedMission.id}
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          {isRegistering === selectedMission.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-600 border-t-transparent"></div>
+                          ) : (
+                            <>
+                              <UserMinusIcon className="h-4 w-4 mr-2" />
+                              Se désinscrire
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            handleRegister(selectedMission.id);
+                            setSelectedMission(null);
+                          }}
+                          disabled={
+                            isRegistering === selectedMission.id ||
+                            selectedMission.status !== 'published' ||
+                            selectedMission.volunteers.length >= selectedMission.maxVolunteers
+                          }
+                          className={
+                            selectedMission.status !== 'published' ||
+                            selectedMission.volunteers.length >= selectedMission.maxVolunteers
+                              ? 'bg-gray-400'
+                              : 'bg-green-600 hover:bg-green-700'
+                          }
+                        >
+                          {isRegistering === selectedMission.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                          ) : (
+                            <>
+                              <UserPlusIcon className="h-4 w-4 mr-2" />
+                              {selectedMission.status !== 'published'
+                                ? 'Non publiée'
+                                : selectedMission.volunteers.length >= selectedMission.maxVolunteers
+                                ? 'Complète'
+                                : 'S\'inscrire'}
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       
       {/* Dialog de confirmation de suppression */}
       <AlertDialog open={!!missionToDelete} onOpenChange={(open) => !open && setMissionToDelete(null)}>
