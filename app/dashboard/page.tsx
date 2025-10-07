@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react';
 import { isProfileComplete, getUserById } from '@/lib/firebase/users';
 import { getUserMissions, getAllMissions } from '@/lib/firebase/missions';
 import { getAdminSettings, updateAdminSettings } from '@/lib/firebase/admin-settings';
-import { MissionClient, UserClient } from '@/types';
+import { getUserResponsibleCategories } from '@/lib/firebase/category-responsibles';
+import { MissionClient, UserClient, CategoryResponsibleClient } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { MissionCalendar } from '@/components/features/calendar/mission-calendar';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
 import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
+import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
 import Link from 'next/link';
 import {
   CalendarIcon,
@@ -22,6 +24,7 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
   TrendingUpIcon,
+  FolderIcon,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -35,6 +38,7 @@ export default function DashboardPage() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [missionParticipants, setMissionParticipants] = useState<Map<string, UserClient[]>>(new Map());
   const [allVolunteersMap, setAllVolunteersMap] = useState<Map<string, UserClient>>(new Map());
+  const [responsibleCategories, setResponsibleCategories] = useState<CategoryResponsibleClient[]>([]);
 
   useEffect(() => {
     // Attendre que le chargement soit terminé avant de rediriger
@@ -50,6 +54,20 @@ export default function DashboardPage() {
       console.log('User authenticated and profile complete');
     }
   }, [user, loading, router]);
+
+  // Charger les catégories dont l'utilisateur est responsable
+  useEffect(() => {
+    const loadResponsibleCategories = async () => {
+      if (!user || user.role !== 'category_responsible') return;
+      try {
+        const categories = await getUserResponsibleCategories(user.uid);
+        setResponsibleCategories(categories);
+      } catch (error) {
+        console.error('Error loading responsible categories:', error);
+      }
+    };
+    loadResponsibleCategories();
+  }, [user]);
 
   // Charger les missions de l'utilisateur
   useEffect(() => {
@@ -184,13 +202,14 @@ export default function DashboardPage() {
     allMissions.flatMap((m) => m.volunteers)
   ).size;
 
-  // Missions que l'utilisateur coordonne (responsable)
+  // Missions que l'utilisateur coordonne (responsable de catégorie)
+  const responsibleCategoryIds = responsibleCategories.map(c => c.categoryId);
   const coordinatingMissions = allMissions.filter((m) =>
-    m.responsibles.includes(user.uid)
+    responsibleCategoryIds.includes(m.category)
   );
 
   const isAdmin = user.role === 'admin';
-  const isResponsible = user.role === 'category_responsible' || coordinatingMissions.length > 0;
+  const isResponsible = user.role === 'category_responsible';
 
   return (
     <div className="space-y-6">
@@ -270,7 +289,19 @@ export default function DashboardPage() {
             </Card>
           </div>
         ) : isResponsible ? (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Mes Catégories</CardTitle>
+                <FolderIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{responsibleCategories.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Catégories assignées
+                </p>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Missions Coordonnées</CardTitle>
@@ -279,7 +310,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-2xl font-bold">{coordinatingMissions.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  Dont vous êtes responsable
+                  Dans mes catégories
                 </p>
               </CardContent>
             </Card>
@@ -460,44 +491,81 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* Missions Coordonnées (Responsable) */}
-      {!isAdmin && isResponsible && coordinatingMissions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Missions que je coordonne</CardTitle>
+      {/* Catégories et Missions Coordonnées (Responsable) */}
+      {!isAdmin && isResponsible && (
+        <>
+          {/* Mes Catégories */}
+          {responsibleCategories.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Mes Catégories</CardTitle>
                 <CardDescription>
-                  Les missions dont vous êtes responsable
+                  Les catégories dont vous êtes responsable
                 </CardDescription>
-              </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/missions">Voir tout</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {coordinatingMissions.slice(0, 3).map((mission) => (
-                <Link
-                  key={mission.id}
-                  href={`/dashboard/missions/${mission.id}`}
-                  className="block p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">{mission.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {mission.volunteers.length}/{mission.maxVolunteers} bénévoles
-                      </p>
-                    </div>
-                    <Badge className="bg-purple-600">👑 Responsable</Badge>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {responsibleCategories.map((cat) => {
+                    const categoryLabel = ALL_CATEGORIES_WITH_LABELS.find(
+                      c => c.value === cat.categoryId
+                    )?.label || cat.categoryLabel;
+                    return (
+                      <Badge key={cat.id} variant="secondary" className="text-sm">
+                        <FolderIcon className="h-3 w-3 mr-1" />
+                        {categoryLabel}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Missions Coordonnées */}
+          {coordinatingMissions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Missions que je coordonne</CardTitle>
+                    <CardDescription>
+                      Les missions de mes catégories
+                    </CardDescription>
                   </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/dashboard/missions">Voir tout</Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {coordinatingMissions.slice(0, 3).map((mission) => {
+                    const categoryLabel = ALL_CATEGORIES_WITH_LABELS.find(
+                      c => c.value === mission.category
+                    )?.label || mission.category;
+                    return (
+                      <Link
+                        key={mission.id}
+                        href={`/dashboard/missions/${mission.id}`}
+                        className="block p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold">{mission.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {categoryLabel} • {mission.volunteers.length}/{mission.maxVolunteers} bénévoles
+                            </p>
+                          </div>
+                          <Badge className="bg-purple-600">👑 Responsable</Badge>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
