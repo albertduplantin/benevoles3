@@ -105,17 +105,24 @@ export async function archiveCategory(categoryId: string): Promise<void> {
  */
 export async function getActiveCategories(): Promise<MissionCategoryClient[]> {
   try {
+    // Récupérer seulement les catégories actives
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('active', '==', true),
-      orderBy('group', 'asc'),
-      orderBy('order', 'asc')
+      where('active', '==', true)
     );
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => {
+    const categories = snapshot.docs.map((doc) => {
       const data = doc.data() as MissionCategoryDB;
       return convertToClient({ ...data, id: doc.id });
+    });
+
+    // Tri côté client par groupe puis par ordre
+    return categories.sort((a, b) => {
+      if (a.group !== b.group) {
+        return a.group.localeCompare(b.group);
+      }
+      return a.order - b.order;
     });
   } catch (error) {
     console.error('Error getting active categories:', error);
@@ -128,16 +135,20 @@ export async function getActiveCategories(): Promise<MissionCategoryClient[]> {
  */
 export async function getAllCategories(): Promise<MissionCategoryClient[]> {
   try {
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      orderBy('group', 'asc'),
-      orderBy('order', 'asc')
-    );
-    const snapshot = await getDocs(q);
+    // Récupérer toutes les catégories sans orderBy composé (évite le besoin d'index)
+    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
 
-    return snapshot.docs.map((doc) => {
+    const categories = snapshot.docs.map((doc) => {
       const data = doc.data() as MissionCategoryDB;
       return convertToClient({ ...data, id: doc.id });
+    });
+
+    // Tri côté client par groupe puis par ordre
+    return categories.sort((a, b) => {
+      if (a.group !== b.group) {
+        return a.group.localeCompare(b.group);
+      }
+      return a.order - b.order;
     });
   } catch (error) {
     console.error('Error getting all categories:', error);
