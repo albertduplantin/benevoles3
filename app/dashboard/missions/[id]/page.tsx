@@ -7,13 +7,7 @@ import { getMissionById } from '@/lib/firebase/missions';
 import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
 import { getUserById } from '@/lib/firebase/users';
 import { isProfileComplete } from '@/lib/firebase/users';
-import {
-  requestMissionResponsibility,
-  cancelResponsibilityRequest,
-  approveResponsibilityRequest,
-  rejectResponsibilityRequest,
-  removeResponsibility,
-} from '@/lib/firebase/mission-responsibles';
+// Ancien système de postulation supprimé - utiliser category-responsibles maintenant
 import { MissionClient, UserClient } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
