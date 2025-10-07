@@ -5,7 +5,6 @@
  */
 
 import { db } from './config';
-import { adminDb } from './admin';
 import {
   collection,
   doc,
@@ -229,6 +228,9 @@ export async function getCategoryResponsibleAdmin(
   categoryId: string
 ): Promise<CategoryResponsibleClient | null> {
   try {
+    // Import dynamique pour éviter le bundle côté client
+    const { adminDb } = await import('./admin');
+    
     const snapshot = await adminDb
       .collection(COLLECTION_NAME)
       .where('categoryId', '==', categoryId)
@@ -261,6 +263,9 @@ export async function getCategoryResponsibleAdmin(
  */
 export async function getAllCategoryResponsiblesAdmin(): Promise<CategoryResponsibleClient[]> {
   try {
+    // Import dynamique pour éviter le bundle côté client
+    const { adminDb } = await import('./admin');
+    
     const snapshot = await adminDb
       .collection(COLLECTION_NAME)
       .orderBy('categoryLabel', 'asc')
@@ -293,6 +298,9 @@ export async function assignCategoryResponsibleAdmin(
   adminId: string
 ): Promise<string> {
   try {
+    // Import dynamique pour éviter le bundle côté client
+    const { adminDb } = await import('./admin');
+    
     // Vérifier s'il y a déjà un responsable pour cette catégorie
     const existing = await getCategoryResponsibleAdmin(categoryId);
     if (existing) {
@@ -337,6 +345,9 @@ export async function removeCategoryResponsibleAdmin(
   categoryId: string
 ): Promise<void> {
   try {
+    // Import dynamique pour éviter le bundle côté client
+    const { adminDb } = await import('./admin');
+    
     // Trouver l'assignation
     const snapshot = await adminDb
       .collection(COLLECTION_NAME)
