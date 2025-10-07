@@ -157,8 +157,8 @@ export default function ProfilePage() {
                       {user.role === 'admin' && (
                         <Badge variant="destructive">Administrateur</Badge>
                       )}
-                      {user.role === 'mission_responsible' && (
-                        <Badge className="bg-purple-600">Responsable de mission</Badge>
+                      {user.role === 'category_responsible' && (
+                        <Badge className="bg-purple-600">Responsable de catégorie</Badge>
                       )}
                       {user.role === 'volunteer' && (
                         <Badge className="bg-blue-600">Bénévole</Badge>

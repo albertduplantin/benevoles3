@@ -50,8 +50,8 @@ export default function EditMissionPage() {
           return;
         }
 
-        // Vérifier les permissions
-        const canEdit = canEditMission(user.role, user.uid, missionData.responsibles);
+        // Vérifier les permissions (basé sur la catégorie maintenant)
+        const canEdit = canEditMission(user, missionData.category);
         if (!canEdit) {
           setError('Vous n\'avez pas la permission d\'éditer cette mission');
           setTimeout(() => router.push('/dashboard/missions'), 2000);

@@ -3,7 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 /**
  * User Roles
  */
-export type UserRole = 'volunteer' | 'mission_responsible' | 'admin';
+export type UserRole = 'volunteer' | 'category_responsible' | 'admin';
 
 /**
  * Mission Status
@@ -36,6 +36,7 @@ export interface User {
   phone: string;
   photoURL?: string;
   role: UserRole;
+  responsibleForCategories?: string[]; // Categories where user is responsible
   createdAt: Timestamp | Date;
   updatedAt?: Timestamp | Date;
   consents: {
@@ -74,7 +75,19 @@ export interface Mission {
 }
 
 /**
- * Volunteer Request Model (for becoming mission responsible)
+ * Category Responsible Model
+ */
+export interface CategoryResponsible {
+  id: string;
+  categoryId: string; // Category identifier
+  categoryLabel: string; // Category display name
+  responsibleId: string; // User UID
+  assignedBy: string; // Admin UID who assigned
+  assignedAt: Timestamp | Date;
+}
+
+/**
+ * Volunteer Request Model (DEPRECATED - kept for data migration)
  */
 export interface VolunteerRequest {
   id: string;
@@ -108,6 +121,13 @@ export type MissionClient = Omit<
   endDate?: Date;
   createdAt: Date;
   updatedAt?: Date;
+};
+
+export type CategoryResponsibleClient = Omit<
+  CategoryResponsible,
+  'assignedAt'
+> & {
+  assignedAt: Date;
 };
 
 export type VolunteerRequestClient = Omit<

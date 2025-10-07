@@ -1,0 +1,342 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { CategoryResponsibleClient, UserClient } from '@/types';
+import { GROUPED_CATEGORIES, ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { UserPlusIcon, UserMinusIcon, UsersIcon, CrownIcon } from 'lucide-react';
+
+export default function CategoryResponsiblesPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [assignments, setAssignments] = useState<CategoryResponsibleClient[]>([]);
+  const [volunteers, setVolunteers] = useState<UserClient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedVolunteer, setSelectedVolunteer] = useState<string>('');
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Redirection si pas admin
+  useEffect(() => {
+    if (!loading && (!user || user.role !== 'admin')) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
+  // Charger les données
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/category-responsibles');
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        const data = await response.json();
+        setAssignments(data.assignments);
+        setVolunteers(data.volunteers);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Erreur lors du chargement des données');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.role === 'admin') {
+      loadData();
+    }
+  }, [user]);
+
+  // Obtenir le responsable d'une catégorie
+  const getResponsibleForCategory = (categoryId: string): UserClient | null => {
+    const assignment = assignments.find(a => a.categoryId === categoryId);
+    if (!assignment) return null;
+    return volunteers.find(v => v.uid === assignment.responsibleId) || null;
+  };
+
+  // Assigner un responsable
+  const handleAssign = async () => {
+    if (!selectedCategory || !selectedVolunteer || !user) return;
+
+    const category = ALL_CATEGORIES_WITH_LABELS.find(c => c.value === selectedCategory);
+    if (!category) return;
+
+    try {
+      setIsAssigning(true);
+      const response = await fetch('/api/category-responsibles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryId: selectedCategory,
+          categoryLabel: category.label,
+          responsibleId: selectedVolunteer,
+          adminId: user.uid,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to assign responsible');
+      }
+
+      // Recharger les données
+      const dataResponse = await fetch('/api/category-responsibles');
+      const data = await dataResponse.json();
+      setAssignments(data.assignments);
+      setVolunteers(data.volunteers);
+
+      toast.success('Responsable assigné avec succès');
+      setDialogOpen(false);
+      setSelectedCategory(null);
+      setSelectedVolunteer('');
+    } catch (error: any) {
+      console.error('Error assigning responsible:', error);
+      toast.error(error.message || 'Erreur lors de l\'assignation');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  // Retirer un responsable
+  const handleRemove = async (categoryId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir retirer ce responsable ?')) return;
+
+    try {
+      const response = await fetch(`/api/category-responsibles?categoryId=${categoryId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove responsible');
+      }
+
+      // Recharger les données
+      const dataResponse = await fetch('/api/category-responsibles');
+      const data = await dataResponse.json();
+      setAssignments(data.assignments);
+      setVolunteers(data.volunteers);
+
+      toast.success('Responsable retiré avec succès');
+    } catch (error: any) {
+      console.error('Error removing responsible:', error);
+      toast.error(error.message || 'Erreur lors du retrait');
+    }
+  };
+
+  if (loading || !user || user.role !== 'admin') {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Chargement...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Responsables de Catégories</h1>
+          <p className="text-muted-foreground">
+            Gérez les responsables pour chaque catégorie de missions
+          </p>
+        </div>
+        <Button onClick={() => setDialogOpen(true)}>
+          <UserPlusIcon className="h-4 w-4 mr-2" />
+          Assigner un responsable
+        </Button>
+      </div>
+
+      {/* Statistiques */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Catégories</CardTitle>
+            <UsersIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{ALL_CATEGORIES_WITH_LABELS.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Catégories Assignées</CardTitle>
+            <CrownIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{assignments.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Sans Responsable</CardTitle>
+            <UserPlusIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{ALL_CATEGORIES_WITH_LABELS.length - assignments.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Liste des catégories */}
+      {isLoading ? (
+        <p>Chargement...</p>
+      ) : (
+        <div className="space-y-6">
+          {GROUPED_CATEGORIES.map((group) => (
+            <Card key={group.group}>
+              <CardHeader>
+                <CardTitle>{group.group}</CardTitle>
+                <CardDescription>
+                  Gérez les responsables de cette famille de catégories
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {group.categories.map((category) => {
+                    const responsible = getResponsibleForCategory(category.value);
+                    return (
+                      <div
+                        key={category.value}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium">{category.label}</p>
+                          {responsible ? (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              👑 {responsible.firstName} {responsible.lastName}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Aucun responsable assigné
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {responsible ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemove(category.value)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <UserMinusIcon className="h-4 w-4 mr-2" />
+                              Retirer
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedCategory(category.value);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              <UserPlusIcon className="h-4 w-4 mr-2" />
+                              Assigner
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Dialog d'assignation */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assigner un responsable</DialogTitle>
+            <DialogDescription>
+              Choisissez une catégorie et un bénévole à promouvoir comme responsable
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Catégorie</Label>
+              <Select value={selectedCategory || ''} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GROUPED_CATEGORIES.map((group) => (
+                    <optgroup key={group.group} label={group.group}>
+                      {group.categories
+                        .filter(cat => !getResponsibleForCategory(cat.value))
+                        .map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                    </optgroup>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="volunteer">Bénévole</Label>
+              <Select value={selectedVolunteer} onValueChange={setSelectedVolunteer}>
+                <SelectTrigger id="volunteer">
+                  <SelectValue placeholder="Sélectionner un bénévole" />
+                </SelectTrigger>
+                <SelectContent>
+                  {volunteers.map((vol) => (
+                    <SelectItem key={vol.uid} value={vol.uid}>
+                      {vol.firstName} {vol.lastName} ({vol.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleAssign}
+              disabled={!selectedCategory || !selectedVolunteer || isAssigning}
+            >
+              {isAssigning ? 'Assignation...' : 'Assigner'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+

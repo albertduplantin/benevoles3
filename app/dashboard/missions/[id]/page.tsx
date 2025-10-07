@@ -366,7 +366,7 @@ export default function MissionDetailPage() {
           </Button>
 
           <div className="flex gap-2">
-            {mission && (canEditMission(user.role, user.uid, mission.responsibles) || participants.length > 0) && (
+            {mission && (canEditMission(user, mission.category) || participants.length > 0) && (
               <ExportButtons
                 type="mission"
                 mission={mission}
@@ -375,7 +375,7 @@ export default function MissionDetailPage() {
               />
             )}
             
-            {mission && canEditMission(user.role, user.uid, mission.responsibles) && (
+            {mission && canEditMission(user, mission.category) && (
               <Button variant="outline" asChild>
                 <Link href={`/dashboard/missions/${missionId}/edit`}>Modifier</Link>
               </Button>

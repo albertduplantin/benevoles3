@@ -65,7 +65,12 @@ export const GROUPED_CATEGORIES = [
 ] as const;
 
 /**
- * Liste plate de toutes les catégories pour validation
+ * Liste plate de toutes les catégories pour validation (strings uniquement)
  */
 export const ALL_CATEGORIES = Object.values(MISSION_CATEGORIES);
+
+/**
+ * Liste de toutes les catégories avec value et label pour les formulaires
+ */
+export const ALL_CATEGORIES_WITH_LABELS: Array<{ value: string; label: string }> = GROUPED_CATEGORIES.flatMap(group => group.categories.map(cat => ({ value: cat.value, label: cat.label })));
 

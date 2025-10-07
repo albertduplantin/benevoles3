@@ -1,4 +1,4 @@
-import { User, UserRole } from '@/types';
+import { User, UserRole, UserClient } from '@/types';
 
 /**
  * Check if a user has a specific role or admin privileges
@@ -17,52 +17,74 @@ export function isAdmin(role: UserRole): boolean {
 }
 
 /**
- * Check if a user is a mission responsible
+ * Check if a user is a category responsible
  */
-export function isMissionResponsible(role: UserRole): boolean {
-  return role === 'mission_responsible' || role === 'admin';
+export function isCategoryResponsible(role: UserRole): boolean {
+  return role === 'category_responsible' || role === 'admin';
 }
 
 /**
- * Check if a user can edit a specific mission
+ * Check if a user is responsible for a specific category
  */
-export function canEditMission(
-  userRole: UserRole,
-  userId: string,
-  missionResponsibles: string[]
+export function isResponsibleForCategory(
+  user: User | UserClient | null,
+  categoryId: string
 ): boolean {
-  if (userRole === 'admin') return true;
-  if (userRole === 'mission_responsible') {
-    return missionResponsibles.includes(userId);
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (user.role === 'category_responsible' && user.responsibleForCategories) {
+    return user.responsibleForCategories.includes(categoryId);
   }
   return false;
+}
+
+/**
+ * Check if a user can edit a specific mission based on its category
+ */
+export function canEditMission(
+  user: User | UserClient | null,
+  missionCategory: string
+): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return isResponsibleForCategory(user, missionCategory);
 }
 
 /**
  * Check if a user can view volunteer contact details for a mission
  */
 export function canViewMissionContacts(
-  userRole: UserRole,
-  userId: string,
-  missionResponsibles: string[],
+  user: User | UserClient | null,
+  missionCategory: string,
   missionVolunteers: string[]
 ): boolean {
-  // Admin can see all
-  if (userRole === 'admin') return true;
+  if (!user) return false;
 
-  // Mission responsibles can see their mission volunteers
-  if (
-    userRole === 'mission_responsible' &&
-    missionResponsibles.includes(userId)
-  ) {
+  // Admin can see all
+  if (user.role === 'admin') return true;
+
+  // Category responsibles can see their category mission volunteers
+  if (isResponsibleForCategory(user, missionCategory)) {
     return true;
   }
 
   // Regular volunteers can see other volunteers in the same mission
-  if (missionVolunteers.includes(userId)) {
+  if (missionVolunteers.includes(user.uid)) {
     return true;
   }
 
   return false;
+}
+
+/**
+ * Check if a user can create missions for a specific category
+ */
+export function canCreateMissionForCategory(
+  user: User | UserClient | null,
+  categoryId: string
+): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return isResponsibleForCategory(user, categoryId);
 }
 

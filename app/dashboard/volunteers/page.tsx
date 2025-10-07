@@ -155,7 +155,7 @@ export default function VolunteersPage() {
     }
   };
 
-  const handleChangeRole = async (volunteerId: string, newRole: 'volunteer' | 'mission_responsible' | 'admin') => {
+  const handleChangeRole = async (volunteerId: string, newRole: 'volunteer' | 'category_responsible' | 'admin') => {
     setIsProcessing(true);
     try {
       await changeVolunteerRole(volunteerId, newRole);

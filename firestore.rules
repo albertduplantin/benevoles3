@@ -11,9 +11,9 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    function isResponsible() {
+    function isCategoryResponsible() {
       return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['mission_responsible', 'admin'];
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['category_responsible', 'admin'];
     }
     
     match /users/{userId} {
@@ -25,12 +25,11 @@ service cloud.firestore {
     
     match /missions/{missionId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin();
+      allow create: if isAdmin() || isCategoryResponsible();
       allow update: if isAdmin() 
-                   || (isResponsible() && request.auth.uid in resource.data.responsibles)
-                   || (isAuthenticated() && isVolunteerRegistration())
-                   || (isAuthenticated() && isResponsibilityRequest());
-      allow delete: if isAdmin();
+                   || isCategoryResponsible()
+                   || (isAuthenticated() && isVolunteerRegistration());
+      allow delete: if isAdmin() || isCategoryResponsible();
     }
     
     // Fonction pour vérifier si c'est une inscription/désinscription de bénévole
@@ -44,30 +43,6 @@ service cloud.firestore {
       return (userAdded || userRemoved) && onlyVolunteersChanged;
     }
     
-    // Fonction pour vérifier si c'est une demande/retrait de responsabilité
-    function isResponsibilityRequest() {
-      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
-      let onlyResponsibilityFieldsChanged = affectedKeys.hasOnly(['pendingResponsibles', 'responsibles', 'volunteers', 'updatedAt']);
-      
-      let oldPending = resource.data.get('pendingResponsibles', []);
-      let newPending = request.resource.data.get('pendingResponsibles', []);
-      let oldResponsibles = resource.data.get('responsibles', []);
-      let newResponsibles = request.resource.data.get('responsibles', []);
-      
-      // Demander responsabilité (ajouter à pending) ou auto-approbation (ajouter à responsibles)
-      let addedToPending = request.auth.uid in newPending && !(request.auth.uid in oldPending);
-      let addedToResponsibles = request.auth.uid in newResponsibles && !(request.auth.uid in oldResponsibles);
-      
-      // Annuler demande (retirer de pending)
-      let removedFromPending = !(request.auth.uid in newPending) && request.auth.uid in oldPending;
-      
-      // Se retirer comme responsable
-      let removedFromResponsibles = !(request.auth.uid in newResponsibles) && request.auth.uid in oldResponsibles;
-      
-      let validAction = addedToPending || addedToResponsibles || removedFromPending || removedFromResponsibles;
-      
-      return onlyResponsibilityFieldsChanged && validAction;
-    }
     
     match /volunteerRequests/{requestId} {
       allow read: if isAuthenticated();
@@ -81,6 +56,11 @@ service cloud.firestore {
     match /settings/{document} {
       allow read: if isAuthenticated(); // Lecture pour tous les utilisateurs authentifiés
       allow write: if isAdmin(); // Écriture uniquement pour les admins
+    }
+    
+    match /categoryResponsibles/{assignmentId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
     }
     
     match /notificationLogs/{logId} {

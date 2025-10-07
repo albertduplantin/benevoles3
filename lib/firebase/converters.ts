@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, FirestoreDataConverter, QueryDocumentSnapshot, WithFieldValue } from 'firebase/firestore';
 import {
   User,
   UserClient,
@@ -6,6 +6,8 @@ import {
   MissionClient,
   VolunteerRequest,
   VolunteerRequestClient,
+  CategoryResponsible,
+  CategoryResponsibleClient,
 } from '@/types';
 
 /**
@@ -70,4 +72,34 @@ export function convertVolunteerRequestToClient(
         : request.processedAt,
   };
 }
+
+export function convertCategoryResponsibleToClient(
+  responsible: CategoryResponsible
+): CategoryResponsibleClient {
+  return {
+    ...responsible,
+    assignedAt:
+      responsible.assignedAt instanceof Timestamp
+        ? responsible.assignedAt.toDate()
+        : responsible.assignedAt,
+  };
+}
+
+// Firestore Converter pour CategoryResponsible
+export const categoryResponsibleConverter: FirestoreDataConverter<CategoryResponsibleClient> = {
+  toFirestore(responsible: WithFieldValue<CategoryResponsibleClient>): WithFieldValue<any> {
+    return responsible;
+  },
+  fromFirestore(snapshot: QueryDocumentSnapshot): CategoryResponsibleClient {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      categoryId: data.categoryId,
+      categoryLabel: data.categoryLabel,
+      responsibleId: data.responsibleId,
+      assignedBy: data.assignedBy,
+      assignedAt: data.assignedAt instanceof Timestamp ? data.assignedAt.toDate() : data.assignedAt,
+    };
+  },
+};
 

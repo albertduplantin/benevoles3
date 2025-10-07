@@ -61,7 +61,7 @@ export default function DashboardPage() {
         setMissions(userMissions);
 
         // Pour les admins et responsables, charger toutes les missions
-        if (user.role === 'admin' || user.role === 'mission_responsible') {
+        if (user.role === 'admin' || user.role === 'category_responsible') {
           const all = await getAllMissions();
           setAllMissions(all);
         }
@@ -190,7 +190,7 @@ export default function DashboardPage() {
   );
 
   const isAdmin = user.role === 'admin';
-  const isResponsible = user.role === 'mission_responsible' || coordinatingMissions.length > 0;
+  const isResponsible = user.role === 'category_responsible' || coordinatingMissions.length > 0;
 
   return (
     <div className="space-y-6">

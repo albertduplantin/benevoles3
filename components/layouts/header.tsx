@@ -35,7 +35,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles?: ('volunteer' | 'mission_responsible' | 'admin')[];
+  roles?: ('volunteer' | 'category_responsible' | 'admin')[];
 }
 
 const navigation: NavItem[] = [
@@ -43,24 +43,30 @@ const navigation: NavItem[] = [
     label: 'Calendrier',
     href: '/dashboard',
     icon: CalendarIcon,
-    roles: ['volunteer', 'mission_responsible', 'admin'],
+    roles: ['volunteer', 'category_responsible', 'admin'],
   },
   {
     label: 'Missions',
     href: '/dashboard/missions',
     icon: ListIcon,
-    roles: ['volunteer', 'mission_responsible', 'admin'],
+    roles: ['volunteer', 'category_responsible', 'admin'],
   },
   {
     label: 'Mes missions',
     href: '/dashboard/missions?filter=my',
     icon: CheckCircle2Icon,
-    roles: ['volunteer', 'mission_responsible'],
+    roles: ['volunteer', 'category_responsible'],
   },
   {
     label: 'Nouvelle mission',
     href: '/dashboard/missions/new',
     icon: PlusCircleIcon,
+    roles: ['admin'],
+  },
+  {
+    label: 'Responsables',
+    href: '/dashboard/admin/category-responsibles',
+    icon: UsersIcon,
     roles: ['admin'],
   },
   {
@@ -162,7 +168,7 @@ export function Header() {
                   <p className="text-xs text-gray-500">{user.email}</p>
                   <p className="text-xs text-blue-600 font-medium capitalize">
                     {user.role === 'volunteer' && 'Bénévole'}
-                    {user.role === 'mission_responsible' && 'Responsable'}
+                    {user.role === 'category_responsible' && 'Responsable'}
                     {user.role === 'admin' && 'Administrateur'}
                   </p>
                 </div>
@@ -215,7 +221,7 @@ export function Header() {
                   <p className="text-xs text-gray-500">{user.email}</p>
                   <p className="text-xs text-blue-600 font-medium capitalize">
                     {user.role === 'volunteer' && 'Bénévole'}
-                    {user.role === 'mission_responsible' && 'Responsable'}
+                    {user.role === 'category_responsible' && 'Responsable'}
                     {user.role === 'admin' && 'Administrateur'}
                   </p>
                 </div>

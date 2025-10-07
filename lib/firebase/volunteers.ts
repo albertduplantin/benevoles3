@@ -76,7 +76,7 @@ export async function updateVolunteerInfo(
  */
 export async function changeVolunteerRole(
   volunteerId: string,
-  newRole: 'volunteer' | 'mission_responsible' | 'admin'
+  newRole: 'volunteer' | 'category_responsible' | 'admin'
 ): Promise<void> {
   try {
     const volunteerRef = doc(db, USERS, volunteerId);
