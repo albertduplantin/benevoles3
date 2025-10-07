@@ -17,10 +17,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Import dynamique pour éviter le bundle côté client
-    const { getUserResponsibleCategories } = await import('@/lib/firebase/category-responsibles');
+    // Import dynamique pour Firebase Admin
+    const { adminDb } = await import('@/lib/firebase/admin');
     
-    const categories = await getUserResponsibleCategories(userId);
+    // Récupérer les catégories dont l'utilisateur est responsable
+    const snapshot = await adminDb
+      .collection('categoryResponsibles')
+      .where('responsibleId', '==', userId)
+      .orderBy('categoryLabel', 'asc')
+      .get();
+
+    const categories = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        categoryId: data.categoryId,
+        categoryLabel: data.categoryLabel,
+        responsibleId: data.responsibleId,
+        assignedBy: data.assignedBy,
+        assignedAt: data.assignedAt?.toDate() || new Date(),
+      };
+    });
+
+    console.log('📋 Categories found for user:', userId, categories.length);
 
     return NextResponse.json({ categories });
   } catch (error: any) {
