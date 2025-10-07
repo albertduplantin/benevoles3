@@ -8,11 +8,11 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     // Import dynamique pour éviter l'exécution pendant le build
-    const { getAllCategoryResponsibles } = await import('@/lib/firebase/category-responsibles');
+    const { getAllCategoryResponsiblesAdmin } = await import('@/lib/firebase/category-responsibles');
     const { getAllVolunteersAdmin } = await import('@/lib/firebase/users-admin');
     
     const [assignments, users] = await Promise.all([
-      getAllCategoryResponsibles(),
+      getAllCategoryResponsiblesAdmin(),
       getAllVolunteersAdmin(),
     ]);
 

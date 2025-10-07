@@ -256,3 +256,30 @@ export async function getCategoryResponsibleAdmin(
   }
 }
 
+/**
+ * Admin: Obtenir toutes les assignations de responsables (avec Firebase Admin)
+ */
+export async function getAllCategoryResponsiblesAdmin(): Promise<CategoryResponsibleClient[]> {
+  try {
+    const snapshot = await adminDb
+      .collection(COLLECTION_NAME)
+      .orderBy('categoryLabel', 'asc')
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        categoryId: data.categoryId,
+        categoryLabel: data.categoryLabel,
+        responsibleId: data.responsibleId,
+        assignedBy: data.assignedBy,
+        assignedAt: data.assignedAt?.toDate() || new Date(),
+      };
+    });
+  } catch (error) {
+    console.error('Error getting all category responsibles (admin):', error);
+    throw error;
+  }
+}
+
