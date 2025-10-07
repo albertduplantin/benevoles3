@@ -4,7 +4,7 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
 // Configuration Firebase (à adapter selon ton .env.local)
 const firebaseConfig = {
@@ -113,13 +113,13 @@ async function migrateCategories() {
   console.log('🚀 Début de la migration des catégories...');
   
   try {
-    const now = Timestamp.now();
-    
     for (const category of categories) {
       const docRef = await addDoc(collection(db, 'missionCategories'), {
-        ...category,
+        value: category.value,
+        label: category.label,
+        group: category.group,
+        order: category.order,
         active: true,
-        createdAt: now,
         createdBy: ADMIN_UID,
       });
       
@@ -131,6 +131,7 @@ async function migrateCategories() {
     process.exit(0);
   } catch (error) {
     console.error('❌ Erreur lors de la migration:', error);
+    console.error('Détails:', error);
     process.exit(1);
   }
 }
