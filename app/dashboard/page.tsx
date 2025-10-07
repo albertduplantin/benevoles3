@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { isProfileComplete, getUserById } from '@/lib/firebase/users';
 import { getUserMissions, getAllMissions } from '@/lib/firebase/missions';
 import { getAdminSettings, updateAdminSettings } from '@/lib/firebase/admin-settings';
-import { getUserResponsibleCategories } from '@/lib/firebase/category-responsibles';
 import { MissionClient, UserClient, CategoryResponsibleClient } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,8 +59,12 @@ export default function DashboardPage() {
     const loadResponsibleCategories = async () => {
       if (!user || user.role !== 'category_responsible') return;
       try {
-        const categories = await getUserResponsibleCategories(user.uid);
-        setResponsibleCategories(categories);
+        const response = await fetch(`/api/my-categories?userId=${user.uid}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        setResponsibleCategories(data.categories || []);
       } catch (error) {
         console.error('Error loading responsible categories:', error);
       }
