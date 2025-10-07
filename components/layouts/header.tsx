@@ -27,7 +27,6 @@ import {
   SettingsIcon,
   LogOutIcon,
   UserIcon,
-  PlusCircleIcon,
   CheckCircle2Icon,
 } from 'lucide-react';
 
@@ -62,12 +61,6 @@ const navigation: NavItem[] = [
     href: '/dashboard/missions?filter=my',
     icon: CheckCircle2Icon,
     roles: ['volunteer', 'category_responsible'],
-  },
-  {
-    label: 'Nouvelle mission',
-    href: '/dashboard/missions/new',
-    icon: PlusCircleIcon,
-    roles: ['admin'],
   },
   {
     label: 'Responsables',

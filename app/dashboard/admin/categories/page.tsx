@@ -263,7 +263,6 @@ export default function CategoriesManagementPage() {
                           <p className="font-medium">{cat.label}</p>
                           {!cat.active && <Badge variant="secondary">Archivée</Badge>}
                         </div>
-                        <p className="text-sm text-muted-foreground">ID: {cat.value}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
