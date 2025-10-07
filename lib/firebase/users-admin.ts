@@ -23,6 +23,7 @@ export async function getUserByIdAdmin(userId: string): Promise<UserClient | nul
       phone: data.phone,
       role: data.role,
       photoURL: data.photoURL,
+      responsibleForCategories: data.responsibleForCategories || [],
       createdAt: data.createdAt?.toDate() || new Date(),
       consents: {
         dataProcessing: data.consents?.dataProcessing || false,
@@ -61,6 +62,7 @@ export async function getAllVolunteersAdmin(): Promise<UserClient[]> {
         phone: data.phone,
         role: data.role,
         photoURL: data.photoURL,
+        responsibleForCategories: data.responsibleForCategories || [],
         createdAt: data.createdAt?.toDate() || new Date(),
         consents: {
           dataProcessing: data.consents?.dataProcessing || false,

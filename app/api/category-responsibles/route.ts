@@ -16,14 +16,19 @@ export async function GET(request: NextRequest) {
       getAllVolunteersAdmin(),
     ]);
 
+    console.log('📊 API - Total users:', users?.length || 0);
+    
     // Filtrer les utilisateurs (seulement bénévoles et responsables)
     const volunteers = users.filter(
       u => u.role === 'volunteer' || u.role === 'category_responsible'
     );
 
+    console.log('👥 API - Volunteers filtered:', volunteers?.length || 0);
+    console.log('📋 API - Assignments:', assignments?.length || 0);
+
     return NextResponse.json({
-      assignments,
-      volunteers,
+      assignments: assignments || [],
+      volunteers: volunteers || [],
     });
   } catch (error: any) {
     console.error('Error fetching category responsibles:', error);
