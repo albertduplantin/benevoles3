@@ -63,6 +63,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     
+    match /missionCategories/{categoryId} {
+      allow read: if isAuthenticated(); // Tous les utilisateurs authentifiés peuvent lire les catégories
+      allow create, update, delete: if isAdmin(); // Seuls les admins peuvent gérer les catégories
+    }
+    
     match /notificationLogs/{logId} {
       allow read: if isAdmin(); // Seuls les admins peuvent lire les logs
       allow create: if true; // Permettre la création depuis l'API (via Admin SDK si nécessaire)
