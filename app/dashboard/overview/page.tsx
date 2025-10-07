@@ -33,6 +33,8 @@ export default function DashboardOverviewPage() {
   const [allMissions, setAllMissions] = useState<MissionClient[]>([]);
   const [isLoadingMissions, setIsLoadingMissions] = useState(true);
   const [autoApprove, setAutoApprove] = useState(false);
+  const [festivalStartDate, setFestivalStartDate] = useState<string>('');
+  const [festivalEndDate, setFestivalEndDate] = useState<string>('');
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [allVolunteersMap, setAllVolunteersMap] = useState<Map<string, UserClient>>(new Map());
@@ -125,6 +127,14 @@ export default function DashboardOverviewPage() {
         setIsLoadingSettings(true);
         const settings = await getAdminSettings();
         setAutoApprove(settings.autoApproveResponsibility);
+        
+        // Charger les dates du festival
+        if (settings.festivalStartDate) {
+          setFestivalStartDate(settings.festivalStartDate.toISOString().split('T')[0]);
+        }
+        if (settings.festivalEndDate) {
+          setFestivalEndDate(settings.festivalEndDate.toISOString().split('T')[0]);
+        }
       } catch (error) {
         console.error('Error loading admin settings:', error);
       } finally {
@@ -143,6 +153,37 @@ export default function DashboardOverviewPage() {
       setAutoApprove(checked);
     } catch (error) {
       console.error('Error updating settings:', error);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleSaveFestivalDates = async () => {
+    if (!user || user.role !== 'admin') return;
+    
+    if (!festivalStartDate || !festivalEndDate) {
+      alert('Veuillez sélectionner les deux dates');
+      return;
+    }
+
+    const startDate = new Date(festivalStartDate);
+    const endDate = new Date(festivalEndDate);
+
+    if (startDate > endDate) {
+      alert('La date de début doit être antérieure à la date de fin');
+      return;
+    }
+    
+    setIsSavingSettings(true);
+    try {
+      await updateAdminSettings({ 
+        festivalStartDate: startDate,
+        festivalEndDate: endDate 
+      }, user.uid);
+      alert('Dates du festival enregistrées avec succès !');
+    } catch (error) {
+      console.error('Error updating festival dates:', error);
+      alert('Erreur lors de l\'enregistrement des dates');
     } finally {
       setIsSavingSettings(false);
     }
@@ -501,10 +542,11 @@ export default function DashboardOverviewPage() {
           <CardHeader>
             <CardTitle>Paramètres Administrateur</CardTitle>
             <CardDescription>
-              Configuration de la validation des demandes
+              Configuration générale du système
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            {/* Validation automatique */}
             <div className="flex items-center justify-between space-x-4">
               <div className="flex-1 space-y-1">
                 <Label htmlFor="auto-approve" className="text-base">
@@ -520,6 +562,44 @@ export default function DashboardOverviewPage() {
                 onCheckedChange={handleToggleAutoApprove}
                 disabled={isSavingSettings}
               />
+            </div>
+
+            <div className="border-t pt-6">
+              <h3 className="text-base font-semibold mb-4">Dates du Festival</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Définissez les dates de début et fin du festival. Les bénévoles pourront ensuite filtrer les missions par jour.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="festival-start">Date de début</Label>
+                  <input
+                    type="date"
+                    id="festival-start"
+                    value={festivalStartDate}
+                    onChange={(e) => setFestivalStartDate(e.target.value)}
+                    disabled={isSavingSettings}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="festival-end">Date de fin</Label>
+                  <input
+                    type="date"
+                    id="festival-end"
+                    value={festivalEndDate}
+                    onChange={(e) => setFestivalEndDate(e.target.value)}
+                    disabled={isSavingSettings}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleSaveFestivalDates}
+                disabled={isSavingSettings || !festivalStartDate || !festivalEndDate}
+                className="mt-4"
+              >
+                {isSavingSettings ? 'Enregistrement...' : 'Enregistrer les dates'}
+              </Button>
             </div>
           </CardContent>
         </Card>

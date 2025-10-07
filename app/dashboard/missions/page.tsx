@@ -26,9 +26,63 @@ import {
 import { isProfileComplete } from '@/lib/firebase/users';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
-import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon } from 'lucide-react';
+import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon, CalendarDaysIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/mission-skeleton';
+import { getAdminSettings } from '@/lib/firebase/admin-settings';
+
+// Fonction pour générer tous les jours entre deux dates
+function generateFestivalDays(startDate: Date, endDate: Date): Array<{ date: string; label: string }> {
+  const days: Array<{ date: string; label: string }> = [];
+  const current = new Date(startDate);
+  current.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+
+  while (current <= end) {
+    const dateStr = current.toISOString().split('T')[0];
+    const label = new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(current);
+    days.push({ 
+      date: dateStr, 
+      label: label.charAt(0).toUpperCase() + label.slice(1) 
+    });
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return days;
+}
+
+// Fonction pour vérifier si une mission a lieu un jour donné
+function missionHappenOnDay(mission: MissionClient, dayDate: string): boolean {
+  if (mission.type === 'ongoing') {
+    return true; // Les missions continues sont toujours visibles
+  }
+  
+  if (!mission.startDate) {
+    return false;
+  }
+
+  const missionStart = mission.startDate instanceof Date 
+    ? mission.startDate 
+    : new Date((mission.startDate as any).seconds * 1000);
+  const missionEnd = mission.endDate 
+    ? (mission.endDate instanceof Date 
+        ? mission.endDate 
+        : new Date((mission.endDate as any).seconds * 1000))
+    : missionStart;
+
+  missionStart.setHours(0, 0, 0, 0);
+  missionEnd.setHours(23, 59, 59, 999);
+
+  const targetDay = new Date(dayDate);
+  targetDay.setHours(0, 0, 0, 0);
+
+  return targetDay >= missionStart && targetDay <= missionEnd;
+}
 
 function MissionsPageContent() {
   const { user, loading } = useAuth();
@@ -39,8 +93,10 @@ function MissionsPageContent() {
   
   // États pour les filtres
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterDay, setFilterDay] = useState<string>('all');
   const [showMyMissionsOnly, setShowMyMissionsOnly] = useState(false);
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+  const [festivalDays, setFestivalDays] = useState<Array<{ date: string; label: string }>>([]);
   
   // État pour la modale mobile
   const [selectedMission, setSelectedMission] = useState<MissionClient | null>(null);
@@ -71,6 +127,22 @@ function MissionsPageContent() {
       router.push('/auth/complete-profile');
     }
   }, [user, loading, router]);
+
+  // Charger les dates du festival
+  useEffect(() => {
+    const loadFestivalDates = async () => {
+      try {
+        const settings = await getAdminSettings();
+        if (settings.festivalStartDate && settings.festivalEndDate) {
+          const days = generateFestivalDays(settings.festivalStartDate, settings.festivalEndDate);
+          setFestivalDays(days);
+        }
+      } catch (error) {
+        console.error('Error loading festival dates:', error);
+      }
+    };
+    loadFestivalDates();
+  }, []);
 
   useEffect(() => {
     const fetchMissions = async () => {
@@ -165,6 +237,11 @@ function MissionsPageContent() {
         return false;
       }
 
+      // Filtre par jour du festival
+      if (filterDay !== 'all' && !missionHappenOnDay(mission, filterDay)) {
+        return false;
+      }
+
       // Filtre "Mes missions" (seulement les missions où l'utilisateur est inscrit)
       if (showMyMissionsOnly && user && !mission.volunteers.includes(user.uid)) {
         return false;
@@ -177,11 +254,12 @@ function MissionsPageContent() {
 
       return true;
     });
-  }, [missions, filterCategory, showMyMissionsOnly, showUrgentOnly, user]);
+  }, [missions, filterCategory, filterDay, showMyMissionsOnly, showUrgentOnly, user]);
 
   // Réinitialiser tous les filtres
   const resetFilters = () => {
     setFilterCategory('all');
+    setFilterDay('all');
     setShowMyMissionsOnly(false);
     setShowUrgentOnly(false);
     // Retirer le paramètre URL
@@ -189,7 +267,7 @@ function MissionsPageContent() {
   };
 
   // Vérifier si des filtres sont actifs
-  const hasActiveFilters = filterCategory !== 'all' || showMyMissionsOnly || showUrgentOnly;
+  const hasActiveFilters = filterCategory !== 'all' || filterDay !== 'all' || showMyMissionsOnly || showUrgentOnly;
 
   if (loading || !user) {
     return (
@@ -258,6 +336,32 @@ function MissionsPageContent() {
                 ))}
               </select>
             </div>
+
+            {/* Filtre par jour du festival */}
+            {festivalDays.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="filterDay" className="flex items-center gap-2">
+                  <CalendarDaysIcon className="w-4 h-4" />
+                  Jour du festival
+                </Label>
+                <select
+                  id="filterDay"
+                  value={filterDay}
+                  onChange={(e) => setFilterDay(e.target.value)}
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                >
+                  <option value="all">Tous les jours</option>
+                  {festivalDays.map((day) => (
+                    <option key={day.date} value={day.date}>
+                      {day.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Afficher uniquement les missions ayant lieu ce jour-là
+                </p>
+              </div>
+            )}
 
             {/* Options de filtrage */}
             <div className="space-y-2">

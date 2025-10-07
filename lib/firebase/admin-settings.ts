@@ -10,6 +10,8 @@ const ADMIN_SETTINGS_DOC = 'settings/admin';
 
 export interface AdminSettings {
   autoApproveResponsibility: boolean;
+  festivalStartDate?: Date;
+  festivalEndDate?: Date;
   updatedAt?: Date;
   updatedBy?: string;
 }
@@ -26,6 +28,8 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       const data = docSnap.data();
       return {
         autoApproveResponsibility: data.autoApproveResponsibility || false,
+        festivalStartDate: data.festivalStartDate?.toDate(),
+        festivalEndDate: data.festivalEndDate?.toDate(),
         updatedAt: data.updatedAt?.toDate(),
         updatedBy: data.updatedBy,
       };
