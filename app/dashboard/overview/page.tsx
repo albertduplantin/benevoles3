@@ -1,0 +1,530 @@
+'use client';
+
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { isProfileComplete, getUserById } from '@/lib/firebase/users';
+import { getUserMissions, getAllMissions } from '@/lib/firebase/missions';
+import { getAdminSettings, updateAdminSettings } from '@/lib/firebase/admin-settings';
+import { MissionClient, UserClient, CategoryResponsibleClient } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { ExportButtons } from '@/components/features/exports/export-buttons';
+import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
+import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
+import Link from 'next/link';
+import {
+  CalendarIcon,
+  UsersIcon,
+  CheckCircleIcon,
+  AlertCircleIcon,
+  TrendingUpIcon,
+  FolderIcon,
+  PlusIcon,
+} from 'lucide-react';
+
+export default function DashboardOverviewPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [missions, setMissions] = useState<MissionClient[]>([]);
+  const [allMissions, setAllMissions] = useState<MissionClient[]>([]);
+  const [isLoadingMissions, setIsLoadingMissions] = useState(true);
+  const [autoApprove, setAutoApprove] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [allVolunteersMap, setAllVolunteersMap] = useState<Map<string, UserClient>>(new Map());
+  const [responsibleCategories, setResponsibleCategories] = useState<CategoryResponsibleClient[]>([]);
+
+  useEffect(() => {
+    if (loading) return;
+    
+    if (!user) {
+      router.push('/auth/login');
+    } else if (!isProfileComplete(user)) {
+      router.push('/auth/complete-profile');
+    }
+  }, [user, loading, router]);
+
+  // Charger les catégories dont l'utilisateur est responsable
+  useEffect(() => {
+    const loadResponsibleCategories = async () => {
+      if (!user || user.role !== 'category_responsible') return;
+      try {
+        const response = await fetch(`/api/my-categories?userId=${user.uid}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        setResponsibleCategories(data.categories || []);
+      } catch (error) {
+        console.error('Error loading responsible categories:', error);
+      }
+    };
+    loadResponsibleCategories();
+  }, [user]);
+
+  // Charger les missions
+  useEffect(() => {
+    const loadMissions = async () => {
+      if (!user) return;
+      try {
+        setIsLoadingMissions(true);
+        const userMissions = await getUserMissions(user.uid);
+        setMissions(userMissions);
+
+        if (user.role === 'admin' || user.role === 'category_responsible') {
+          const all = await getAllMissions();
+          setAllMissions(all);
+        }
+
+        if (user.role === 'admin') {
+          const allMissionsForAdmin = await getAllMissions();
+          const uniqueVolunteerIds = new Set<string>();
+          
+          allMissionsForAdmin.forEach((mission) => {
+            mission.volunteers.forEach((uid) => uniqueVolunteerIds.add(uid));
+            mission.responsibles.forEach((uid) => uniqueVolunteerIds.add(uid));
+          });
+
+          const volunteersMap = new Map<string, UserClient>();
+          for (const uid of uniqueVolunteerIds) {
+            try {
+              const volunteer = await getUserById(uid);
+              if (volunteer) {
+                volunteersMap.set(uid, volunteer);
+              }
+            } catch (error) {
+              console.error(`Error loading volunteer ${uid}:`, error);
+            }
+          }
+          setAllVolunteersMap(volunteersMap);
+        }
+      } catch (error) {
+        console.error('Error loading missions:', error);
+      } finally {
+        setIsLoadingMissions(false);
+      }
+    };
+    loadMissions();
+  }, [user]);
+
+  // Charger les paramètres admin
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user) return;
+      
+      if (user.role !== 'admin') {
+        setIsLoadingSettings(false);
+        return;
+      }
+      
+      try {
+        setIsLoadingSettings(true);
+        const settings = await getAdminSettings();
+        setAutoApprove(settings.autoApproveResponsibility);
+      } catch (error) {
+        console.error('Error loading admin settings:', error);
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+    loadSettings();
+  }, [user]);
+
+  const handleToggleAutoApprove = async (checked: boolean) => {
+    if (!user || user.role !== 'admin') return;
+    
+    setIsSavingSettings(true);
+    try {
+      await updateAdminSettings({ autoApproveResponsibility: checked }, user.uid);
+      setAutoApprove(checked);
+    } catch (error) {
+      console.error('Error updating settings:', error);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Chargement...</p>
+      </div>
+    );
+  }
+
+  // Statistiques
+  const upcomingMissions = missions.filter(
+    (m) => m.startDate && new Date(m.startDate) > new Date()
+  );
+  const completedMissions = missions.filter((m) => m.status === 'completed');
+  
+  // Stats admin
+  const totalMissions = allMissions.length;
+  const publishedMissions = allMissions.filter((m) => m.status === 'published').length;
+  const pendingRequests = allMissions.reduce(
+    (sum, m) => sum + (m.pendingResponsibles?.length || 0),
+    0
+  );
+  const totalVolunteers = new Set(
+    allMissions.flatMap((m) => m.volunteers)
+  ).size;
+
+  // Missions coordonnées par le responsable
+  const responsibleCategoryIds = responsibleCategories.map(c => c.categoryId);
+  const coordinatingMissions = allMissions.filter((m) =>
+    responsibleCategoryIds.includes(m.category)
+  );
+
+  const isAdmin = user.role === 'admin';
+  const isResponsible = user.role === 'category_responsible';
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold">
+          {isAdmin ? 'Tableau de bord Admin' : isResponsible ? 'Tableau de bord Responsable' : 'Mon Tableau de bord'}
+        </h1>
+        <p className="text-muted-foreground">
+          Bienvenue, {user.firstName} 👋
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      {isAdmin ? (
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Missions</CardTitle>
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalMissions}</div>
+              <p className="text-xs text-muted-foreground">
+                {publishedMissions} publiées
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Bénévoles Actifs</CardTitle>
+              <UsersIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalVolunteers}</div>
+              <p className="text-xs text-muted-foreground">
+                Inscrits aux missions
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Demandes</CardTitle>
+              <AlertCircleIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingRequests}</div>
+              <p className="text-xs text-muted-foreground">
+                En attente validation
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taux de Remplissage</CardTitle>
+              <TrendingUpIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {totalMissions > 0
+                  ? Math.round(
+                      (allMissions.reduce((sum, m) => sum + m.volunteers.length, 0) /
+                        allMissions.reduce((sum, m) => sum + m.maxVolunteers, 0)) *
+                        100
+                    )
+                  : 0}
+                %
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Moyenne globale
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      ) : isResponsible ? (
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Mes Catégories</CardTitle>
+              <FolderIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{responsibleCategories.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Catégories assignées
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Missions Coordonnées</CardTitle>
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{coordinatingMissions.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Dans mes catégories
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Mes Missions</CardTitle>
+              <CheckCircleIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{missions.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {upcomingMissions.length} à venir
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Terminées</CardTitle>
+              <CheckCircleIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{completedMissions.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Missions accomplies
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Mes Missions</CardTitle>
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{missions.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Missions inscrites
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">À Venir</CardTitle>
+              <AlertCircleIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{upcomingMissions.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Missions futures
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Terminées</CardTitle>
+              <CheckCircleIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{completedMissions.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Missions accomplies
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Actions Admin */}
+      {isAdmin && !isLoadingSettings && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Actions Administrateur</CardTitle>
+                <CardDescription>
+                  Communication et exports de données
+                </CardDescription>
+              </div>
+              <VolunteerCallModal missions={allMissions} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm font-medium">Exports</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Exportez les statistiques au format PDF ou Excel
+                </p>
+                <ExportButtons
+                  type="global"
+                  missions={allMissions}
+                  totalVolunteers={totalVolunteers}
+                  allVolunteers={allVolunteersMap}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Actions Responsable */}
+      {isResponsible && responsibleCategories.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Actions Responsable</CardTitle>
+                <CardDescription>
+                  Gérer les missions de vos catégories
+                </CardDescription>
+              </div>
+              <Button asChild>
+                <Link href="/dashboard/missions/new">
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Créer une mission
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm font-medium">Exports</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Exportez vos missions au format PDF ou Excel
+                </p>
+                <ExportButtons
+                  type="global"
+                  missions={coordinatingMissions}
+                  totalVolunteers={new Set(coordinatingMissions.flatMap(m => m.volunteers)).size}
+                  allVolunteers={allVolunteersMap}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Catégories et Missions Coordonnées (Responsable) */}
+      {!isAdmin && isResponsible && (
+        <>
+          {/* Mes Catégories */}
+          {responsibleCategories.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Mes Catégories</CardTitle>
+                <CardDescription>
+                  Les catégories dont vous êtes responsable
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {responsibleCategories.map((cat) => {
+                    const categoryLabel = ALL_CATEGORIES_WITH_LABELS.find(
+                      c => c.value === cat.categoryId
+                    )?.label || cat.categoryLabel;
+                    return (
+                      <Badge key={cat.id} variant="secondary" className="text-sm">
+                        <FolderIcon className="h-3 w-3 mr-1" />
+                        {categoryLabel}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Missions Coordonnées */}
+          {coordinatingMissions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Missions que je coordonne</CardTitle>
+                    <CardDescription>
+                      Les missions de mes catégories
+                    </CardDescription>
+                  </div>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/dashboard/missions">Voir tout</Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {coordinatingMissions.slice(0, 5).map((mission) => {
+                    const categoryLabel = ALL_CATEGORIES_WITH_LABELS.find(
+                      c => c.value === mission.category
+                    )?.label || mission.category;
+                    return (
+                      <Link
+                        key={mission.id}
+                        href={`/dashboard/missions/${mission.id}`}
+                        className="block p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold">{mission.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {categoryLabel} • {mission.volunteers.length}/{mission.maxVolunteers} bénévoles
+                            </p>
+                          </div>
+                          <Badge className="bg-purple-600">👑 Responsable</Badge>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Paramètres Admin */}
+      {isAdmin && !isLoadingSettings && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Paramètres Administrateur</CardTitle>
+            <CardDescription>
+              Configuration de la validation des demandes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between space-x-4">
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="auto-approve" className="text-base">
+                  Validation automatique des responsables
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Les bénévoles deviennent automatiquement responsables sans validation manuelle
+                </p>
+              </div>
+              <Switch
+                id="auto-approve"
+                checked={autoApprove}
+                onCheckedChange={handleToggleAutoApprove}
+                disabled={isSavingSettings}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+

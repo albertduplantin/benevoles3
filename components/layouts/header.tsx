@@ -40,6 +40,12 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   {
+    label: 'Dashboard',
+    href: '/dashboard/overview',
+    icon: HomeIcon,
+    roles: ['volunteer', 'category_responsible', 'admin'],
+  },
+  {
     label: 'Calendrier',
     href: '/dashboard',
     icon: CalendarIcon,
