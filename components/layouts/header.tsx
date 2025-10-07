@@ -70,6 +70,12 @@ const navigation: NavItem[] = [
     roles: ['admin'],
   },
   {
+    label: 'Catégories',
+    href: '/dashboard/admin/categories',
+    icon: ListIcon,
+    roles: ['admin'],
+  },
+  {
     label: 'Bénévoles',
     href: '/dashboard/volunteers',
     icon: UsersIcon,

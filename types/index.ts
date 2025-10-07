@@ -130,6 +130,9 @@ export type CategoryResponsibleClient = Omit<
   assignedAt: Date;
 };
 
+// Export des types de catégories
+export * from './category';
+
 export type VolunteerRequestClient = Omit<
   VolunteerRequest,
   'requestedAt' | 'processedAt'
