@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase/admin';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const ADMIN_UID = 'gZU8ccHVwjVBnnDa5rKnLAISoBh2';
 
@@ -31,6 +31,9 @@ const categories = [
 
 export async function POST(request: NextRequest) {
   try {
+    // Import dynamique pour éviter l'exécution pendant le build
+    const { adminDb } = await import('@/lib/firebase/admin');
+    
     const categoriesRef = adminDb.collection('missionCategories');
     
     // Vérifier si des catégories existent déjà
