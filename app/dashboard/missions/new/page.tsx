@@ -13,13 +13,14 @@ export default function NewMissionPage() {
     if (!loading) {
       if (!user) {
         router.push('/auth/login');
-      } else if (user.role !== 'admin') {
+      } else if (user.role === 'volunteer') {
+        // Les bénévoles n'ont pas accès à la création
         router.push('/dashboard');
       }
     }
   }, [user, loading, router]);
 
-  if (loading || !user || user.role !== 'admin') {
+  if (loading || !user || user.role === 'volunteer') {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p>Chargement...</p>

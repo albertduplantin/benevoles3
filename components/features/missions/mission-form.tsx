@@ -32,6 +32,8 @@ export function MissionForm({
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
   const {
     register,
@@ -51,6 +53,48 @@ export function MissionForm({
       status: 'draft',
     },
   });
+
+  // Charger les catégories autorisées pour le responsable
+  useEffect(() => {
+    const loadAllowedCategories = async () => {
+      if (!user) {
+        setIsLoadingCategories(false);
+        return;
+      }
+
+      // Admin peut créer dans toutes les catégories
+      if (user.role === 'admin') {
+        setAllowedCategories(GROUPED_CATEGORIES.flatMap(g => g.categories.map(c => c.value)));
+        setIsLoadingCategories(false);
+        return;
+      }
+
+      // Responsable de catégorie : charger ses catégories
+      if (user.role === 'category_responsible') {
+        try {
+          const response = await fetch(`/api/my-categories?userId=${user.uid}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch categories');
+          }
+          const data = await response.json();
+          const categoryIds = data.categories?.map((c: any) => c.categoryId) || [];
+          setAllowedCategories(categoryIds);
+
+          // Si une seule catégorie, la présélectionner
+          if (categoryIds.length === 1 && mode === 'create') {
+            setValue('category', categoryIds[0]);
+          }
+        } catch (error) {
+          console.error('Error loading categories:', error);
+          setError('Erreur lors du chargement des catégories');
+        }
+      }
+
+      setIsLoadingCategories(false);
+    };
+
+    loadAllowedCategories();
+  }, [user, mode, setValue]);
 
   // Pré-remplir le formulaire en mode édition
   useEffect(() => {
@@ -168,23 +212,50 @@ export function MissionForm({
           {/* Catégorie */}
           <div className="space-y-2">
             <Label htmlFor="category">Catégorie *</Label>
-            <select
-              id="category"
-              {...register('category')}
-              disabled={isLoading}
-              className="w-full px-3 py-2 border border-input rounded-md bg-background"
-            >
-              <option value="">Sélectionnez une catégorie</option>
-              {GROUPED_CATEGORIES.map((group) => (
-                <optgroup key={group.group} label={group.group}>
-                  {group.categories.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            {isLoadingCategories ? (
+              <div className="w-full px-3 py-2 border border-input rounded-md bg-background text-muted-foreground">
+                Chargement des catégories...
+              </div>
+            ) : allowedCategories.length === 0 ? (
+              <div className="p-3 text-sm text-amber-600 bg-amber-50 rounded-md">
+                Aucune catégorie assignée. Contactez un administrateur.
+              </div>
+            ) : (
+              <>
+                <select
+                  id="category"
+                  {...register('category')}
+                  disabled={isLoading || allowedCategories.length === 1}
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                >
+                  <option value="">Sélectionnez une catégorie</option>
+                  {GROUPED_CATEGORIES.map((group) => {
+                    // Filtrer les catégories du groupe selon les catégories autorisées
+                    const filteredCategories = group.categories.filter(cat => 
+                      allowedCategories.includes(cat.value)
+                    );
+                    
+                    // N'afficher le groupe que s'il contient des catégories autorisées
+                    if (filteredCategories.length === 0) return null;
+                    
+                    return (
+                      <optgroup key={group.group} label={group.group}>
+                        {filteredCategories.map((cat) => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+                {allowedCategories.length === 1 && (
+                  <p className="text-sm text-muted-foreground">
+                    Vous ne pouvez créer des missions que dans cette catégorie.
+                  </p>
+                )}
+              </>
+            )}
             {errors.category && (
               <p className="text-sm text-red-600">{errors.category.message}</p>
             )}
