@@ -19,7 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const ADMIN_UID = 'YOUR_ADMIN_UID_HERE'; // À remplacer par ton UID admin
+const ADMIN_UID = 'gZU8ccHVwjVBnnDa5rKnLAISoBh2';
 
 const categories = [
   // Accueil public et professionnels
