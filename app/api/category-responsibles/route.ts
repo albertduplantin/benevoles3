@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  getAllCategoryResponsibles,
-  assignCategoryResponsible,
-  removeCategoryResponsible,
-} from '@/lib/firebase/category-responsibles';
-import { getAllVolunteersAdmin } from '@/lib/firebase/users-admin';
 
 // Force dynamic rendering (pas de pré-rendering au build)
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // GET - Obtenir tous les responsables de catégories + liste des bénévoles
 export async function GET(request: NextRequest) {
   try {
+    // Import dynamique pour éviter l'exécution pendant le build
+    const { getAllCategoryResponsibles } = await import('@/lib/firebase/category-responsibles');
+    const { getAllVolunteersAdmin } = await import('@/lib/firebase/users-admin');
+    
     const [assignments, users] = await Promise.all([
       getAllCategoryResponsibles(),
       getAllVolunteersAdmin(),
@@ -38,6 +37,8 @@ export async function GET(request: NextRequest) {
 // POST - Assigner un responsable
 export async function POST(request: NextRequest) {
   try {
+    const { assignCategoryResponsible } = await import('@/lib/firebase/category-responsibles');
+    
     const body = await request.json();
     const { categoryId, categoryLabel, responsibleId, adminId } = body;
 
@@ -68,6 +69,8 @@ export async function POST(request: NextRequest) {
 // DELETE - Retirer un responsable
 export async function DELETE(request: NextRequest) {
   try {
+    const { removeCategoryResponsible } = await import('@/lib/firebase/category-responsibles');
+    
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId');
 
