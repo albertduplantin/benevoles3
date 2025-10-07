@@ -70,8 +70,9 @@ export interface Mission {
   createdAt: Timestamp | Date;
   updatedAt?: Timestamp | Date;
   volunteers: string[]; // Array of User UIDs
-  responsibles: string[]; // Array of User UIDs
-  pendingResponsibles: string[]; // Array of User UIDs with pending requests
+  // DEPRECATED: Use category-responsibles system instead
+  responsibles: string[]; // DEPRECATED - Old per-mission responsible system
+  pendingResponsibles: string[]; // DEPRECATED - Old responsibility request system
 }
 
 /**
