@@ -20,15 +20,19 @@ export async function GET(request: NextRequest) {
     // Import dynamique pour Firebase Admin
     const { adminDb } = await import('@/lib/firebase/admin');
     
-    // Récupérer les catégories dont l'utilisateur est responsable
+    console.log('🔍 Fetching categories for user:', userId);
+    
+    // Récupérer les catégories dont l'utilisateur est responsable (sans orderBy pour éviter l'index composé)
     const snapshot = await adminDb
       .collection('categoryResponsibles')
       .where('responsibleId', '==', userId)
-      .orderBy('categoryLabel', 'asc')
       .get();
+
+    console.log('📦 Snapshot size:', snapshot.size);
 
     const categories = snapshot.docs.map((doc) => {
       const data = doc.data();
+      console.log('📋 Category data:', data);
       return {
         id: doc.id,
         categoryId: data.categoryId,
@@ -38,6 +42,9 @@ export async function GET(request: NextRequest) {
         assignedAt: data.assignedAt?.toDate() || new Date(),
       };
     });
+
+    // Tri côté serveur par label
+    categories.sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel));
 
     console.log('📋 Categories found for user:', userId, categories.length);
 
