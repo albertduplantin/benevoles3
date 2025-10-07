@@ -34,11 +34,8 @@ export default function MissionDetailPage() {
 
   const [mission, setMission] = useState<MissionClient | null>(null);
   const [participants, setParticipants] = useState<UserClient[]>([]);
-  const [pendingResponsibles, setPendingResponsibles] = useState<UserClient[]>([]);
-  const [currentResponsibles, setCurrentResponsibles] = useState<UserClient[]>([]);
   const [isLoadingMission, setIsLoadingMission] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [isProcessingResponsibility, setIsProcessingResponsibility] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -47,13 +44,6 @@ export default function MissionDetailPage() {
   const canRegister =
     mission?.status === 'published' && !isUserRegistered && availableSpots > 0;
   const canUnregister = isUserRegistered && mission?.status !== 'completed';
-  
-  // États pour la responsabilité
-  const isUserResponsible = mission?.responsibles.includes(user?.uid || '') || false;
-  const hasPendingRequest = mission?.pendingResponsibles.includes(user?.uid || '') || false;
-  const missionHasResponsible = mission ? mission.responsibles.length > 0 : false;
-  // Peut demander si : inscrit à la mission, pas déjà responsable, pas de demande en attente, pas admin, et mission n'a pas déjà un responsable
-  const canRequestResponsibility = isUserRegistered && !isUserResponsible && !hasPendingRequest && user?.role !== 'admin' && !missionHasResponsible;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -78,32 +68,15 @@ export default function MissionDetailPage() {
 
         setMission(missionData);
 
-        // Charger les participants si admin, responsable OU bénévole inscrit
+        // Charger les participants si admin OU bénévole inscrit
         if (
           hasPermission(user, 'admin') || 
-          missionData.responsibles.includes(user.uid) ||
           missionData.volunteers.includes(user.uid)
         ) {
           const participantsData = await Promise.all(
             missionData.volunteers.map((uid) => getUserById(uid))
           );
           setParticipants(participantsData.filter((p) => p !== null) as UserClient[]);
-        }
-
-        // Charger les responsables actuels (pour affichage)
-        if (missionData.responsibles.length > 0) {
-          const responsiblesData = await Promise.all(
-            missionData.responsibles.map((uid) => getUserById(uid))
-          );
-          setCurrentResponsibles(responsiblesData.filter((r) => r !== null) as UserClient[]);
-        }
-
-        // Charger les demandes en attente (admin uniquement)
-        if (hasPermission(user, 'admin') && missionData.pendingResponsibles.length > 0) {
-          const pendingData = await Promise.all(
-            missionData.pendingResponsibles.map((uid) => getUserById(uid))
-          );
-          setPendingResponsibles(pendingData.filter((p) => p !== null) as UserClient[]);
         }
       } catch (err: any) {
         setError(err.message || 'Erreur lors du chargement de la mission');
@@ -165,159 +138,6 @@ export default function MissionDetailPage() {
     }
   };
 
-  // === Gestion des responsabilités ===
-
-  const handleRequestResponsibility = async () => {
-    if (!user || !missionId) return;
-
-    setIsProcessingResponsibility(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const result = await requestMissionResponsibility(missionId, user.uid);
-      
-      if (result.autoApproved) {
-        setSuccess('✅ Vous êtes maintenant responsable de cette mission !');
-      } else {
-        setSuccess('✅ Demande de responsabilité envoyée !');
-      }
-
-      // Recharger la mission
-      const updatedMission = await getMissionById(missionId);
-      if (updatedMission) {
-        setMission(updatedMission);
-        
-        // Mettre à jour les responsables si auto-approuvé
-        if (result.autoApproved && user) {
-          setCurrentResponsibles([{
-            uid: user.uid,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            photoURL: user.photoURL,
-            role: user.role,
-            createdAt: user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt.seconds * 1000),
-            updatedAt: user.updatedAt ? (user.updatedAt instanceof Date ? user.updatedAt : new Date(user.updatedAt.seconds * 1000)) : undefined,
-            consents: {
-              ...user.consents,
-              consentDate: user.consents.consentDate instanceof Date ? user.consents.consentDate : new Date(user.consents.consentDate.seconds * 1000),
-            },
-          }]);
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la demande');
-    } finally {
-      setIsProcessingResponsibility(false);
-    }
-  };
-
-  const handleCancelRequest = async () => {
-    if (!user || !missionId) return;
-
-    setIsProcessingResponsibility(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await cancelResponsibilityRequest(missionId, user.uid);
-      setSuccess('✅ Demande annulée');
-
-      // Recharger la mission
-      const updatedMission = await getMissionById(missionId);
-      if (updatedMission) {
-        setMission(updatedMission);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'annulation');
-    } finally {
-      setIsProcessingResponsibility(false);
-    }
-  };
-
-  const handleRemoveResponsibility = async () => {
-    if (!user || !missionId) return;
-
-    if (!confirm('Êtes-vous sûr de vouloir vous retirer comme responsable de cette mission ?')) {
-      return;
-    }
-
-    setIsProcessingResponsibility(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await removeResponsibility(missionId, user.uid);
-      setSuccess('✅ Vous n\'êtes plus responsable de cette mission');
-
-      // Recharger la mission
-      const updatedMission = await getMissionById(missionId);
-      if (updatedMission) {
-        setMission(updatedMission);
-        setCurrentResponsibles(prev => prev.filter(r => r.uid !== user.uid));
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors du retrait');
-    } finally {
-      setIsProcessingResponsibility(false);
-    }
-  };
-
-  const handleApproveRequest = async (userId: string) => {
-    if (!missionId) return;
-
-    setIsProcessingResponsibility(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await approveResponsibilityRequest(missionId, userId);
-      setSuccess('✅ Demande approuvée');
-
-      // Recharger la mission
-      const updatedMission = await getMissionById(missionId);
-      if (updatedMission) {
-        setMission(updatedMission);
-        
-        // Mettre à jour les listes
-        const approvedUser = pendingResponsibles.find(p => p.uid === userId);
-        if (approvedUser) {
-          setPendingResponsibles(prev => prev.filter(p => p.uid !== userId));
-          setCurrentResponsibles(prev => [...prev, approvedUser]);
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'approbation');
-    } finally {
-      setIsProcessingResponsibility(false);
-    }
-  };
-
-  const handleRejectRequest = async (userId: string) => {
-    if (!missionId) return;
-
-    setIsProcessingResponsibility(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await rejectResponsibilityRequest(missionId, userId);
-      setSuccess('✅ Demande rejetée');
-
-      // Recharger la mission
-      const updatedMission = await getMissionById(missionId);
-      if (updatedMission) {
-        setMission(updatedMission);
-        setPendingResponsibles(prev => prev.filter(p => p.uid !== userId));
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors du rejet');
-    } finally {
-      setIsProcessingResponsibility(false);
-    }
-  };
 
   if (loading || isLoadingMission) {
     return (
@@ -365,7 +185,6 @@ export default function MissionDetailPage() {
                 type="mission"
                 mission={mission}
                 volunteers={participants}
-                responsibles={currentResponsibles}
               />
             )}
             
@@ -532,202 +351,8 @@ export default function MissionDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Section Responsabilité */}
-        <Card className="border-purple-200 bg-purple-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-purple-900">
-              <UsersIcon className="w-5 h-5" />
-              Responsables de Mission
-            </CardTitle>
-            <CardDescription className="text-purple-800">
-              Les responsables coordonnent cette mission et ont accès aux coordonnées des bénévoles
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Liste des responsables actuels */}
-            {currentResponsibles.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-2 text-purple-900">Responsables actuels</h4>
-                <div className="space-y-2">
-                  {currentResponsibles.map((responsible) => (
-                    <div
-                      key={responsible.uid}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          {responsible.photoURL ? (
-                            <AvatarImage
-                              src={responsible.photoURL}
-                              alt={responsible.firstName}
-                            />
-                          ) : (
-                            <AvatarFallback
-                              style={{
-                                backgroundColor: getAvatarColor(responsible.email),
-                              }}
-                            >
-                              {getInitials(responsible.firstName, responsible.lastName)}
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
-                        <div>
-                          <p className="font-semibold">
-                            {responsible.firstName} {responsible.lastName}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {responsible.email}
-                          </p>
-                        </div>
-                      </div>
-                      {responsible.uid === user.uid && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRemoveResponsibility}
-                          disabled={isProcessingResponsibility}
-                        >
-                          Me retirer
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {currentResponsibles.length === 0 && (
-              <p className="text-sm text-purple-800 text-center py-2">
-                Aucun responsable pour cette mission
-              </p>
-            )}
-
-            {/* Boutons d'action pour les bénévoles */}
-            {!isUserRegistered && !missionHasResponsible && user?.role !== 'admin' && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                <p className="text-sm text-blue-900">
-                  💡 Vous devez d'abord vous inscrire à cette mission pour pouvoir devenir responsable
-                </p>
-              </div>
-            )}
-
-            {canRequestResponsibility && (
-              <Button
-                onClick={handleRequestResponsibility}
-                disabled={isProcessingResponsibility}
-                className="w-full"
-                variant="secondary"
-              >
-                {isProcessingResponsibility
-                  ? 'Envoi en cours...'
-                  : '🙋 Me porter volontaire comme responsable'}
-              </Button>
-            )}
-
-            {missionHasResponsible && !isUserResponsible && user?.role !== 'admin' && (
-              <div className="p-3 bg-gray-100 border border-gray-300 rounded-lg text-center">
-                <p className="text-sm text-gray-700">
-                  Cette mission a déjà un responsable
-                </p>
-              </div>
-            )}
-
-            {hasPendingRequest && (
-              <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertCircleIcon className="w-5 h-5 text-yellow-600" />
-                  <p className="text-sm font-semibold text-yellow-900">
-                    Demande en attente de validation
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCancelRequest}
-                  disabled={isProcessingResponsibility}
-                >
-                  Annuler
-                </Button>
-              </div>
-            )}
-
-            {isUserResponsible && !hasPendingRequest && !canRequestResponsibility && user.role !== 'admin' && (
-              <div className="p-3 bg-purple-100 rounded-lg text-center">
-                <p className="text-sm font-semibold text-purple-900">
-                  ✅ Vous êtes responsable de cette mission
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Section Admin : Demandes en attente */}
-        {hasPermission(user, 'admin') && pendingResponsibles.length > 0 && (
-          <Card className="border-orange-200 bg-orange-50">
-            <CardHeader>
-              <CardTitle className="text-orange-900">
-                Demandes de responsabilité en attente ({pendingResponsibles.length})
-              </CardTitle>
-              <CardDescription className="text-orange-800">
-                Validez ou rejetez les demandes de responsabilité
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pendingResponsibles.map((pending) => (
-                  <div
-                    key={pending.uid}
-                    className="flex items-center justify-between p-4 bg-white rounded-lg border border-orange-200"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        {pending.photoURL ? (
-                          <AvatarImage src={pending.photoURL} alt={pending.firstName} />
-                        ) : (
-                          <AvatarFallback
-                            style={{
-                              backgroundColor: getAvatarColor(pending.email),
-                            }}
-                          >
-                            {getInitials(pending.firstName, pending.lastName)}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">
-                          {pending.firstName} {pending.lastName}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{pending.email}</p>
-                        <p className="text-sm text-muted-foreground">{pending.phone}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApproveRequest(pending.uid)}
-                        disabled={isProcessingResponsibility}
-                      >
-                        ✓ Approuver
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRejectRequest(pending.uid)}
-                        disabled={isProcessingResponsibility}
-                      >
-                        ✗ Rejeter
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Participants List (Admin/Responsable/Bénévoles inscrits) */}
+        {/* Participants List (Admin/Bénévoles inscrits) */}
         {(hasPermission(user, 'admin') || 
-          mission.responsibles.includes(user.uid) ||
           mission.volunteers.includes(user.uid)) && (
           <Card>
             <CardHeader>
@@ -735,7 +360,7 @@ export default function MissionDetailPage() {
                 Participants ({participants.length}/{mission.maxVolunteers})
               </CardTitle>
               <CardDescription>
-                {hasPermission(user, 'admin') || mission.responsibles.includes(user.uid)
+                {hasPermission(user, 'admin')
                   ? 'Liste des bénévoles inscrits à cette mission'
                   : 'Coordonnées des autres bénévoles pour vous coordonner'}
               </CardDescription>
