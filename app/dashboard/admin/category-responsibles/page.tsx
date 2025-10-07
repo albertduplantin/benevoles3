@@ -55,8 +55,11 @@ export default function CategoryResponsiblesPage() {
           throw new Error('Failed to fetch data');
         }
         const data = await response.json();
-        setAssignments(data.assignments);
-        setVolunteers(data.volunteers);
+        console.log('📊 Données reçues:', data);
+        console.log('👥 Bénévoles:', data.volunteers?.length || 0);
+        console.log('📋 Assignations:', data.assignments?.length || 0);
+        setAssignments(data.assignments || []);
+        setVolunteers(data.volunteers || []);
       } catch (error) {
         console.error('Error loading data:', error);
         toast.error('Erreur lors du chargement des données');
@@ -291,17 +294,15 @@ export default function CategoryResponsiblesPage() {
                   <SelectValue placeholder="Sélectionner une catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  {GROUPED_CATEGORIES.map((group) => (
-                    <optgroup key={group.group} label={group.group}>
-                      {group.categories
-                        .filter(cat => !getResponsibleForCategory(cat.value))
-                        .map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </SelectItem>
-                        ))}
-                    </optgroup>
-                  ))}
+                  {GROUPED_CATEGORIES.flatMap((group) =>
+                    group.categories
+                      .filter(cat => !getResponsibleForCategory(cat.value))
+                      .map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {group.group} - {cat.label}
+                        </SelectItem>
+                      ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -313,13 +314,24 @@ export default function CategoryResponsiblesPage() {
                   <SelectValue placeholder="Sélectionner un bénévole" />
                 </SelectTrigger>
                 <SelectContent>
-                  {volunteers.map((vol) => (
-                    <SelectItem key={vol.uid} value={vol.uid}>
-                      {vol.firstName} {vol.lastName} ({vol.email})
-                    </SelectItem>
-                  ))}
+                  {volunteers.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">
+                      Aucun bénévole disponible
+                    </div>
+                  ) : (
+                    volunteers.map((vol) => (
+                      <SelectItem key={vol.uid} value={vol.uid}>
+                        {vol.firstName} {vol.lastName} ({vol.email})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              {volunteers.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Tous les bénévoles sont déjà responsables ou aucun bénévole n'est inscrit
+                </p>
+              )}
             </div>
           </div>
 
