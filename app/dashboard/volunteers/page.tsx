@@ -155,7 +155,7 @@ export default function VolunteersPage() {
     }
   };
 
-  const handleChangeRole = async (volunteerId: string, newRole: 'volunteer' | 'category_responsible' | 'admin') => {
+  const handleChangeRole = async (volunteerId: string, newRole: 'volunteer' | 'admin') => {
     setIsProcessing(true);
     try {
       await changeVolunteerRole(volunteerId, newRole);
@@ -239,7 +239,7 @@ export default function VolunteersPage() {
     switch (role) {
       case 'admin':
         return 'destructive';
-      case 'mission_responsible':
+      case 'category_responsible':
         return 'default';
       default:
         return 'secondary';
@@ -250,8 +250,8 @@ export default function VolunteersPage() {
     switch (role) {
       case 'admin':
         return 'Administrateur';
-      case 'mission_responsible':
-        return 'Responsable';
+      case 'category_responsible':
+        return 'Responsable de catégorie';
       default:
         return 'Bénévole';
     }
@@ -344,7 +344,6 @@ export default function VolunteersPage() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="volunteer">Bénévole</SelectItem>
-                              <SelectItem value="mission_responsible">Responsable</SelectItem>
                               <SelectItem value="admin">Administrateur</SelectItem>
                             </SelectContent>
                           </Select>
