@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 // POST - Assigner un responsable
 export async function POST(request: NextRequest) {
   try {
-    const { assignCategoryResponsible } = await import('@/lib/firebase/category-responsibles');
+    const { assignCategoryResponsibleAdmin } = await import('@/lib/firebase/category-responsibles');
     
     const body = await request.json();
     const { categoryId, categoryLabel, responsibleId, adminId } = body;
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const id = await assignCategoryResponsible(
+    const id = await assignCategoryResponsibleAdmin(
       categoryId,
       categoryLabel,
       responsibleId,
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 // DELETE - Retirer un responsable
 export async function DELETE(request: NextRequest) {
   try {
-    const { removeCategoryResponsible } = await import('@/lib/firebase/category-responsibles');
+    const { removeCategoryResponsibleAdmin } = await import('@/lib/firebase/category-responsibles');
     
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId');
@@ -86,7 +86,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await removeCategoryResponsible(categoryId);
+    await removeCategoryResponsibleAdmin(categoryId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

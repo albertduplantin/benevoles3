@@ -283,3 +283,98 @@ export async function getAllCategoryResponsiblesAdmin(): Promise<CategoryRespons
   }
 }
 
+/**
+ * Admin: Assigner un responsable à une catégorie (avec Firebase Admin)
+ */
+export async function assignCategoryResponsibleAdmin(
+  categoryId: string,
+  categoryLabel: string,
+  responsibleId: string,
+  adminId: string
+): Promise<string> {
+  try {
+    // Vérifier s'il y a déjà un responsable pour cette catégorie
+    const existing = await getCategoryResponsibleAdmin(categoryId);
+    if (existing) {
+      throw new Error('Cette catégorie a déjà un responsable. Retirez-le d\'abord.');
+    }
+
+    // Créer l'assignation
+    const assignmentRef = await adminDb.collection(COLLECTION_NAME).add({
+      categoryId,
+      categoryLabel,
+      responsibleId,
+      assignedBy: adminId,
+      assignedAt: new Date(),
+    });
+
+    // Mettre à jour le rôle et les catégories de l'utilisateur
+    const userRef = adminDb.collection('users').doc(responsibleId);
+    const userSnap = await userRef.get();
+    
+    if (userSnap.exists) {
+      const userData = userSnap.data();
+      const currentCategories = userData?.responsibleForCategories || [];
+      
+      await userRef.update({
+        role: 'category_responsible',
+        responsibleForCategories: [...currentCategories, categoryId],
+        updatedAt: new Date(),
+      });
+    }
+
+    return assignmentRef.id;
+  } catch (error) {
+    console.error('Error assigning category responsible (admin):', error);
+    throw error;
+  }
+}
+
+/**
+ * Admin: Retirer un responsable d'une catégorie (avec Firebase Admin)
+ */
+export async function removeCategoryResponsibleAdmin(
+  categoryId: string
+): Promise<void> {
+  try {
+    // Trouver l'assignation
+    const snapshot = await adminDb
+      .collection(COLLECTION_NAME)
+      .where('categoryId', '==', categoryId)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      throw new Error('Aucun responsable trouvé pour cette catégorie');
+    }
+
+    const assignment = snapshot.docs[0];
+    const responsibleId = assignment.data().responsibleId;
+
+    // Supprimer l'assignation
+    await assignment.ref.delete();
+
+    // Mettre à jour l'utilisateur
+    const userRef = adminDb.collection('users').doc(responsibleId);
+    const userSnap = await userRef.get();
+    
+    if (userSnap.exists) {
+      const userData = userSnap.data();
+      const currentCategories = userData?.responsibleForCategories || [];
+      const updatedCategories = currentCategories.filter((c: string) => c !== categoryId);
+      
+      // Si plus aucune catégorie, repasser en volunteer
+      const newRole = updatedCategories.length > 0 ? 'category_responsible' : 'volunteer';
+      
+      await userRef.update({
+        role: newRole,
+        responsibleForCategories: updatedCategories,
+        updatedAt: new Date(),
+      });
+    }
+  } catch (error) {
+    console.error('Error removing category responsible (admin):', error);
+    throw error;
+  }
+}
+
