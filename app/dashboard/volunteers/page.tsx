@@ -54,6 +54,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { SearchIcon, EditIcon, Trash2Icon, UserPlusIcon, UserMinusIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 
 export default function VolunteersPage() {
   const { user, loading } = useAuth();
@@ -260,7 +261,10 @@ export default function VolunteersPage() {
   if (loading || isLoadingVolunteers) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Chargement...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement des bénévoles...</p>
+        </div>
       </div>
     );
   }

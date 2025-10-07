@@ -43,23 +43,26 @@ export default function CalendarPage() {
           setAllMissions(all);
         }
 
-        // Charger les participants pour l'export planning
+        // Charger les participants pour l'export planning (en parallèle pour optimiser)
         if (user.role === 'volunteer') {
           const participantsMap = new Map<string, UserClient[]>();
-          for (const mission of userMissions) {
-            try {
-              const participants: UserClient[] = [];
-              for (const uid of mission.volunteers) {
-                const participant = await getUserById(uid);
-                if (participant) {
-                  participants.push(participant);
-                }
+          
+          // Charger tous les participants de toutes les missions en parallèle
+          await Promise.all(
+            userMissions.map(async (mission) => {
+              try {
+                // Charger tous les participants d'une mission en parallèle
+                const participantsPromises = mission.volunteers.map(uid => getUserById(uid));
+                const participants = await Promise.all(participantsPromises);
+                // Filtrer les participants null/undefined
+                const validParticipants = participants.filter((p): p is UserClient => p !== null);
+                participantsMap.set(mission.id, validParticipants);
+              } catch (error) {
+                console.error(`Error loading participants for mission ${mission.id}:`, error);
               }
-              participantsMap.set(mission.id, participants);
-            } catch (error) {
-              console.error(`Error loading participants for mission ${mission.id}:`, error);
-            }
-          }
+            })
+          );
+          
           setMissionParticipants(participantsMap);
         }
       } catch (error) {
@@ -74,7 +77,10 @@ export default function CalendarPage() {
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Chargement...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement...</p>
+        </div>
       </div>
     );
   }
@@ -114,7 +120,10 @@ export default function CalendarPage() {
         <CardContent>
           {isLoadingMissions ? (
             <div className="flex items-center justify-center py-8">
-              <p className="text-muted-foreground">Chargement...</p>
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Chargement des missions...</p>
+              </div>
             </div>
           ) : (
             <MissionCalendar

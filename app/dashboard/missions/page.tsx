@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
 import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/mission-skeleton';
 
 function MissionsPageContent() {
   const { user, loading } = useAuth();
@@ -296,7 +297,16 @@ function MissionsPageContent() {
 
       {/* Liste des missions */}
       {isLoadingMissions ? (
-        <p>Chargement des missions...</p>
+        <>
+          {/* Skeleton pour desktop */}
+          <div className="hidden md:block">
+            <MissionListSkeleton count={6} />
+          </div>
+          {/* Skeleton pour mobile */}
+          <div className="md:hidden">
+            <MissionListSkeletonMobile count={8} />
+          </div>
+        </>
       ) : filteredMissions.length === 0 && missions.length > 0 ? (
         <Card>
           <CardHeader>
