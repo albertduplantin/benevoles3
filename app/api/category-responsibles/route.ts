@@ -6,6 +6,9 @@ import {
 } from '@/lib/firebase/category-responsibles';
 import { getAllVolunteersAdmin } from '@/lib/firebase/users-admin';
 
+// Force dynamic rendering (pas de pré-rendering au build)
+export const dynamic = 'force-dynamic';
+
 // GET - Obtenir tous les responsables de catégories + liste des bénévoles
 export async function GET(request: NextRequest) {
   try {
