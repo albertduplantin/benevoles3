@@ -720,7 +720,7 @@ export async function exportFullProgramPDF(
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(
-    `Document généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })}`,
+    `Document genere le ${format(new Date(), 'dd/MM/yyyy a HH:mm', { locale: fr })}`,
     pageWidth / 2,
     38,
     { align: 'center' }
@@ -733,7 +733,7 @@ export async function exportFullProgramPDF(
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(37, 99, 235); // Bleu
-    doc.text('📌 MISSIONS CONTINUES (sans date fixe)', marginLeft, yPos);
+    doc.text('MISSIONS CONTINUES (sans date fixe)', marginLeft, yPos);
     doc.setTextColor(0, 0, 0);
     yPos += 8;
 
@@ -761,7 +761,7 @@ export async function exportFullProgramPDF(
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(139, 92, 246); // Violet pour la catégorie
-        doc.text(`📂 ${mission.category}`, marginLeft, yPos);
+        doc.text(`Categorie: ${mission.category}`, marginLeft, yPos);
         doc.setTextColor(0, 0, 0);
         yPos += 7;
       }
@@ -775,7 +775,7 @@ export async function exportFullProgramPDF(
       // Titre de la mission
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      const missionTitle = mission.isUrgent ? `🔴 ${mission.title}` : mission.title;
+      const missionTitle = mission.isUrgent ? `[URGENT] ${mission.title}` : mission.title;
       doc.text(missionTitle, marginLeft + 5, yPos);
       yPos += 6;
 
@@ -783,11 +783,11 @@ export async function exportFullProgramPDF(
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       
-      doc.text(`📍 Lieu : ${mission.location}`, marginLeft + 8, yPos);
+      doc.text(`Lieu: ${mission.location}`, marginLeft + 8, yPos);
       yPos += 5;
 
       doc.text(
-        `👥 Places : ${mission.volunteers.length}/${mission.maxVolunteers} | Statut : ${getStatusLabel(mission.status)}`,
+        `Places: ${mission.volunteers.length}/${mission.maxVolunteers} | Statut: ${getStatusLabel(mission.status)}`,
         marginLeft + 8,
         yPos
       );
@@ -795,7 +795,7 @@ export async function exportFullProgramPDF(
 
       // Description
       if (mission.description) {
-        const descLines = doc.splitTextToSize(`💬 ${mission.description}`, contentWidth - 10);
+        const descLines = doc.splitTextToSize(`Description: ${mission.description}`, contentWidth - 10);
         doc.text(descLines, marginLeft + 8, yPos);
         yPos += descLines.length * 4.5 + 3;
       }
@@ -822,7 +822,7 @@ export async function exportFullProgramPDF(
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(220, 38, 38); // Rouge
     const dayHeader = format(dayDate, "EEEE d MMMM yyyy", { locale: fr }).toUpperCase();
-    doc.text(`📅 ${dayHeader}`, marginLeft, yPos);
+    doc.text(dayHeader, marginLeft, yPos);
     doc.setTextColor(0, 0, 0);
     yPos += 8;
 
@@ -850,7 +850,7 @@ export async function exportFullProgramPDF(
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(139, 92, 246); // Violet pour la catégorie
-        doc.text(`📂 ${mission.category}`, marginLeft, yPos);
+        doc.text(`Categorie: ${mission.category}`, marginLeft, yPos);
         doc.setTextColor(0, 0, 0);
         yPos += 7;
       }
@@ -870,9 +870,9 @@ export async function exportFullProgramPDF(
       const endTimeStr = mission.endDate
         ? ` - ${format(new Date(mission.endDate), "HH'h'mm", { locale: fr })}`
         : '';
-      const missionTitle = mission.isUrgent ? `🔴 ${mission.title}` : mission.title;
+      const missionTitle = mission.isUrgent ? `[URGENT] ${mission.title}` : mission.title;
       
-      doc.text(`⏰ ${timeStr}${endTimeStr}`, marginLeft + 5, yPos);
+      doc.text(`Horaire: ${timeStr}${endTimeStr}`, marginLeft + 5, yPos);
       yPos += 6;
       doc.text(missionTitle, marginLeft + 5, yPos);
       yPos += 6;
@@ -881,11 +881,11 @@ export async function exportFullProgramPDF(
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       
-      doc.text(`📍 Lieu : ${mission.location}`, marginLeft + 8, yPos);
+      doc.text(`Lieu: ${mission.location}`, marginLeft + 8, yPos);
       yPos += 5;
 
       doc.text(
-        `👥 Places : ${mission.volunteers.length}/${mission.maxVolunteers} | Statut : ${getStatusLabel(mission.status)}`,
+        `Places: ${mission.volunteers.length}/${mission.maxVolunteers} | Statut: ${getStatusLabel(mission.status)}`,
         marginLeft + 8,
         yPos
       );
@@ -893,7 +893,7 @@ export async function exportFullProgramPDF(
 
       // Description
       if (mission.description) {
-        const descLines = doc.splitTextToSize(`💬 ${mission.description}`, contentWidth - 10);
+        const descLines = doc.splitTextToSize(`Description: ${mission.description}`, contentWidth - 10);
         doc.text(descLines, marginLeft + 8, yPos);
         yPos += descLines.length * 4.5 + 3;
       }
@@ -901,7 +901,7 @@ export async function exportFullProgramPDF(
       // Badge récurrent si applicable
       if (mission.isRecurrent) {
         doc.setTextColor(16, 185, 129); // Vert
-        doc.text('🔄 Mission récurrente', marginLeft + 8, yPos);
+        doc.text('[RECURRENTE] Mission recurrente', marginLeft + 8, yPos);
         doc.setTextColor(0, 0, 0);
         yPos += 5;
       }
