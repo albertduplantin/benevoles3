@@ -53,6 +53,7 @@ export default function MissionDetailPage() {
     }
   }, [user, loading, router]);
 
+  // Charger la mission (rapide)
   useEffect(() => {
     const fetchMission = async () => {
       if (!user || !missionId) return;
@@ -67,17 +68,6 @@ export default function MissionDetailPage() {
         }
 
         setMission(missionData);
-
-        // Charger les participants si admin OU bénévole inscrit
-        if (
-          hasPermission(user, 'admin') || 
-          missionData.volunteers.includes(user.uid)
-        ) {
-          const participantsData = await Promise.all(
-            missionData.volunteers.map((uid) => getUserById(uid))
-          );
-          setParticipants(participantsData.filter((p) => p !== null) as UserClient[]);
-        }
       } catch (err: any) {
         setError(err.message || 'Erreur lors du chargement de la mission');
       } finally {
@@ -87,6 +77,30 @@ export default function MissionDetailPage() {
 
     fetchMission();
   }, [user, missionId]);
+
+  // Charger les participants en arrière-plan (après affichage)
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      if (!user || !mission) return;
+
+      // Charger les participants seulement si admin OU bénévole inscrit
+      if (
+        hasPermission(user, 'admin') || 
+        mission.volunteers.includes(user.uid)
+      ) {
+        try {
+          const participantsData = await Promise.all(
+            mission.volunteers.map((uid) => getUserById(uid))
+          );
+          setParticipants(participantsData.filter((p) => p !== null) as UserClient[]);
+        } catch (err) {
+          console.error('Erreur chargement participants:', err);
+        }
+      }
+    };
+
+    fetchParticipants();
+  }, [user, mission]);
 
   const handleRegister = async () => {
     if (!user || !missionId) return;

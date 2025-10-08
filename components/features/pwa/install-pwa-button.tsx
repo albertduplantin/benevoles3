@@ -105,9 +105,24 @@ export function InstallPWAButton({ variant = 'outline', className = '' }: Instal
     localStorage.setItem('pwa-banner-dismissed', 'true');
   };
 
-  // Ne rien afficher si déjà installé
+  // Afficher un bouton de désinstallation si déjà installé
   if (isInstalled) {
-    return null;
+    return (
+      <Button
+        onClick={() => {
+          // Effacer le localStorage pour réinitialiser
+          localStorage.removeItem('pwa-banner-dismissed');
+          alert('Pour désinstaller l\'application :\n\n• Sur Android : Paramètres du téléphone > Applications > FFC Dinan > Désinstaller\n\n• Sur iOS : Maintenez l\'icône de l\'app sur l\'écran d\'accueil, puis "Supprimer l\'app"');
+        }}
+        variant={variant === 'black' ? 'default' : variant}
+        size="sm"
+        className={variant === 'black' ? `w-full bg-red-600 hover:bg-red-700 ${className}` : `w-full ${className}`}
+        title="Désinstaller l'application"
+      >
+        <XIcon className="mr-2 h-4 w-4" />
+        App installée - Instructions de désinstallation
+      </Button>
+    );
   }
 
   // Ne rien afficher sur Android/Chrome si non installable
