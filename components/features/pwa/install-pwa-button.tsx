@@ -87,17 +87,17 @@ export function InstallPWAButton() {
     return null;
   }
 
-  // Seulement un bouton discret dans le header, pas de banner automatique
+  // Bouton d'installation (visible sur desktop et mobile)
   return (
     <Button
       onClick={handleInstallClick}
       variant="outline"
       size="sm"
-      className="hidden md:flex"
+      className="w-full"
       title="Installer l'application"
     >
       <DownloadIcon className="mr-2 h-4 w-4" />
-      Installer
+      Installer l'application
     </Button>
   );
 }

@@ -152,7 +152,9 @@ export function Header() {
 
         {/* Profil utilisateur & Déconnexion Desktop */}
         <div className="hidden md:flex items-center gap-4">
-          <InstallPWAButton />
+          <div className="hidden md:block">
+            <InstallPWAButton />
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
