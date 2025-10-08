@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
+import { FullProgramExportButton } from '@/components/features/exports/full-program-export-button';
 import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
 import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
 import Link from 'next/link';
@@ -403,9 +404,17 @@ export default function DashboardOverviewPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <Label className="text-sm font-medium">Exports</Label>
+                <Label className="text-sm font-medium">Programme Complet</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Exportez le programme complet pour impression lors de réunions bénévoles
+                </p>
+                <FullProgramExportButton missions={allMissions} />
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Exports Statistiques</Label>
                 <p className="text-xs text-muted-foreground mb-2">
                   Exportez les statistiques au format PDF ou Excel
                 </p>
@@ -451,7 +460,18 @@ export default function DashboardOverviewPage() {
               </div>
 
               <div>
-                <Label className="text-sm font-medium">Exports</Label>
+                <Label className="text-sm font-medium">Programme Complet</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Exportez le programme complet de vos missions pour impression
+                </p>
+                <FullProgramExportButton 
+                  missions={coordinatingMissions} 
+                  allowedCategories={responsibleCategoryIds}
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Exports Statistiques</Label>
                 <p className="text-xs text-muted-foreground mb-2">
                   Exportez vos missions au format PDF ou Excel
                 </p>

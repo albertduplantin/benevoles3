@@ -10,9 +10,9 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Si l'utilisateur est connecté, le rediriger vers le dashboard
+    // Si l'utilisateur est connecté, le rediriger vers la page missions
     if (!loading && user) {
-      router.push('/dashboard');
+      router.push('/dashboard/missions');
     }
   }, [user, loading, router]);
 

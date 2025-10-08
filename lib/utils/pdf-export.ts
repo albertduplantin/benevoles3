@@ -641,3 +641,297 @@ function getRoleLabel(role: string): string {
   return labels[role] || role;
 }
 
+/**
+ * Génère un PDF avec le programme complet de toutes les missions
+ * pour impression et distribution lors d'une réunion bénévoles
+ * 
+ * Organisation : Missions continues d'abord, puis par jour et par catégorie
+ */
+export async function exportFullProgramPDF(
+  missions: MissionClient[],
+  pageFormat: 'a4' | 'a3' = 'a4',
+  allowedCategories?: string[] // Pour filtrer les missions par catégorie (responsables)
+) {
+  // Créer le document avec le format approprié
+  const orientation = pageFormat === 'a3' ? 'landscape' : 'portrait';
+  const doc = new jsPDF({
+    orientation,
+    format: pageFormat === 'a3' ? 'a3' : 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const marginLeft = 15;
+  const marginRight = pageWidth - 15;
+  const contentWidth = marginRight - marginLeft;
+
+  // Filtrer par catégories autorisées si nécessaire
+  let filteredMissions = missions;
+  if (allowedCategories && allowedCategories.length > 0) {
+    filteredMissions = missions.filter(m => allowedCategories.includes(m.category));
+  }
+
+  // Séparer missions continues et missions datées
+  const continuousMissions = filteredMissions.filter(m => !m.startDate);
+  const datedMissions = filteredMissions.filter(m => m.startDate);
+
+  // Grouper les missions datées par jour
+  const missionsByDay = new Map<string, MissionClient[]>();
+  datedMissions.forEach(mission => {
+    if (mission.startDate) {
+      const dayKey = format(new Date(mission.startDate), 'yyyy-MM-dd', { locale: fr });
+      if (!missionsByDay.has(dayKey)) {
+        missionsByDay.set(dayKey, []);
+      }
+      missionsByDay.get(dayKey)!.push(mission);
+    }
+  });
+
+  // Trier les jours
+  const sortedDays = Array.from(missionsByDay.keys()).sort();
+
+  // Trier les missions de chaque jour par catégorie puis par heure
+  sortedDays.forEach(day => {
+    const dayMissions = missionsByDay.get(day)!;
+    dayMissions.sort((a, b) => {
+      // Trier par catégorie
+      const catCompare = a.category.localeCompare(b.category);
+      if (catCompare !== 0) return catCompare;
+      
+      // Puis par heure
+      if (a.startDate && b.startDate) {
+        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      }
+      return 0;
+    });
+  });
+
+  // Trier les missions continues par catégorie
+  continuousMissions.sort((a, b) => a.category.localeCompare(b.category));
+
+  // ========== EN-TÊTE ==========
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Festival Films Courts de Dinan 2025', pageWidth / 2, 20, { align: 'center' });
+
+  doc.setFontSize(16);
+  doc.text('Programme Complet des Missions', pageWidth / 2, 30, { align: 'center' });
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(
+    `Document généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })}`,
+    pageWidth / 2,
+    38,
+    { align: 'center' }
+  );
+
+  let yPos = 50;
+
+  // ========== MISSIONS CONTINUES ==========
+  if (continuousMissions.length > 0) {
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(37, 99, 235); // Bleu
+    doc.text('📌 MISSIONS CONTINUES (sans date fixe)', marginLeft, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 8;
+
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.5);
+    doc.line(marginLeft, yPos, marginRight, yPos);
+    yPos += 8;
+
+    let currentCategory = '';
+
+    continuousMissions.forEach((mission, index) => {
+      // Afficher le nom de la catégorie si elle change
+      if (mission.category !== currentCategory) {
+        if (currentCategory !== '') {
+          yPos += 5; // Espace entre catégories
+        }
+        currentCategory = mission.category;
+        
+        // Vérifier si on a besoin d'une nouvelle page
+        if (yPos > pageHeight - 40) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(139, 92, 246); // Violet pour la catégorie
+        doc.text(`📂 ${mission.category}`, marginLeft, yPos);
+        doc.setTextColor(0, 0, 0);
+        yPos += 7;
+      }
+
+      // Vérifier si on a besoin d'une nouvelle page
+      if (yPos > pageHeight - 60) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Titre de la mission
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      const missionTitle = mission.isUrgent ? `🔴 ${mission.title}` : mission.title;
+      doc.text(missionTitle, marginLeft + 5, yPos);
+      yPos += 6;
+
+      // Détails
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      
+      doc.text(`📍 Lieu : ${mission.location}`, marginLeft + 8, yPos);
+      yPos += 5;
+
+      doc.text(
+        `👥 Places : ${mission.volunteers.length}/${mission.maxVolunteers} | Statut : ${getStatusLabel(mission.status)}`,
+        marginLeft + 8,
+        yPos
+      );
+      yPos += 5;
+
+      // Description
+      if (mission.description) {
+        const descLines = doc.splitTextToSize(`💬 ${mission.description}`, contentWidth - 10);
+        doc.text(descLines, marginLeft + 8, yPos);
+        yPos += descLines.length * 4.5 + 3;
+      }
+
+      yPos += 4;
+    });
+
+    yPos += 10;
+  }
+
+  // ========== MISSIONS PAR JOUR ==========
+  sortedDays.forEach((day, dayIndex) => {
+    const dayMissions = missionsByDay.get(day)!;
+    const dayDate = new Date(day);
+    
+    // Vérifier si on a besoin d'une nouvelle page pour le jour
+    if (yPos > pageHeight - 40 || (dayIndex > 0 && yPos > 60)) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // En-tête du jour
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(220, 38, 38); // Rouge
+    const dayHeader = format(dayDate, "EEEE d MMMM yyyy", { locale: fr }).toUpperCase();
+    doc.text(`📅 ${dayHeader}`, marginLeft, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 8;
+
+    doc.setDrawColor(220, 38, 38);
+    doc.setLineWidth(0.5);
+    doc.line(marginLeft, yPos, marginRight, yPos);
+    yPos += 8;
+
+    let currentCategory = '';
+
+    dayMissions.forEach((mission) => {
+      // Afficher le nom de la catégorie si elle change
+      if (mission.category !== currentCategory) {
+        if (currentCategory !== '') {
+          yPos += 5; // Espace entre catégories
+        }
+        currentCategory = mission.category;
+        
+        // Vérifier si on a besoin d'une nouvelle page
+        if (yPos > pageHeight - 40) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(139, 92, 246); // Violet pour la catégorie
+        doc.text(`📂 ${mission.category}`, marginLeft, yPos);
+        doc.setTextColor(0, 0, 0);
+        yPos += 7;
+      }
+
+      // Vérifier si on a besoin d'une nouvelle page
+      if (yPos > pageHeight - 70) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Horaire et titre
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      const timeStr = mission.startDate
+        ? format(new Date(mission.startDate), "HH'h'mm", { locale: fr })
+        : '';
+      const endTimeStr = mission.endDate
+        ? ` - ${format(new Date(mission.endDate), "HH'h'mm", { locale: fr })}`
+        : '';
+      const missionTitle = mission.isUrgent ? `🔴 ${mission.title}` : mission.title;
+      
+      doc.text(`⏰ ${timeStr}${endTimeStr}`, marginLeft + 5, yPos);
+      yPos += 6;
+      doc.text(missionTitle, marginLeft + 5, yPos);
+      yPos += 6;
+
+      // Détails
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      
+      doc.text(`📍 Lieu : ${mission.location}`, marginLeft + 8, yPos);
+      yPos += 5;
+
+      doc.text(
+        `👥 Places : ${mission.volunteers.length}/${mission.maxVolunteers} | Statut : ${getStatusLabel(mission.status)}`,
+        marginLeft + 8,
+        yPos
+      );
+      yPos += 5;
+
+      // Description
+      if (mission.description) {
+        const descLines = doc.splitTextToSize(`💬 ${mission.description}`, contentWidth - 10);
+        doc.text(descLines, marginLeft + 8, yPos);
+        yPos += descLines.length * 4.5 + 3;
+      }
+
+      // Badge récurrent si applicable
+      if (mission.isRecurrent) {
+        doc.setTextColor(16, 185, 129); // Vert
+        doc.text('🔄 Mission récurrente', marginLeft + 8, yPos);
+        doc.setTextColor(0, 0, 0);
+        yPos += 5;
+      }
+
+      yPos += 4;
+    });
+
+    yPos += 12;
+  });
+
+  // ========== PIED DE PAGE ==========
+  const totalPages = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      'Festival Films Courts de Dinan 2025 - Programme des Missions',
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+    doc.text(`Page ${i} / ${totalPages}`, pageWidth - 20, pageHeight - 10, { align: 'right' });
+  }
+
+  // Télécharger le PDF
+  const categoryLabel = allowedCategories && allowedCategories.length > 0
+    ? '-mes-categories'
+    : '-complet';
+  const fileName = `programme-missions${categoryLabel}-${pageFormat}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  doc.save(fileName);
+}
+
