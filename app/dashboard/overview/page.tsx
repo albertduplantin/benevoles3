@@ -441,7 +441,15 @@ export default function DashboardOverviewPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Communication</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Générez un appel aux bénévoles pour vos missions incomplètes
+                </p>
+                <VolunteerCallModal missions={coordinatingMissions} />
+              </div>
+
               <div>
                 <Label className="text-sm font-medium">Exports</Label>
                 <p className="text-xs text-muted-foreground mb-2">
