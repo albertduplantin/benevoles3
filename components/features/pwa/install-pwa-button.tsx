@@ -10,7 +10,12 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export function InstallPWAButton() {
+interface InstallPWAButtonProps {
+  variant?: 'default' | 'outline' | 'black';
+  className?: string;
+}
+
+export function InstallPWAButton({ variant = 'outline', className = '' }: InstallPWAButtonProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -111,13 +116,18 @@ export function InstallPWAButton() {
   }
 
   // Bouton d'installation (visible sur desktop et mobile)
+  const buttonVariant = variant === 'black' ? 'default' : variant;
+  const buttonClassName = variant === 'black' 
+    ? `w-full bg-black hover:bg-gray-800 ${className}`
+    : `w-full ${className}`;
+
   return (
     <>
       <Button
         onClick={handleInstallClick}
-        variant="outline"
+        variant={buttonVariant}
         size="sm"
-        className="w-full"
+        className={buttonClassName}
         title="Installer l'application"
       >
         {isIOS ? (

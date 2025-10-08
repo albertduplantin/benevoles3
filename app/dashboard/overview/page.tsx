@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
 import { FullProgramExportButton } from '@/components/features/exports/full-program-export-button';
 import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
+import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
 import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
 import Link from 'next/link';
 import {
@@ -389,6 +390,24 @@ export default function DashboardOverviewPage() {
         </div>
       )}
 
+      {/* Installer l'application - Bénévole uniquement (Mobile) */}
+      {!isAdmin && !isResponsible && (
+        <Card className="md:hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">📱</span>
+              Installer l'application
+            </CardTitle>
+            <CardDescription>
+              Accédez rapidement au festival depuis votre écran d'accueil
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InstallPWAButton variant="black" />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Actions Admin */}
       {isAdmin && !isLoadingSettings && (
         <div className="grid gap-6 md:grid-cols-2">
@@ -522,6 +541,22 @@ export default function DashboardOverviewPage() {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Installer l'application - Responsable (Mobile uniquement) */}
+          <Card className="md:hidden md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">📱</span>
+                Installer l'application
+              </CardTitle>
+              <CardDescription>
+                Accédez rapidement au festival depuis votre écran d'accueil
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InstallPWAButton variant="black" />
             </CardContent>
           </Card>
         </div>
