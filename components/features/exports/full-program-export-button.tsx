@@ -42,7 +42,7 @@ export function FullProgramExportButton({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
+        <Button className="w-full bg-black hover:bg-gray-800">
           <PrinterIcon className="h-4 w-4 mr-2" />
           Imprimer toutes les missions
         </Button>

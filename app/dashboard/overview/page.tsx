@@ -391,32 +391,47 @@ export default function DashboardOverviewPage() {
 
       {/* Actions Admin */}
       {isAdmin && !isLoadingSettings && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Actions Administrateur</CardTitle>
-                <CardDescription>
-                  Communication et exports de données
-                </CardDescription>
-              </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Communication */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">📢</span>
+                Communication
+              </CardTitle>
+              <CardDescription>
+                Générez des appels aux bénévoles
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <VolunteerCallModal missions={allMissions} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+            </CardContent>
+          </Card>
+
+          {/* Exports */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">📄</span>
+                Exports
+              </CardTitle>
+              <CardDescription>
+                Téléchargez les données en PDF ou Excel
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <Label className="text-sm font-medium">Programme Complet</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Exportez le programme complet pour impression lors de réunions bénévoles
+                <Label className="text-sm font-semibold mb-2 block">Programme Complet</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Pour impression et réunions bénévoles
                 </p>
                 <FullProgramExportButton missions={allMissions} />
               </div>
 
-              <div>
-                <Label className="text-sm font-medium">Exports Statistiques</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Exportez les statistiques au format PDF ou Excel
+              <div className="border-t pt-4">
+                <Label className="text-sm font-semibold mb-2 block">Statistiques</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Rapports et données du festival
                 </p>
                 <ExportButtons
                   type="global"
@@ -425,66 +440,91 @@ export default function DashboardOverviewPage() {
                   allVolunteers={allVolunteersMap}
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Actions Responsable */}
       {isResponsible && responsibleCategories.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Actions Responsable</CardTitle>
-                <CardDescription>
-                  Gérer les missions de vos catégories
-                </CardDescription>
-              </div>
-              <Button asChild>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Créer une mission */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">➕</span>
+                Nouvelle Mission
+              </CardTitle>
+              <CardDescription>
+                Créez une mission dans vos catégories
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild className="w-full" size="lg">
                 <Link href="/dashboard/missions/new">
                   <PlusIcon className="h-4 w-4 mr-2" />
                   Créer une mission
                 </Link>
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium">Communication</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Générez un appel aux bénévoles pour vos missions incomplètes
-                </p>
-                <VolunteerCallModal missions={coordinatingMissions} />
-              </div>
+            </CardContent>
+          </Card>
 
-              <div>
-                <Label className="text-sm font-medium">Programme Complet</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Exportez le programme complet de vos missions pour impression
-                </p>
-                <FullProgramExportButton 
-                  missions={coordinatingMissions} 
-                  allowedCategories={responsibleCategoryIds}
-                />
-              </div>
+          {/* Communication */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">📢</span>
+                Communication
+              </CardTitle>
+              <CardDescription>
+                Appelez des bénévoles pour vos missions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VolunteerCallModal missions={coordinatingMissions} />
+            </CardContent>
+          </Card>
 
-              <div>
-                <Label className="text-sm font-medium">Exports Statistiques</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Exportez vos missions au format PDF ou Excel
-                </p>
-                <ExportButtons
-                  type="global"
-                  missions={coordinatingMissions}
-                  totalVolunteers={new Set(coordinatingMissions.flatMap(m => m.volunteers)).size}
-                  allVolunteers={allVolunteersMap}
-                />
+          {/* Exports - Pleine largeur */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">📄</span>
+                Exports de vos missions
+              </CardTitle>
+              <CardDescription>
+                Téléchargez vos missions en PDF ou Excel
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">Programme Complet</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Pour impression et réunions bénévoles
+                  </p>
+                  <FullProgramExportButton 
+                    missions={coordinatingMissions} 
+                    allowedCategories={responsibleCategoryIds}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">Statistiques</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Rapports de vos missions
+                  </p>
+                  <ExportButtons
+                    type="global"
+                    missions={coordinatingMissions}
+                    totalVolunteers={new Set(coordinatingMissions.flatMap(m => m.volunteers)).size}
+                    allVolunteers={allVolunteersMap}
+                  />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Catégories et Missions Coordonnées (Responsable) */}
@@ -573,27 +613,9 @@ export default function DashboardOverviewPage() {
               Configuration générale du système
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Validation automatique */}
-            <div className="flex items-center justify-between space-x-4">
-              <div className="flex-1 space-y-1">
-                <Label htmlFor="auto-approve" className="text-base">
-                  Validation automatique des responsables
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Les bénévoles deviennent automatiquement responsables sans validation manuelle
-                </p>
-              </div>
-              <Switch
-                id="auto-approve"
-                checked={autoApprove}
-                onCheckedChange={handleToggleAutoApprove}
-                disabled={isSavingSettings}
-              />
-            </div>
-
-            <div className="border-t pt-6">
-              <h3 className="text-base font-semibold mb-4">Dates du Festival</h3>
+          <CardContent>
+            <div>
+              <h3 className="text-base font-semibold mb-2">Dates du Festival</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Définissez les dates de début et fin du festival. Les bénévoles pourront ensuite filtrer les missions par jour.
               </p>
