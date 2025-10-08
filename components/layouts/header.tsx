@@ -24,7 +24,6 @@ import {
   ListIcon,
   CalendarIcon,
   UsersIcon,
-  SettingsIcon,
   LogOutIcon,
   UserIcon,
   CheckCircle2Icon,
@@ -187,14 +186,6 @@ export function Header() {
                   Mon profil
                 </Link>
               </DropdownMenuItem>
-              {user.role === 'admin' && (
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings" className="cursor-pointer">
-                    <SettingsIcon className="mr-2 h-4 w-4" />
-                    Paramètres
-                  </Link>
-                </DropdownMenuItem>
-              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
                 <LogOutIcon className="mr-2 h-4 w-4" />
@@ -274,18 +265,6 @@ export function Header() {
                   <UserIcon className="h-5 w-5" />
                   Mon profil
                 </Link>
-
-                {/* Paramètres (admin uniquement) */}
-                {user.role === 'admin' && (
-                  <Link
-                    href="/dashboard/settings"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    <SettingsIcon className="h-5 w-5" />
-                    Paramètres
-                  </Link>
-                )}
 
                 {/* Déconnexion */}
                 <button
