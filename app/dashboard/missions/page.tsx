@@ -175,7 +175,7 @@ function MissionsPageContent() {
   // Charger les participants pour l'export de planning (uniquement si "Mes missions" est activé)
   useEffect(() => {
     const loadParticipants = async () => {
-      if (!showMyMissionsOnly || isAdmin || missions.length === 0) return;
+      if (!user || !showMyMissionsOnly || user.role === 'admin' || missions.length === 0) return;
 
       const participantsMap = new Map<string, UserClient[]>();
 
@@ -200,7 +200,7 @@ function MissionsPageContent() {
     };
 
     loadParticipants();
-  }, [showMyMissionsOnly, missions, isAdmin]);
+  }, [showMyMissionsOnly, missions, user]);
   
   // Fonction pour supprimer une mission
   const handleDeleteMission = async () => {
