@@ -238,8 +238,18 @@ function MissionsPageContent() {
       }
 
       // Filtre par jour du festival
-      if (filterDay !== 'all' && !missionHappenOnDay(mission, filterDay)) {
-        return false;
+      if (filterDay !== 'all') {
+        // Cas spécial : missions au long cours uniquement
+        if (filterDay === 'ongoing') {
+          if (mission.type !== 'ongoing') {
+            return false;
+          }
+        } else {
+          // Filtre par jour spécifique
+          if (!missionHappenOnDay(mission, filterDay)) {
+            return false;
+          }
+        }
       }
 
       // Filtre "Mes missions" (seulement les missions où l'utilisateur est inscrit)
@@ -356,6 +366,7 @@ function MissionsPageContent() {
                       {day.label}
                     </option>
                   ))}
+                  <option value="ongoing">Missions au long cours</option>
                 </select>
                 <p className="text-xs text-muted-foreground">
                   Afficher uniquement les missions ayant lieu ce jour-là
