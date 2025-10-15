@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getPublishedMissions, getAllMissions, deleteMission } from '@/lib/firebase/missions';
 import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
-import { MissionClient, MissionStatus, MissionType } from '@/types';
+import { MissionClient, MissionStatus, MissionType, UserClient } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,8 @@ import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserM
 import { toast } from 'sonner';
 import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/mission-skeleton';
 import { getAdminSettings } from '@/lib/firebase/admin-settings';
+import { ExportButtons } from '@/components/features/exports/export-buttons';
+import { getUserById } from '@/lib/firebase/users';
 
 // Fonction pour générer tous les jours entre deux dates
 function generateFestivalDays(startDate: Date, endDate: Date): Array<{ date: string; label: string }> {
@@ -107,6 +109,9 @@ function MissionsPageContent() {
   
   // État pour l'inscription/désinscription
   const [isRegistering, setIsRegistering] = useState<string | null>(null);
+  
+  // État pour l'export de planning
+  const [missionParticipants, setMissionParticipants] = useState<Map<string, UserClient[]>>(new Map());
 
   // Détecter le paramètre URL "filter=my"
   useEffect(() => {
@@ -166,6 +171,36 @@ function MissionsPageContent() {
 
     fetchMissions();
   }, [user]);
+
+  // Charger les participants pour l'export de planning (uniquement si "Mes missions" est activé)
+  useEffect(() => {
+    const loadParticipants = async () => {
+      if (!showMyMissionsOnly || isAdmin || missions.length === 0) return;
+
+      const participantsMap = new Map<string, UserClient[]>();
+
+      for (const mission of missions) {
+        if (mission.volunteers.length > 0) {
+          const participants: UserClient[] = [];
+          for (const volunteerId of mission.volunteers) {
+            try {
+              const volunteer = await getUserById(volunteerId);
+              if (volunteer) {
+                participants.push(volunteer);
+              }
+            } catch (error) {
+              console.error(`Error loading volunteer ${volunteerId}:`, error);
+            }
+          }
+          participantsMap.set(mission.id, participants);
+        }
+      }
+
+      setMissionParticipants(participantsMap);
+    };
+
+    loadParticipants();
+  }, [showMyMissionsOnly, missions, isAdmin]);
   
   // Fonction pour supprimer une mission
   const handleDeleteMission = async () => {
@@ -300,11 +335,21 @@ function MissionsPageContent() {
             {hasActiveFilters ? ' (filtrées)' : ''}
           </p>
         </div>
-        {isAdmin && (
-          <Button asChild>
-            <Link href="/dashboard/missions/new">Nouvelle mission</Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {!isAdmin && showMyMissionsOnly && filteredMissions.length > 0 && (
+            <ExportButtons
+              type="volunteer-planning"
+              missions={filteredMissions}
+              volunteerName={`${user.firstName} ${user.lastName}`}
+              allParticipants={missionParticipants}
+            />
+          )}
+          {isAdmin && (
+            <Button asChild>
+              <Link href="/dashboard/missions/new">Nouvelle mission</Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filtres */}
