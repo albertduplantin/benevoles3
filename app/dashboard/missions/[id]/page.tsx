@@ -114,24 +114,51 @@ export default function MissionDetailPage() {
       if (!mission || !mission.category) return;
 
       try {
-        // Récupérer le responsable en filtrant par categoryLabel (qui correspond au mission.category)
-        const q = query(
-          collection(db, 'categoryResponsibles'),
-          where('categoryLabel', '==', mission.category)
+        // Étape 1 : Récupérer la catégorie complète en cherchant par value
+        let categoriesQuery = query(
+          collection(db, 'missionCategories'),
+          where('value', '==', mission.category)
         );
-        const snapshot = await getDocs(q);
+        let categoriesSnapshot = await getDocs(categoriesQuery);
 
-        if (snapshot.empty) {
-          console.log('Aucun responsable trouvé pour la catégorie:', mission.category);
+        // Si pas trouvé par value, essayer par label (pour compatibilité avec anciennes données)
+        if (categoriesSnapshot.empty) {
+          categoriesQuery = query(
+            collection(db, 'missionCategories'),
+            where('label', '==', mission.category)
+          );
+          categoriesSnapshot = await getDocs(categoriesQuery);
+        }
+
+        if (categoriesSnapshot.empty) {
+          console.log('Catégorie non trouvée (value ou label):', mission.category);
           return;
         }
 
-        const responsibleData = snapshot.docs[0].data();
+        const categoryData = categoriesSnapshot.docs[0];
+        const categoryId = categoryData.id;
+        console.log('✅ Catégorie trouvée, ID:', categoryId);
+
+        // Étape 2 : Récupérer le responsable en utilisant le categoryId
+        const responsiblesQuery = query(
+          collection(db, 'categoryResponsibles'),
+          where('categoryId', '==', categoryId)
+        );
+        const responsiblesSnapshot = await getDocs(responsiblesQuery);
+
+        if (responsiblesSnapshot.empty) {
+          console.log('Aucun responsable trouvé pour la catégorie ID:', categoryId);
+          return;
+        }
+
+        const responsibleData = responsiblesSnapshot.docs[0].data();
+        console.log('✅ Responsable trouvé, UID:', responsibleData.responsibleId);
         
-        // Récupérer les informations de l'utilisateur responsable
+        // Étape 3 : Récupérer les informations de l'utilisateur responsable
         const responsibleUser = await getUserById(responsibleData.responsibleId);
         if (responsibleUser) {
           setCategoryResponsible(responsibleUser);
+          console.log('✅ Coordonnées du responsable chargées:', responsibleUser.firstName, responsibleUser.lastName);
         }
       } catch (err) {
         console.error('Erreur chargement responsable de catégorie:', err);
