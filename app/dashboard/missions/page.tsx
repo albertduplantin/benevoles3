@@ -79,19 +79,32 @@ function missionHappenOnDay(mission: MissionClient, dayDate: string): boolean {
         : new Date((mission.endDate as any).seconds * 1000))
     : missionStartOriginal;
 
-  // Créer des copies pour la comparaison (jour uniquement, sans heure)
-  const missionStart = new Date(missionStartOriginal);
-  missionStart.setHours(0, 0, 0, 0);
-  
-  const missionEnd = new Date(missionEndOriginal);
-  missionEnd.setHours(0, 0, 0, 0);
-
   // Parser la date cible en tant que date locale (pas UTC)
   const [year, month, day] = dayDate.split('-').map(Number);
   const targetDay = new Date(year, month - 1, day, 0, 0, 0, 0);
 
+  // Extraire le jour de début et fin de la mission (sans heures)
+  const missionStartDay = new Date(
+    missionStartOriginal.getFullYear(),
+    missionStartOriginal.getMonth(),
+    missionStartOriginal.getDate(),
+    0, 0, 0, 0
+  );
+  
+  const missionEndDay = new Date(
+    missionEndOriginal.getFullYear(),
+    missionEndOriginal.getMonth(),
+    missionEndOriginal.getDate(),
+    0, 0, 0, 0
+  );
+
+  console.log(`🔍 [FILTER] Mission "${mission.title}" - Target: ${targetDay.toLocaleDateString()} | Start: ${missionStartDay.toLocaleDateString()} | End: ${missionEndDay.toLocaleDateString()}`);
+
   // La mission a lieu ce jour si le jour cible est entre le début et la fin (inclus)
-  return targetDay.getTime() >= missionStart.getTime() && targetDay.getTime() <= missionEnd.getTime();
+  const result = targetDay.getTime() >= missionStartDay.getTime() && targetDay.getTime() <= missionEndDay.getTime();
+  console.log(`🔍 [FILTER] Result: ${result} (${targetDay.getTime()} >= ${missionStartDay.getTime()} && ${targetDay.getTime()} <= ${missionEndDay.getTime()})`);
+  
+  return result;
 }
 
 function MissionsPageContent() {
