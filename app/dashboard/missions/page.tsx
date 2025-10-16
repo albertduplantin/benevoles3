@@ -37,23 +37,47 @@ import { getUserById } from '@/lib/firebase/users';
 // Fonction pour générer tous les jours entre deux dates
 function generateFestivalDays(startDate: Date, endDate: Date): Array<{ date: string; label: string }> {
   const days: Array<{ date: string; label: string }> = [];
-  const current = new Date(startDate);
-  current.setHours(0, 0, 0, 0);
-  const end = new Date(endDate);
-  end.setHours(0, 0, 0, 0);
+  
+  // Utiliser les composantes de date locales pour éviter les problèmes de fuseau horaire
+  let currentYear = startDate.getFullYear();
+  let currentMonth = startDate.getMonth();
+  let currentDay = startDate.getDate();
+  
+  const endYear = endDate.getFullYear();
+  const endMonth = endDate.getMonth();
+  const endDay = endDate.getDate();
 
-  while (current <= end) {
-    const dateStr = current.toISOString().split('T')[0];
+  while (true) {
+    const current = new Date(currentYear, currentMonth, currentDay, 0, 0, 0, 0);
+    const end = new Date(endYear, endMonth, endDay, 0, 0, 0, 0);
+    
+    if (current > end) break;
+    
+    // Format YYYY-MM-DD pour la valeur
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    // Format français pour le label
     const label = new Intl.DateTimeFormat('fr-FR', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
     }).format(current);
+    
     days.push({ 
       date: dateStr, 
       label: label.charAt(0).toUpperCase() + label.slice(1) 
     });
-    current.setDate(current.getDate() + 1);
+    
+    // Passer au jour suivant
+    currentDay++;
+    // Créer une nouvelle date pour gérer correctement le passage au mois suivant
+    const nextDate = new Date(currentYear, currentMonth, currentDay);
+    currentYear = nextDate.getFullYear();
+    currentMonth = nextDate.getMonth();
+    currentDay = nextDate.getDate();
   }
   
   return days;
