@@ -171,9 +171,16 @@ export async function updateMission(
     
     // Si startDate est une string (datetime-local), la convertir en Date puis Timestamp
     if (updates.startDate) {
-      const date = typeof updates.startDate === 'string' 
-        ? new Date(updates.startDate) 
-        : updates.startDate;
+      let date: Date;
+      if (typeof updates.startDate === 'string') {
+        // Parser la string datetime-local en tant que date locale
+        const [datePart, timePart] = updates.startDate.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes] = timePart.split(':').map(Number);
+        date = new Date(year, month - 1, day, hours, minutes);
+      } else {
+        date = updates.startDate;
+      }
       updateData.startDate = Timestamp.fromDate(date);
     } else if (updates.startDate === undefined || updates.startDate === '') {
       // Si undefined ou vide, supprimer le champ
@@ -182,9 +189,16 @@ export async function updateMission(
     
     // Si endDate est une string (datetime-local), la convertir en Date puis Timestamp
     if (updates.endDate) {
-      const date = typeof updates.endDate === 'string' 
-        ? new Date(updates.endDate) 
-        : updates.endDate;
+      let date: Date;
+      if (typeof updates.endDate === 'string') {
+        // Parser la string datetime-local en tant que date locale
+        const [datePart, timePart] = updates.endDate.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes] = timePart.split(':').map(Number);
+        date = new Date(year, month - 1, day, hours, minutes);
+      } else {
+        date = updates.endDate;
+      }
       updateData.endDate = Timestamp.fromDate(date);
     } else if (updates.endDate === undefined || updates.endDate === '') {
       // Si undefined ou vide, supprimer le champ

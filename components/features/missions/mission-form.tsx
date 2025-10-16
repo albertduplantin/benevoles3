@@ -295,7 +295,14 @@ export function MissionForm({
                   id="startDate"
                   type="datetime-local"
                   {...register('startDate', {
-                    setValueAs: (v) => (v ? new Date(v) : undefined),
+                    setValueAs: (v) => {
+                      if (!v) return undefined;
+                      // Parser la string datetime-local en tant que date locale
+                      const [datePart, timePart] = v.split('T');
+                      const [year, month, day] = datePart.split('-').map(Number);
+                      const [hours, minutes] = timePart.split(':').map(Number);
+                      return new Date(year, month - 1, day, hours, minutes);
+                    },
                   })}
                   disabled={isLoading}
                 />
@@ -310,7 +317,14 @@ export function MissionForm({
                   id="endDate"
                   type="datetime-local"
                   {...register('endDate', {
-                    setValueAs: (v) => (v ? new Date(v) : undefined),
+                    setValueAs: (v) => {
+                      if (!v) return undefined;
+                      // Parser la string datetime-local en tant que date locale
+                      const [datePart, timePart] = v.split('T');
+                      const [year, month, day] = datePart.split('-').map(Number);
+                      const [hours, minutes] = timePart.split(':').map(Number);
+                      return new Date(year, month - 1, day, hours, minutes);
+                    },
                   })}
                   disabled={isLoading}
                 />
