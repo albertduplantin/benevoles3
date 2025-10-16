@@ -7,6 +7,8 @@ import { getMissionById, duplicateMission } from '@/lib/firebase/missions';
 import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
 import { getUserById } from '@/lib/firebase/users';
 import { isProfileComplete } from '@/lib/firebase/users';
+import { db } from '@/lib/firebase/config';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 // Ancien système de postulation supprimé - utiliser category-responsibles maintenant
 import { MissionClient, UserClient } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -36,6 +38,7 @@ export default function MissionDetailPage() {
 
   const [mission, setMission] = useState<MissionClient | null>(null);
   const [participants, setParticipants] = useState<UserClient[]>([]);
+  const [categoryResponsible, setCategoryResponsible] = useState<UserClient | null>(null);
   const [isLoadingMission, setIsLoadingMission] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -104,6 +107,39 @@ export default function MissionDetailPage() {
 
     fetchParticipants();
   }, [user, mission]);
+
+  // Charger le responsable de la catégorie
+  useEffect(() => {
+    const fetchCategoryResponsible = async () => {
+      if (!mission || !mission.category) return;
+
+      try {
+        // Récupérer le responsable en filtrant par categoryLabel (qui correspond au mission.category)
+        const q = query(
+          collection(db, 'categoryResponsibles'),
+          where('categoryLabel', '==', mission.category)
+        );
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          console.log('Aucun responsable trouvé pour la catégorie:', mission.category);
+          return;
+        }
+
+        const responsibleData = snapshot.docs[0].data();
+        
+        // Récupérer les informations de l'utilisateur responsable
+        const responsibleUser = await getUserById(responsibleData.responsibleId);
+        if (responsibleUser) {
+          setCategoryResponsible(responsibleUser);
+        }
+      } catch (err) {
+        console.error('Erreur chargement responsable de catégorie:', err);
+      }
+    };
+
+    fetchCategoryResponsible();
+  }, [mission]);
 
   const handleRegister = async () => {
     if (!user || !missionId) return;
@@ -398,6 +434,56 @@ export default function MissionDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Responsable de la catégorie */}
+        {categoryResponsible && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span>👤</span> Responsable de la catégorie
+              </CardTitle>
+              <CardDescription>
+                Personne à contacter pour toute question concernant cette mission
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12">
+                    {categoryResponsible.photoURL ? (
+                      <AvatarImage
+                        src={categoryResponsible.photoURL}
+                        alt={categoryResponsible.firstName}
+                      />
+                    ) : (
+                      <AvatarFallback
+                        style={{
+                          backgroundColor: getAvatarColor(categoryResponsible.email),
+                        }}
+                      >
+                        {getInitials(categoryResponsible.firstName, categoryResponsible.lastName)}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-lg">
+                      {categoryResponsible.firstName} {categoryResponsible.lastName}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      📧 {categoryResponsible.email}
+                    </p>
+                    {categoryResponsible.phone && (
+                      <p className="text-sm text-muted-foreground">
+                        📱 {categoryResponsible.phone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Badge className="bg-blue-600">Responsable</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Participants List (Admin/Bénévoles inscrits) */}
         {(hasPermission(user, 'admin') || 
