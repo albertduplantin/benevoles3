@@ -15,6 +15,51 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
 import { MissionCategoryClient } from '@/types/category';
+import { getAdminSettings } from '@/lib/firebase/admin-settings';
+
+// Fonction pour générer tous les jours entre deux dates
+function generateFestivalDays(startDate: Date, endDate: Date): Array<{ date: string; label: string }> {
+  const days: Array<{ date: string; label: string }> = [];
+  
+  let currentYear = startDate.getFullYear();
+  let currentMonth = startDate.getMonth();
+  let currentDay = startDate.getDate();
+  
+  const endYear = endDate.getFullYear();
+  const endMonth = endDate.getMonth();
+  const endDay = endDate.getDate();
+
+  while (true) {
+    const current = new Date(currentYear, currentMonth, currentDay, 0, 0, 0, 0);
+    const end = new Date(endYear, endMonth, endDay, 0, 0, 0, 0);
+    
+    if (current > end) break;
+    
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    const label = new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).format(current);
+    
+    days.push({ 
+      date: dateStr, 
+      label: label.charAt(0).toUpperCase() + label.slice(1) 
+    });
+    
+    currentDay++;
+    const nextDate = new Date(currentYear, currentMonth, currentDay);
+    currentYear = nextDate.getFullYear();
+    currentMonth = nextDate.getMonth();
+    currentDay = nextDate.getDate();
+  }
+  
+  return days;
+}
 
 interface MissionFormProps {
   mode?: 'create' | 'edit';
@@ -36,6 +81,8 @@ export function MissionForm({
   const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [groupedCategories, setGroupedCategories] = useState<Array<{ group: string; categories: MissionCategoryClient[] }>>([]);
+  const [festivalDays, setFestivalDays] = useState<Array<{ date: string; label: string }>>([]);
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
 
   const {
     register,
@@ -52,7 +99,7 @@ export function MissionForm({
       maxVolunteers: 5,
       isUrgent: false,
       isRecurrent: false,
-      status: 'draft',
+      status: 'published', // Par défaut: publiée
     },
   });
 
@@ -103,6 +150,22 @@ export function MissionForm({
 
     loadCategories();
   }, [user, mode, setValue]);
+
+  // Charger les dates du festival pour les missions récurrentes
+  useEffect(() => {
+    const loadFestivalDates = async () => {
+      try {
+        const settings = await getAdminSettings();
+        if (settings.festivalStartDate && settings.festivalEndDate) {
+          const days = generateFestivalDays(settings.festivalStartDate, settings.festivalEndDate);
+          setFestivalDays(days);
+        }
+      } catch (error) {
+        console.error('Error loading festival dates:', error);
+      }
+    };
+    loadFestivalDates();
+  }, []);
 
   // Pré-remplir le formulaire en mode édition
   useEffect(() => {
@@ -160,16 +223,60 @@ export function MissionForm({
 
     try {
       if (mode === 'edit' && missionId) {
-        // Mode édition
+        // Mode édition - pas de récurrence
         await updateMission(missionId, data);
         router.push(`/dashboard/missions/${missionId}`);
       } else {
         // Mode création
-        await createMission(data, user.uid);
-        if (onSuccess) {
-          onSuccess();
+        
+        // Validation : si récurrent, il faut au moins un jour sélectionné
+        if (data.isRecurrent && selectedDays.length === 0) {
+          setError('Veuillez sélectionner au moins un jour du festival pour créer une mission récurrente.');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data.isRecurrent && selectedDays.length > 0 && data.startDate && data.endDate) {
+          // Mission récurrente : créer une mission par jour sélectionné
+          const startHours = data.startDate.getHours();
+          const startMinutes = data.startDate.getMinutes();
+          const endHours = data.endDate.getHours();
+          const endMinutes = data.endDate.getMinutes();
+
+          let createdCount = 0;
+          for (const dayDate of selectedDays) {
+            const [year, month, day] = dayDate.split('-').map(Number);
+            
+            // Créer la date de début avec les bonnes heures
+            const dayStartDate = new Date(year, month - 1, day, startHours, startMinutes);
+            // Créer la date de fin avec les bonnes heures
+            const dayEndDate = new Date(year, month - 1, day, endHours, endMinutes);
+
+            await createMission({
+              ...data,
+              startDate: dayStartDate,
+              endDate: dayEndDate,
+            }, user.uid);
+            
+            createdCount++;
+          }
+
+          setError(null);
+          alert(`✅ ${createdCount} mission(s) créée(s) avec succès !`);
+          
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            router.push('/dashboard/missions');
+          }
         } else {
-          router.push('/dashboard/missions');
+          // Mission simple
+          await createMission(data, user.uid);
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            router.push('/dashboard/missions');
+          }
         }
       }
     } catch (err: any) {
@@ -397,13 +504,56 @@ export function MissionForm({
               <Checkbox
                 id="isRecurrent"
                 checked={isRecurrent}
-                onCheckedChange={(checked) => setValue('isRecurrent', checked === true)}
-                disabled={isLoading}
+                onCheckedChange={(checked) => {
+                  setValue('isRecurrent', checked === true);
+                  if (!checked) {
+                    setSelectedDays([]); // Réinitialiser les jours sélectionnés
+                  }
+                }}
+                disabled={isLoading || mode === 'edit'}
               />
               <Label htmlFor="isRecurrent" className="cursor-pointer">
-                Mission récurrente
+                Mission récurrente {mode === 'edit' && '(non modifiable en édition)'}
               </Label>
             </div>
+
+            {/* Sélection des jours du festival pour les missions récurrentes */}
+            {isRecurrent && mode !== 'edit' && festivalDays.length > 0 && (
+              <div className="space-y-2 pl-6 border-l-2 border-blue-500">
+                <Label className="text-sm font-medium">
+                  Sélectionnez les jours du festival pour cette mission récurrente :
+                </Label>
+                <p className="text-xs text-gray-500">
+                  La mission sera créée pour chaque jour sélectionné avec les mêmes horaires.
+                </p>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {festivalDays.map((day) => (
+                    <div key={day.date} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`day-${day.date}`}
+                        checked={selectedDays.includes(day.date)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedDays([...selectedDays, day.date]);
+                          } else {
+                            setSelectedDays(selectedDays.filter(d => d !== day.date));
+                          }
+                        }}
+                        disabled={isLoading}
+                      />
+                      <Label htmlFor={`day-${day.date}`} className="cursor-pointer text-sm">
+                        {day.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {isRecurrent && selectedDays.length === 0 && (
+                  <p className="text-xs text-orange-600 mt-2">
+                    ⚠️ Sélectionnez au moins un jour pour créer une mission récurrente.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Statut */}
