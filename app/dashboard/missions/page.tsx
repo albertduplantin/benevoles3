@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { GROUPED_CATEGORIES } from '@/lib/constants/mission-categories';
+import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
+import { MissionCategoryClient } from '@/types/category';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,6 +138,7 @@ function MissionsPageContent() {
   const searchParams = useSearchParams();
   const [missions, setMissions] = useState<MissionClient[]>([]);
   const [isLoadingMissions, setIsLoadingMissions] = useState(true);
+  const [groupedCategories, setGroupedCategories] = useState<Array<{ group: string; categories: MissionCategoryClient[] }>>([]);
   
   // États pour les filtres
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -192,6 +194,19 @@ function MissionsPageContent() {
       }
     };
     loadFestivalDates();
+  }, []);
+
+  // Charger les catégories depuis Firestore
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categories = await getGroupedCategories();
+        setGroupedCategories(categories);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
   }, []);
 
   useEffect(() => {
@@ -425,10 +440,10 @@ function MissionsPageContent() {
                 className="w-full px-3 py-2 border border-input rounded-md bg-background"
               >
                 <option value="all">Toutes les catégories</option>
-                {GROUPED_CATEGORIES.map((group) => (
+                {groupedCategories.map((group) => (
                   <optgroup key={group.group} label={group.group}>
                     {group.categories.map((cat) => (
-                      <option key={cat.value} value={cat.value}>
+                      <option key={cat.id} value={cat.value}>
                         {cat.label}
                       </option>
                     ))}
