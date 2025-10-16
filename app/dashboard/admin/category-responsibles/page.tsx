@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { CategoryResponsibleClient, UserClient } from '@/types';
-import { GROUPED_CATEGORIES, ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
+import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
+import { MissionCategoryClient } from '@/types/category';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,8 @@ export default function CategoryResponsiblesPage() {
   const router = useRouter();
   const [assignments, setAssignments] = useState<CategoryResponsibleClient[]>([]);
   const [volunteers, setVolunteers] = useState<UserClient[]>([]);
+  const [groupedCategories, setGroupedCategories] = useState<Array<{ group: string; categories: MissionCategoryClient[] }>>([]);
+  const [allCategories, setAllCategories] = useState<MissionCategoryClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedVolunteer, setSelectedVolunteer] = useState<string>('');
@@ -45,7 +48,28 @@ export default function CategoryResponsiblesPage() {
     }
   }, [user, loading, router]);
 
-  // Charger les données
+  // Charger les catégories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const grouped = await getGroupedCategories();
+        setGroupedCategories(grouped);
+        
+        // Aplatir pour avoir toutes les catégories
+        const all = grouped.flatMap(g => g.categories);
+        setAllCategories(all);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        toast.error('Erreur lors du chargement des catégories');
+      }
+    };
+
+    if (user?.role === 'admin') {
+      loadCategories();
+    }
+  }, [user]);
+
+  // Charger les données (assignations et bénévoles)
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -84,7 +108,7 @@ export default function CategoryResponsiblesPage() {
   const handleAssign = async () => {
     if (!selectedCategory || !selectedVolunteer || !user) return;
 
-    const category = ALL_CATEGORIES_WITH_LABELS.find(c => c.value === selectedCategory);
+    const category = allCategories.find(c => c.id === selectedCategory);
     if (!category) return;
 
     try {
@@ -93,7 +117,7 @@ export default function CategoryResponsiblesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          categoryId: selectedCategory,
+          categoryId: selectedCategory, // ID Firestore de la catégorie
           categoryLabel: category.label,
           responsibleId: selectedVolunteer,
           adminId: user.uid,
@@ -182,7 +206,7 @@ export default function CategoryResponsiblesPage() {
             <UsersIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{ALL_CATEGORIES_WITH_LABELS.length}</div>
+            <div className="text-2xl font-bold">{allCategories.length}</div>
           </CardContent>
         </Card>
 
@@ -202,17 +226,17 @@ export default function CategoryResponsiblesPage() {
             <UserPlusIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{ALL_CATEGORIES_WITH_LABELS.length - assignments.length}</div>
+            <div className="text-2xl font-bold">{allCategories.length - assignments.length}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Liste des catégories */}
-      {isLoading ? (
+      {isLoading || groupedCategories.length === 0 ? (
         <p>Chargement...</p>
       ) : (
         <div className="space-y-6">
-          {GROUPED_CATEGORIES.map((group) => (
+          {groupedCategories.map((group) => (
             <Card key={group.group}>
               <CardHeader>
                 <CardTitle>{group.group}</CardTitle>
@@ -223,10 +247,10 @@ export default function CategoryResponsiblesPage() {
               <CardContent>
                 <div className="space-y-3">
                   {group.categories.map((category) => {
-                    const responsible = getResponsibleForCategory(category.value);
+                    const responsible = getResponsibleForCategory(category.id);
                     return (
                       <div
-                        key={category.value}
+                        key={category.id}
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
                         <div className="flex-1">
@@ -246,7 +270,7 @@ export default function CategoryResponsiblesPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleRemove(category.value)}
+                              onClick={() => handleRemove(category.id)}
                               className="text-red-600 hover:text-red-700"
                             >
                               <UserMinusIcon className="h-4 w-4 mr-2" />
@@ -257,7 +281,7 @@ export default function CategoryResponsiblesPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                setSelectedCategory(category.value);
+                                setSelectedCategory(category.id);
                                 setDialogOpen(true);
                               }}
                             >
@@ -294,11 +318,11 @@ export default function CategoryResponsiblesPage() {
                   <SelectValue placeholder="Sélectionner une catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  {GROUPED_CATEGORIES.flatMap((group) =>
+                  {groupedCategories.flatMap((group) =>
                     group.categories
-                      .filter(cat => !getResponsibleForCategory(cat.value))
+                      .filter(cat => !getResponsibleForCategory(cat.id))
                       .map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
+                        <SelectItem key={cat.id} value={cat.id}>
                           {group.group} - {cat.label}
                         </SelectItem>
                       ))
