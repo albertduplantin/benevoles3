@@ -312,3 +312,43 @@ export async function unregisterVolunteerFromMission(
   }
 }
 
+/**
+ * Dupliquer une mission (Admin et responsables de catégorie)
+ */
+export async function duplicateMission(
+  missionId: string,
+  duplicatedBy: string
+): Promise<string> {
+  try {
+    // Récupérer la mission originale
+    const originalMission = await getMissionById(missionId);
+    
+    if (!originalMission) {
+      throw new Error('Mission introuvable');
+    }
+
+    // Créer une nouvelle mission avec les mêmes données
+    const newMissionId = await createMission(
+      {
+        title: `${originalMission.title} (Copie)`,
+        description: originalMission.description,
+        category: originalMission.category,
+        type: originalMission.type,
+        startDate: originalMission.startDate,
+        endDate: originalMission.endDate,
+        location: originalMission.location,
+        maxVolunteers: originalMission.maxVolunteers,
+        isUrgent: originalMission.isUrgent,
+        isRecurrent: originalMission.isRecurrent,
+        status: 'draft', // Toujours créer en brouillon
+      },
+      duplicatedBy
+    );
+
+    return newMissionId;
+  } catch (error) {
+    console.error('Error duplicating mission:', error);
+    throw new Error('Erreur lors de la duplication de la mission');
+  }
+}
+

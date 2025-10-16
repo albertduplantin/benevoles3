@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useParams } from 'next/navigation';
-import { getMissionById } from '@/lib/firebase/missions';
+import { getMissionById, duplicateMission } from '@/lib/firebase/missions';
 import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
 import { getUserById } from '@/lib/firebase/users';
 import { isProfileComplete } from '@/lib/firebase/users';
@@ -18,12 +18,14 @@ import { getInitials, getAvatarColor } from '@/lib/utils/avatar';
 import { hasPermission, canEditMission } from '@/lib/utils/permissions';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import {
   CalendarIcon,
   MapPinIcon,
   UsersIcon,
   AlertCircleIcon,
   ArrowLeftIcon,
+  CopyIcon,
 } from 'lucide-react';
 
 export default function MissionDetailPage() {
@@ -36,6 +38,7 @@ export default function MissionDetailPage() {
   const [participants, setParticipants] = useState<UserClient[]>([]);
   const [isLoadingMission, setIsLoadingMission] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -152,6 +155,27 @@ export default function MissionDetailPage() {
     }
   };
 
+  const handleDuplicate = async () => {
+    if (!user || !missionId) return;
+
+    if (!confirm('Voulez-vous dupliquer cette mission ? Une copie sera créée en mode brouillon.')) {
+      return;
+    }
+
+    setIsDuplicating(true);
+
+    try {
+      const newMissionId = await duplicateMission(missionId, user.uid);
+      toast.success('✅ Mission dupliquée avec succès !');
+      
+      // Rediriger vers la page d'édition de la nouvelle mission
+      router.push(`/dashboard/missions/${newMissionId}/edit`);
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la duplication');
+      setIsDuplicating(false);
+    }
+  };
+
 
   if (loading || isLoadingMission) {
     return (
@@ -203,9 +227,19 @@ export default function MissionDetailPage() {
             )}
             
             {mission && canEditMission(user, mission.category) && (
-              <Button variant="outline" asChild>
-                <Link href={`/dashboard/missions/${missionId}/edit`}>Modifier</Link>
-              </Button>
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={handleDuplicate}
+                  disabled={isDuplicating}
+                >
+                  <CopyIcon className="w-4 h-4 mr-2" />
+                  {isDuplicating ? 'Duplication...' : 'Dupliquer'}
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href={`/dashboard/missions/${missionId}/edit`}>Modifier</Link>
+                </Button>
+              </>
             )}
           </div>
         </div>

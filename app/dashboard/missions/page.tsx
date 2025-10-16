@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getPublishedMissions, getAllMissions, deleteMission } from '@/lib/firebase/missions';
+import { getPublishedMissions, getAllMissions, deleteMission, duplicateMission } from '@/lib/firebase/missions';
 import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
 import { MissionClient, MissionStatus, MissionType, UserClient } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ import {
 import { isProfileComplete } from '@/lib/firebase/users';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
-import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon, CalendarDaysIcon } from 'lucide-react';
+import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon, CalendarDaysIcon, CopyIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/mission-skeleton';
 import { getAdminSettings } from '@/lib/firebase/admin-settings';
@@ -828,6 +828,24 @@ function MissionsPageContent() {
                   
                   {isAdmin ? (
                     <>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={async () => {
+                          if (!user) return;
+                          setSelectedMission(null);
+                          try {
+                            const newMissionId = await duplicateMission(selectedMission.id, user.uid);
+                            toast.success('✅ Mission dupliquée avec succès !');
+                            router.push(`/dashboard/missions/${newMissionId}/edit`);
+                          } catch (err: any) {
+                            toast.error(err.message || 'Erreur lors de la duplication');
+                          }
+                        }}
+                        title="Dupliquer"
+                      >
+                        <CopyIcon className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="icon"
