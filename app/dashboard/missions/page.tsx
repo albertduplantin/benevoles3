@@ -26,6 +26,7 @@ import {
 import { isProfileComplete } from '@/lib/firebase/users';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
+import { canEditMission } from '@/lib/utils/permissions';
 import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon, CalendarDaysIcon, CopyIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/mission-skeleton';
@@ -659,8 +660,25 @@ function MissionsPageContent() {
                     <Link href={`/dashboard/missions/${mission.id}`}>Voir détails</Link>
                   </Button>
                   
-                  {isAdmin ? (
+                  {canEditMission(user, mission.category) ? (
                     <>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={async () => {
+                          if (!user) return;
+                          try {
+                            const newMissionId = await duplicateMission(mission.id, user.uid);
+                            toast.success('✅ Mission dupliquée avec succès !');
+                            router.push(`/dashboard/missions/${newMissionId}/edit`);
+                          } catch (err: any) {
+                            toast.error(err.message || 'Erreur lors de la duplication');
+                          }
+                        }}
+                        title="Dupliquer"
+                      >
+                        <CopyIcon className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="icon"
@@ -671,15 +689,17 @@ function MissionsPageContent() {
                           <EditIcon className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setMissionToDelete(mission)}
-                        title="Supprimer"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setMissionToDelete(mission)}
+                          title="Supprimer"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <>
@@ -826,7 +846,7 @@ function MissionsPageContent() {
                     Voir détails
                   </Button>
                   
-                  {isAdmin ? (
+                  {canEditMission(user, selectedMission.category) ? (
                     <>
                       <Button
                         variant="outline"
@@ -857,18 +877,20 @@ function MissionsPageContent() {
                       >
                         <EditIcon className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          setMissionToDelete(selectedMission);
-                          setSelectedMission(null);
-                        }}
-                        title="Supprimer"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setMissionToDelete(selectedMission);
+                            setSelectedMission(null);
+                          }}
+                          title="Supprimer"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <>
