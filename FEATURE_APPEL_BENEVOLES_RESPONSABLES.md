@@ -229,3 +229,7 @@ Cette fonctionnalité **autonomise les responsables de catégorie** en leur donn
 
 **Localisation** : `/dashboard/overview` > Actions Responsable > Communication
 
+
+
+
+

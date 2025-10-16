@@ -172,3 +172,7 @@ const isResponsible = isResponsibleForCategory(user, 'bar_restauration');
 
 Les anciens champs `responsibles` et `pendingResponsibles` dans Mission restent présents pour compatibilité mais ne sont plus utilisés. Ils seront supprimés dans une version ultérieure après migration complète des données.
 
+
+
+
+

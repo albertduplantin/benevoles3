@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
-import { GROUPED_CATEGORIES } from '@/lib/constants/mission-categories';
+import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
+import { MissionCategoryClient } from '@/types/category';
 
 interface MissionFormProps {
   mode?: 'create' | 'edit';
@@ -34,6 +35,7 @@ export function MissionForm({
   const [error, setError] = useState<string | null>(null);
   const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [groupedCategories, setGroupedCategories] = useState<Array<{ group: string; categories: MissionCategoryClient[] }>>([]);
 
   const {
     register,
@@ -54,24 +56,29 @@ export function MissionForm({
     },
   });
 
-  // Charger les catégories autorisées pour le responsable
+  // Charger les catégories depuis Firestore et les catégories autorisées pour le responsable
   useEffect(() => {
-    const loadAllowedCategories = async () => {
+    const loadCategories = async () => {
       if (!user) {
         setIsLoadingCategories(false);
         return;
       }
 
-      // Admin peut créer dans toutes les catégories
-      if (user.role === 'admin') {
-        setAllowedCategories(GROUPED_CATEGORIES.flatMap(g => g.categories.map(c => c.value)));
-        setIsLoadingCategories(false);
-        return;
-      }
+      try {
+        // Charger les catégories depuis Firestore
+        const categories = await getGroupedCategories();
+        setGroupedCategories(categories);
 
-      // Responsable de catégorie : charger ses catégories
-      if (user.role === 'category_responsible') {
-        try {
+        // Admin peut créer dans toutes les catégories
+        if (user.role === 'admin') {
+          const allCategoryValues = categories.flatMap(g => g.categories.map(c => c.value));
+          setAllowedCategories(allCategoryValues);
+          setIsLoadingCategories(false);
+          return;
+        }
+
+        // Responsable de catégorie : charger ses catégories
+        if (user.role === 'category_responsible') {
           const response = await fetch(`/api/my-categories?userId=${user.uid}`);
           if (!response.ok) {
             throw new Error('Failed to fetch categories');
@@ -84,16 +91,17 @@ export function MissionForm({
           if (categoryIds.length === 1 && mode === 'create') {
             setValue('category', categoryIds[0]);
           }
-        } catch (error) {
-          console.error('Error loading categories:', error);
-          setError('Erreur lors du chargement des catégories');
         }
-      }
 
-      setIsLoadingCategories(false);
+        setIsLoadingCategories(false);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        setError('Erreur lors du chargement des catégories');
+        setIsLoadingCategories(false);
+      }
     };
 
-    loadAllowedCategories();
+    loadCategories();
   }, [user, mode, setValue]);
 
   // Pré-remplir le formulaire en mode édition
@@ -229,7 +237,7 @@ export function MissionForm({
                   className="w-full px-3 py-2 border border-input rounded-md bg-background"
                 >
                   <option value="">Sélectionnez une catégorie</option>
-                  {GROUPED_CATEGORIES.map((group) => {
+                  {groupedCategories.map((group) => {
                     // Filtrer les catégories du groupe selon les catégories autorisées
                     const filteredCategories = group.categories.filter(cat => 
                       allowedCategories.includes(cat.value)
@@ -241,7 +249,7 @@ export function MissionForm({
                     return (
                       <optgroup key={group.group} label={group.group}>
                         {filteredCategories.map((cat) => (
-                          <option key={cat.value} value={cat.value}>
+                          <option key={cat.id} value={cat.value}>
                             {cat.label}
                           </option>
                         ))}

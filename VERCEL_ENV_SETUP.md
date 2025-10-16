@@ -74,3 +74,7 @@ Si tu préfères, tu peux créer les catégories directement via l'interface adm
 
 C'est plus long mais ça évite le problème de configuration.
 
+
+
+
+

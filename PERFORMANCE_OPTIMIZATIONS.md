@@ -168,3 +168,7 @@ Les optimisations implémentées permettent une **amélioration significative** 
 
 L'application est maintenant **prête pour un usage à grande échelle** avec de bonnes performances même avec des centaines de missions et bénévoles.
 
+
+
+
+
