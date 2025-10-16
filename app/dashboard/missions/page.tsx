@@ -79,17 +79,19 @@ function missionHappenOnDay(mission: MissionClient, dayDate: string): boolean {
         : new Date((mission.endDate as any).seconds * 1000))
     : missionStartOriginal;
 
-  // Créer des copies pour la comparaison
+  // Créer des copies pour la comparaison (jour uniquement, sans heure)
   const missionStart = new Date(missionStartOriginal);
-  const missionEnd = new Date(missionEndOriginal);
-
   missionStart.setHours(0, 0, 0, 0);
-  missionEnd.setHours(23, 59, 59, 999);
+  
+  const missionEnd = new Date(missionEndOriginal);
+  missionEnd.setHours(0, 0, 0, 0);
 
-  const targetDay = new Date(dayDate);
-  targetDay.setHours(0, 0, 0, 0);
+  // Parser la date cible en tant que date locale (pas UTC)
+  const [year, month, day] = dayDate.split('-').map(Number);
+  const targetDay = new Date(year, month - 1, day, 0, 0, 0, 0);
 
-  return targetDay >= missionStart && targetDay <= missionEnd;
+  // La mission a lieu ce jour si le jour cible est entre le début et la fin (inclus)
+  return targetDay.getTime() >= missionStart.getTime() && targetDay.getTime() <= missionEnd.getTime();
 }
 
 function MissionsPageContent() {
