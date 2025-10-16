@@ -9,7 +9,8 @@ import { fr } from 'date-fns/locale';
  */
 export async function exportMissionVolunteersPDF(
   mission: MissionClient,
-  volunteers: UserClient[]
+  volunteers: UserClient[],
+  categoryResponsible?: UserClient | null
 ) {
   const doc = new jsPDF();
 
@@ -23,6 +24,27 @@ export async function exportMissionVolunteersPDF(
   // Informations de la mission
   doc.setFontSize(10);
   let yPos = 45;
+
+  if (mission.category) {
+    doc.text(`Catégorie: ${mission.category}`, 20, yPos);
+    yPos += 7;
+  }
+
+  if (categoryResponsible) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Responsable: ${categoryResponsible.firstName} ${categoryResponsible.lastName}`, 20, yPos);
+    doc.setFont('helvetica', 'normal');
+    yPos += 5;
+    doc.setFontSize(9);
+    doc.text(`📧 ${categoryResponsible.email}`, 25, yPos);
+    yPos += 5;
+    if (categoryResponsible.phone) {
+      doc.text(`📱 ${categoryResponsible.phone}`, 25, yPos);
+      yPos += 5;
+    }
+    doc.setFontSize(10);
+    yPos += 2;
+  }
 
   if (mission.startDate) {
     const dateStr = format(new Date(mission.startDate), "EEEE d MMMM yyyy 'à' HH'h'mm", {
@@ -89,7 +111,8 @@ export async function exportMissionVolunteersPDF(
 export async function exportMissionReportPDF(
   mission: MissionClient,
   volunteers: UserClient[],
-  responsibles: UserClient[]
+  responsibles: UserClient[], // DEPRECATED - Ancien système
+  categoryResponsible?: UserClient | null
 ) {
   const doc = new jsPDF();
 
@@ -158,32 +181,32 @@ export async function exportMissionReportPDF(
   doc.text(descriptionLines, 25, yPos);
   yPos += descriptionLines.length * 7 + 10;
 
-  // Section Responsables
+  // Section Responsable de Catégorie
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Responsables de Mission', 20, yPos);
+  doc.text('Responsable de Catégorie', 20, yPos);
   yPos += 10;
 
-  if (responsibles.length > 0) {
-    const responsiblesData = responsibles.map((resp) => [
-      `${resp.firstName} ${resp.lastName}`,
-      resp.email,
-      resp.phone || 'N/A',
-    ]);
+  if (categoryResponsible) {
+    const responsibleData = [[
+      `${categoryResponsible.firstName} ${categoryResponsible.lastName}`,
+      categoryResponsible.email,
+      categoryResponsible.phone || 'N/A',
+    ]];
 
     autoTable(doc, {
       head: [['Nom', 'Email', 'Téléphone']],
-      body: responsiblesData,
+      body: responsibleData,
       startY: yPos,
       styles: { fontSize: 9 },
-      headStyles: { fillColor: [139, 92, 246] },
+      headStyles: { fillColor: [59, 130, 246] },
     });
 
     yPos = (doc as any).lastAutoTable.finalY + 15;
   } else {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text('Aucun responsable assigné', 25, yPos);
+    doc.text('Aucun responsable assigné pour cette catégorie', 25, yPos);
     yPos += 15;
   }
 

@@ -8,7 +8,8 @@ import { fr } from 'date-fns/locale';
  */
 export function exportMissionVolunteersExcel(
   mission: MissionClient,
-  volunteers: UserClient[]
+  volunteers: UserClient[],
+  categoryResponsible?: UserClient | null
 ) {
   // Créer un nouveau workbook
   const wb = XLSX.utils.book_new();
@@ -37,6 +38,27 @@ export function exportMissionVolunteersExcel(
   // Ajouter la feuille au workbook
   XLSX.utils.book_append_sheet(wb, ws, 'Bénévoles');
 
+  // Ajouter une feuille pour le responsable de catégorie
+  if (categoryResponsible) {
+    const responsibleData = [{
+      Nom: categoryResponsible.firstName,
+      Prénom: categoryResponsible.lastName,
+      Email: categoryResponsible.email,
+      Téléphone: categoryResponsible.phone || 'N/A',
+      Catégorie: mission.category,
+    }];
+    
+    const wsResp = XLSX.utils.json_to_sheet(responsibleData);
+    wsResp['!cols'] = [
+      { wch: 15 }, // Nom
+      { wch: 15 }, // Prénom
+      { wch: 25 }, // Email
+      { wch: 15 }, // Téléphone
+      { wch: 20 }, // Catégorie
+    ];
+    XLSX.utils.book_append_sheet(wb, wsResp, 'Responsable');
+  }
+
   // Télécharger le fichier
   const fileName = `mission-${mission.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-benevoles.xlsx`;
   XLSX.writeFile(wb, fileName);
@@ -48,7 +70,8 @@ export function exportMissionVolunteersExcel(
 export function exportMissionReportExcel(
   mission: MissionClient,
   volunteers: UserClient[],
-  responsibles: UserClient[]
+  responsibles: UserClient[], // DEPRECATED - Ancien système
+  categoryResponsible?: UserClient | null
 ) {
   const wb = XLSX.utils.book_new();
 
@@ -56,6 +79,7 @@ export function exportMissionReportExcel(
   const missionInfo = [
     ['Titre', mission.title],
     ['Description', mission.description],
+    ['Catégorie', mission.category || 'N/A'],
     ['Lieu', mission.location],
     ['Statut', getStatusLabel(mission.status)],
     ['Type', mission.type === 'scheduled' ? 'Planifiée' : 'Ponctuelle'],
@@ -82,17 +106,25 @@ export function exportMissionReportExcel(
   wsInfo['!cols'] = [{ wch: 20 }, { wch: 50 }];
   XLSX.utils.book_append_sheet(wb, wsInfo, 'Informations');
 
-  // Feuille 2: Responsables
-  const responsiblesData = responsibles.map((resp) => ({
-    Nom: resp.firstName,
-    Prénom: resp.lastName,
-    Email: resp.email,
-    Téléphone: resp.phone || 'N/A',
-  }));
+  // Feuille 2: Responsable de Catégorie
+  if (categoryResponsible) {
+    const responsibleData = [{
+      Nom: categoryResponsible.firstName,
+      Prénom: categoryResponsible.lastName,
+      Email: categoryResponsible.email,
+      Téléphone: categoryResponsible.phone || 'N/A',
+      Catégorie: mission.category,
+    }];
 
-  const wsResp = XLSX.utils.json_to_sheet(responsiblesData);
-  wsResp['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 15 }];
-  XLSX.utils.book_append_sheet(wb, wsResp, 'Responsables');
+    const wsResp = XLSX.utils.json_to_sheet(responsibleData);
+    wsResp['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsResp, 'Responsable');
+  } else {
+    // Feuille vide si pas de responsable
+    const wsResp = XLSX.utils.aoa_to_sheet([['Aucun responsable assigné à cette catégorie']]);
+    wsResp['!cols'] = [{ wch: 50 }];
+    XLSX.utils.book_append_sheet(wb, wsResp, 'Responsable');
+  }
 
   // Feuille 3: Bénévoles
   const volunteersData = volunteers.map((volunteer) => ({

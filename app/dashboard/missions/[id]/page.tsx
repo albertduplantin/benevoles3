@@ -286,6 +286,7 @@ export default function MissionDetailPage() {
                 type="mission"
                 mission={mission}
                 volunteers={participants}
+                categoryResponsible={categoryResponsible}
               />
             )}
             

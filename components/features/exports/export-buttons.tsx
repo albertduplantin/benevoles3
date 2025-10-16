@@ -33,7 +33,8 @@ interface ExportButtonsProps {
   mission?: MissionClient;
   missions?: MissionClient[];
   volunteers?: UserClient[];
-  responsibles?: UserClient[];
+  responsibles?: UserClient[]; // DEPRECATED - Ancien système
+  categoryResponsible?: UserClient | null; // Nouveau système
   totalVolunteers?: number;
   allVolunteers?: Map<string, UserClient>;
   volunteerName?: string;
@@ -46,6 +47,7 @@ export function ExportButtons({
   missions,
   volunteers = [],
   responsibles = [],
+  categoryResponsible,
   totalVolunteers = 0,
   allVolunteers,
   volunteerName = '',
@@ -60,15 +62,15 @@ export function ExportButtons({
         // Exports pour une mission spécifique
         if (format === 'pdf') {
           if (exportType === 'volunteers') {
-            await exportMissionVolunteersPDF(mission, volunteers);
+            await exportMissionVolunteersPDF(mission, volunteers, categoryResponsible);
           } else if (exportType === 'report') {
-            await exportMissionReportPDF(mission, volunteers, responsibles);
+            await exportMissionReportPDF(mission, volunteers, responsibles, categoryResponsible);
           }
         } else if (format === 'excel') {
           if (exportType === 'volunteers') {
-            exportMissionVolunteersExcel(mission, volunteers);
+            exportMissionVolunteersExcel(mission, volunteers, categoryResponsible);
           } else if (exportType === 'report') {
-            exportMissionReportExcel(mission, volunteers, responsibles);
+            exportMissionReportExcel(mission, volunteers, responsibles, categoryResponsible);
           }
         }
       } else if (type === 'global' && missions) {
