@@ -69,14 +69,19 @@ function missionHappenOnDay(mission: MissionClient, dayDate: string): boolean {
     return false;
   }
 
-  const missionStart = mission.startDate instanceof Date 
+  // Créer des COPIES des dates pour ne pas modifier les originales
+  const missionStartOriginal = mission.startDate instanceof Date 
     ? mission.startDate 
     : new Date((mission.startDate as any).seconds * 1000);
-  const missionEnd = mission.endDate 
+  const missionEndOriginal = mission.endDate 
     ? (mission.endDate instanceof Date 
         ? mission.endDate 
         : new Date((mission.endDate as any).seconds * 1000))
-    : missionStart;
+    : missionStartOriginal;
+
+  // Créer des copies pour la comparaison
+  const missionStart = new Date(missionStartOriginal);
+  const missionEnd = new Date(missionEndOriginal);
 
   missionStart.setHours(0, 0, 0, 0);
   missionEnd.setHours(23, 59, 59, 999);
