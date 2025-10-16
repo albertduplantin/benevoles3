@@ -145,6 +145,16 @@ export function MissionForm({
       return;
     }
 
+    // DEBUG: Log des données du formulaire
+    console.log('📝 [FORM SUBMIT] data:', data);
+    console.log('📝 [FORM SUBMIT] startDate type:', typeof data.startDate);
+    console.log('📝 [FORM SUBMIT] startDate value:', data.startDate);
+    console.log('📝 [FORM SUBMIT] startDate is Date?:', data.startDate instanceof Date);
+    if (data.startDate instanceof Date) {
+      console.log('📝 [FORM SUBMIT] startDate getHours:', data.startDate.getHours());
+      console.log('📝 [FORM SUBMIT] startDate toString:', data.startDate.toString());
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -297,11 +307,15 @@ export function MissionForm({
                   {...register('startDate', {
                     setValueAs: (v) => {
                       if (!v) return undefined;
+                      console.log('🔵 [PARSE START] Input value:', v);
                       // Parser la string datetime-local en tant que date locale
                       const [datePart, timePart] = v.split('T');
                       const [year, month, day] = datePart.split('-').map(Number);
                       const [hours, minutes] = timePart.split(':').map(Number);
-                      return new Date(year, month - 1, day, hours, minutes);
+                      const parsedDate = new Date(year, month - 1, day, hours, minutes);
+                      console.log('🔵 [PARSE START] Parsed date:', parsedDate.toString());
+                      console.log('🔵 [PARSE START] Parsed hours:', parsedDate.getHours());
+                      return parsedDate;
                     },
                   })}
                   disabled={isLoading}
