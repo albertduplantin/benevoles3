@@ -37,12 +37,25 @@ export function VolunteerCallModal({ missions }: VolunteerCallModalProps) {
 
   const handleCopy = async (content: string, type: 'text' | 'html') => {
     try {
-      await navigator.clipboard.writeText(content);
+      if (type === 'html') {
+        // Pour le HTML, copier le contenu formaté (pas le code)
+        const blob = new Blob([content], { type: 'text/html' });
+        const clipboardItem = new ClipboardItem({
+          'text/html': blob,
+          'text/plain': new Blob([content], { type: 'text/plain' }),
+        });
+        await navigator.clipboard.write([clipboardItem]);
+      } else {
+        // Pour le texte, copie normale
+        await navigator.clipboard.writeText(content);
+      }
+      
       setCopied(type);
-      toast.success('Message copié dans le presse-papier !');
-      setTimeout(() => setCopied(null), 2000);
+      toast.success('Message copié ! Vous pouvez maintenant le coller dans votre email (Ctrl+V ou Cmd+V)');
+      setTimeout(() => setCopied(null), 3000);
     } catch (error) {
-      toast.error('Erreur lors de la copie');
+      console.error('Erreur lors de la copie:', error);
+      toast.error('Erreur lors de la copie. Essayez de sélectionner et copier manuellement (Ctrl+C).');
     }
   };
 
@@ -163,9 +176,21 @@ export function VolunteerCallModal({ missions }: VolunteerCallModalProps) {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500">
-                📧 Copiez ce HTML et collez-le dans votre client email ou plateforme d'envoi
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-blue-600">
+                  📧 Instructions simples :
+                </p>
+                <ol className="text-xs text-gray-700 space-y-1 pl-5 list-decimal">
+                  <li>Cliquez sur le bouton "Copier" ci-dessus</li>
+                  <li>Ouvrez votre email (Gmail, Outlook, etc.)</li>
+                  <li>Créez un nouveau message</li>
+                  <li>Cliquez dans le corps du message et faites <strong>Ctrl+V</strong> (ou <strong>Cmd+V</strong> sur Mac)</li>
+                  <li>Le message apparaîtra déjà formaté ✨</li>
+                </ol>
+                <p className="text-xs text-gray-500 italic">
+                  💡 Astuce : Pas besoin de connaître le HTML, tout est automatique !
+                </p>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
