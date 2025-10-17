@@ -420,6 +420,29 @@ export default function DashboardOverviewPage() {
         </div>
       )}
 
+      {/* Export Planning - Bénévole uniquement */}
+      {!isAdmin && !isResponsible && missions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">📄</span>
+              Mon Planning
+            </CardTitle>
+            <CardDescription>
+              Exportez votre planning personnel en PDF
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExportButtons
+              type="volunteer-planning"
+              missions={missions}
+              volunteerName={`${user.firstName} ${user.lastName}`}
+              allParticipants={new Map()}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Installer l'application - Bénévole uniquement (Mobile) */}
       {!isAdmin && !isResponsible && (
         <Card className="md:hidden">

@@ -39,11 +39,13 @@ export async function getCategoryResponsiblesByValue(categoryValue: string): Pro
     }
 
     if (categoriesSnapshot.empty) {
+      console.log(`🔍 [CATEGORY RESPONSIBLE] Aucune catégorie trouvée pour: ${categoryValue}`);
       return [];
     }
 
     const categoryData = categoriesSnapshot.docs[0];
     const categoryId = categoryData.id;
+    console.log(`🔍 [CATEGORY RESPONSIBLE] Catégorie trouvée: ${categoryValue} (ID: ${categoryId})`);
 
     // Étape 2 : Récupérer TOUS les responsables en utilisant le categoryId
     const responsiblesQuery = query(
@@ -51,6 +53,8 @@ export async function getCategoryResponsiblesByValue(categoryValue: string): Pro
       where('categoryId', '==', categoryId)
     );
     const responsiblesSnapshot = await getDocs(responsiblesQuery);
+
+    console.log(`🔍 [CATEGORY RESPONSIBLE] ${responsiblesSnapshot.size} responsable(s) trouvé(s) pour ${categoryValue}`);
 
     if (responsiblesSnapshot.empty) {
       return [];
@@ -60,9 +64,13 @@ export async function getCategoryResponsiblesByValue(categoryValue: string): Pro
     const responsibleUsers: UserClient[] = [];
     for (const doc of responsiblesSnapshot.docs) {
       const responsibleData = doc.data();
+      console.log(`🔍 [CATEGORY RESPONSIBLE] Responsable trouvé: responsibleId=${responsibleData.responsibleId}, assignedAt=${responsibleData.assignedAt}`);
       const responsibleUser = await getUserById(responsibleData.responsibleId);
       if (responsibleUser) {
+        console.log(`🔍 [CATEGORY RESPONSIBLE] Utilisateur récupéré: ${responsibleUser.email} (${responsibleUser.firstName} ${responsibleUser.lastName})`);
         responsibleUsers.push(responsibleUser);
+      } else {
+        console.warn(`⚠️ [CATEGORY RESPONSIBLE] Utilisateur introuvable pour responsibleId: ${responsibleData.responsibleId}`);
       }
     }
     

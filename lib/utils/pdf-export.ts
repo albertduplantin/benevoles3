@@ -607,22 +607,24 @@ export async function exportVolunteerPlanningPDF(
     
     doc.setFont('helvetica', 'normal');
 
-    // Récupérer et afficher le responsable de catégorie en premier
+    // Récupérer et afficher le(s) responsable(s) de catégorie en premier
     if (mission.category) {
       try {
-        const categoryResponsible = await getCategoryResponsibleByValue(mission.category);
-        if (categoryResponsible) {
-          doc.setTextColor(59, 130, 246); // Bleu pour le distinguer
-          doc.setFont('helvetica', 'bold');
-          const responsibleContact = `• ${categoryResponsible.firstName} ${categoryResponsible.lastName} (Responsable) - ${categoryResponsible.phone || 'N/A'} - ${categoryResponsible.email}`;
-          const responsibleLines = doc.splitTextToSize(responsibleContact, 155);
-          doc.text(responsibleLines, 30, yPos);
-          yPos += responsibleLines.length * 5;
-          doc.setTextColor(0, 0, 0); // Retour au noir
-          doc.setFont('helvetica', 'normal');
+        const categoryResponsibles = await getCategoryResponsiblesByValue(mission.category);
+        if (categoryResponsibles.length > 0) {
+          for (const categoryResponsible of categoryResponsibles) {
+            doc.setTextColor(59, 130, 246); // Bleu pour le distinguer
+            doc.setFont('helvetica', 'bold');
+            const responsibleContact = `• ${categoryResponsible.firstName} ${categoryResponsible.lastName} (Responsable) - ${categoryResponsible.phone || 'N/A'} - ${categoryResponsible.email}`;
+            const responsibleLines = doc.splitTextToSize(responsibleContact, 155);
+            doc.text(responsibleLines, 30, yPos);
+            yPos += responsibleLines.length * 5;
+            doc.setTextColor(0, 0, 0); // Retour au noir
+            doc.setFont('helvetica', 'normal');
+          }
         }
       } catch (error) {
-        console.error('Error fetching category responsible for export:', error);
+        console.error('Error fetching category responsibles for export:', error);
       }
     }
 
