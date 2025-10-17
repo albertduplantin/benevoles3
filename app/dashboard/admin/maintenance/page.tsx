@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangleIcon, CheckCircleIcon, RefreshCwIcon, TrashIcon } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface OrphanData {
   userId: string;
@@ -23,10 +22,10 @@ interface OrphanData {
 export default function MaintenancePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
   const [isScanning, setIsScanning] = useState(false);
   const [orphanVolunteers, setOrphanVolunteers] = useState<OrphanData[]>([]);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
@@ -44,16 +43,15 @@ export default function MaintenancePage() {
       const data = await response.json();
       setOrphanVolunteers(data.orphans || []);
       
-      toast({
-        title: "Scan terminé",
-        description: `${data.orphans?.length || 0} problème(s) détecté(s)`,
+      setMessage({
+        type: 'success',
+        text: `Scan terminé : ${data.orphans?.length || 0} problème(s) détecté(s)`,
       });
     } catch (error) {
       console.error('Error scanning:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de scanner les données",
-        variant: "destructive",
+      setMessage({
+        type: 'error',
+        text: 'Impossible de scanner les données',
       });
     } finally {
       setIsScanning(false);
@@ -77,19 +75,18 @@ export default function MaintenancePage() {
         throw new Error('Erreur lors de la suppression');
       }
 
-      toast({
-        title: "✅ Succès",
-        description: "Bénévole retiré de la mission",
+      setMessage({
+        type: 'success',
+        text: '✅ Bénévole retiré de la mission avec succès',
       });
 
       // Rafraîchir les données
       await scanForOrphans();
     } catch (error) {
       console.error('Error removing:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de retirer le bénévole",
-        variant: "destructive",
+      setMessage({
+        type: 'error',
+        text: 'Impossible de retirer le bénévole',
       });
     } finally {
       setIsRemoving(null);
@@ -112,6 +109,19 @@ export default function MaintenancePage() {
           Outils de diagnostic et de nettoyage des données
         </p>
       </div>
+
+      {/* Message de notification */}
+      {message && (
+        <div
+          className={`p-4 rounded-lg ${
+            message.type === 'success'
+              ? 'bg-green-50 text-green-800 border border-green-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
 
       {/* Scanner */}
       <Card>
