@@ -78,15 +78,16 @@ export async function DELETE(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId');
+    const responsibleId = searchParams.get('responsibleId');
 
-    if (!categoryId) {
+    if (!categoryId || !responsibleId) {
       return NextResponse.json(
-        { error: 'Missing categoryId' },
+        { error: 'Missing categoryId or responsibleId' },
         { status: 400 }
       );
     }
 
-    await removeCategoryResponsibleAdmin(categoryId);
+    await removeCategoryResponsibleAdmin(categoryId, responsibleId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

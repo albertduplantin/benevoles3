@@ -7,8 +7,6 @@ import { getMissionById, duplicateMission } from '@/lib/firebase/missions';
 import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
 import { getUserById } from '@/lib/firebase/users';
 import { isProfileComplete } from '@/lib/firebase/users';
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 // Ancien système de postulation supprimé - utiliser category-responsibles maintenant
 import { MissionClient, UserClient } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -38,7 +36,7 @@ export default function MissionDetailPage() {
 
   const [mission, setMission] = useState<MissionClient | null>(null);
   const [participants, setParticipants] = useState<UserClient[]>([]);
-  const [categoryResponsible, setCategoryResponsible] = useState<UserClient | null>(null);
+  const [categoryResponsibles, setCategoryResponsibles] = useState<UserClient[]>([]);
   const [isLoadingMission, setIsLoadingMission] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -108,64 +106,23 @@ export default function MissionDetailPage() {
     fetchParticipants();
   }, [user, mission]);
 
-  // Charger le responsable de la catégorie
+  // Charger les responsables de la catégorie
   useEffect(() => {
-    const fetchCategoryResponsible = async () => {
+    const fetchCategoryResponsibles = async () => {
       if (!mission || !mission.category) return;
 
       try {
-        // Étape 1 : Récupérer la catégorie complète en cherchant par value
-        let categoriesQuery = query(
-          collection(db, 'missionCategories'),
-          where('value', '==', mission.category)
-        );
-        let categoriesSnapshot = await getDocs(categoriesQuery);
-
-        // Si pas trouvé par value, essayer par label (pour compatibilité avec anciennes données)
-        if (categoriesSnapshot.empty) {
-          categoriesQuery = query(
-            collection(db, 'missionCategories'),
-            where('label', '==', mission.category)
-          );
-          categoriesSnapshot = await getDocs(categoriesQuery);
-        }
-
-        if (categoriesSnapshot.empty) {
-          console.log('Catégorie non trouvée (value ou label):', mission.category);
-          return;
-        }
-
-        const categoryData = categoriesSnapshot.docs[0];
-        const categoryId = categoryData.id;
-        console.log('✅ Catégorie trouvée, ID:', categoryId);
-
-        // Étape 2 : Récupérer le responsable en utilisant le categoryId
-        const responsiblesQuery = query(
-          collection(db, 'categoryResponsibles'),
-          where('categoryId', '==', categoryId)
-        );
-        const responsiblesSnapshot = await getDocs(responsiblesQuery);
-
-        if (responsiblesSnapshot.empty) {
-          console.log('Aucun responsable trouvé pour la catégorie ID:', categoryId);
-          return;
-        }
-
-        const responsibleData = responsiblesSnapshot.docs[0].data();
-        console.log('✅ Responsable trouvé, UID:', responsibleData.responsibleId);
-        
-        // Étape 3 : Récupérer les informations de l'utilisateur responsable
-        const responsibleUser = await getUserById(responsibleData.responsibleId);
-        if (responsibleUser) {
-          setCategoryResponsible(responsibleUser);
-          console.log('✅ Coordonnées du responsable chargées:', responsibleUser.firstName, responsibleUser.lastName);
-        }
+        // Importer dynamiquement le helper
+        const { getCategoryResponsiblesByValue } = await import('@/lib/utils/category-responsible-helper');
+        const responsibles = await getCategoryResponsiblesByValue(mission.category);
+        setCategoryResponsibles(responsibles);
+        console.log(`✅ ${responsibles.length} responsable(s) chargé(s) pour la catégorie ${mission.category}`);
       } catch (err) {
-        console.error('Erreur chargement responsable de catégorie:', err);
+        console.error('Erreur chargement responsables de catégorie:', err);
       }
     };
 
-    fetchCategoryResponsible();
+    fetchCategoryResponsibles();
   }, [mission]);
 
   const handleRegister = async () => {
@@ -286,7 +243,7 @@ export default function MissionDetailPage() {
                 type="mission"
                 mission={mission}
                 volunteers={participants}
-                categoryResponsible={categoryResponsible}
+                categoryResponsible={categoryResponsibles[0]} // Pour compatibilité, on passe le premier
               />
             )}
             
@@ -463,51 +420,55 @@ export default function MissionDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Responsable de la catégorie */}
-        {categoryResponsible && (
+        {/* Responsables de la catégorie */}
+        {categoryResponsibles.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span>👤</span> Responsable de la catégorie
+                <span>👤</span> Responsable{categoryResponsibles.length > 1 ? 's' : ''} de la catégorie
               </CardTitle>
               <CardDescription>
-                Personne à contacter pour toute question concernant cette mission
+                Personne{categoryResponsibles.length > 1 ? 's' : ''} à contacter pour toute question concernant cette mission
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-12 w-12">
-                    {categoryResponsible.photoURL ? (
-                      <AvatarImage
-                        src={categoryResponsible.photoURL}
-                        alt={categoryResponsible.firstName}
-                      />
-                    ) : (
-                      <AvatarFallback
-                        style={{
-                          backgroundColor: getAvatarColor(categoryResponsible.email),
-                        }}
-                      >
-                        {getInitials(categoryResponsible.firstName, categoryResponsible.lastName)}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold text-lg">
-                      {categoryResponsible.firstName} {categoryResponsible.lastName}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      📧 {categoryResponsible.email}
-                    </p>
-                    {categoryResponsible.phone && (
-                      <p className="text-sm text-muted-foreground">
-                        📱 {categoryResponsible.phone}
-                      </p>
-                    )}
+              <div className="space-y-3">
+                {categoryResponsibles.map((responsible) => (
+                  <div key={responsible.uid} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-12 w-12">
+                        {responsible.photoURL ? (
+                          <AvatarImage
+                            src={responsible.photoURL}
+                            alt={responsible.firstName}
+                          />
+                        ) : (
+                          <AvatarFallback
+                            style={{
+                              backgroundColor: getAvatarColor(responsible.email),
+                            }}
+                          >
+                            {getInitials(responsible.firstName, responsible.lastName)}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold text-lg">
+                          {responsible.firstName} {responsible.lastName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          📧 {responsible.email}
+                        </p>
+                        {responsible.phone && (
+                          <p className="text-sm text-muted-foreground">
+                            📱 {responsible.phone}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Badge className="bg-blue-600">Responsable</Badge>
                   </div>
-                </div>
-                <Badge className="bg-blue-600">Responsable</Badge>
+                ))}
               </div>
             </CardContent>
           </Card>

@@ -97,11 +97,12 @@ export default function CategoryResponsiblesPage() {
     }
   }, [user]);
 
-  // Obtenir le responsable d'une catégorie
-  const getResponsibleForCategory = (categoryId: string): UserClient | null => {
-    const assignment = assignments.find(a => a.categoryId === categoryId);
-    if (!assignment) return null;
-    return volunteers.find(v => v.uid === assignment.responsibleId) || null;
+  // Obtenir TOUS les responsables d'une catégorie
+  const getResponsiblesForCategory = (categoryId: string): UserClient[] => {
+    const categoryAssignments = assignments.filter(a => a.categoryId === categoryId);
+    return categoryAssignments
+      .map(assignment => volunteers.find(v => v.uid === assignment.responsibleId))
+      .filter((v): v is UserClient => v !== undefined);
   };
 
   // Assigner un responsable
@@ -148,11 +149,11 @@ export default function CategoryResponsiblesPage() {
   };
 
   // Retirer un responsable
-  const handleRemove = async (categoryId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir retirer ce responsable ?')) return;
+  const handleRemove = async (categoryId: string, responsibleId: string, responsibleName: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir retirer ${responsibleName} comme responsable ?`)) return;
 
     try {
-      const response = await fetch(`/api/category-responsibles?categoryId=${categoryId}`, {
+      const response = await fetch(`/api/category-responsibles?categoryId=${categoryId}&responsibleId=${responsibleId}`, {
         method: 'DELETE',
       });
 
@@ -247,49 +248,65 @@ export default function CategoryResponsiblesPage() {
               <CardContent>
                 <div className="space-y-3">
                   {group.categories.map((category) => {
-                    const responsible = getResponsibleForCategory(category.id);
+                    const responsibles = getResponsiblesForCategory(category.id);
                     return (
                       <div
                         key={category.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="p-3 bg-gray-50 rounded-lg"
                       >
-                        <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
                           <p className="font-medium">{category.label}</p>
-                          {responsible ? (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              👑 {responsible.firstName} {responsible.lastName}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Aucun responsable assigné
-                            </p>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCategory(category.id);
+                              setDialogOpen(true);
+                            }}
+                          >
+                            <UserPlusIcon className="h-4 w-4 mr-2" />
+                            Ajouter un responsable
+                          </Button>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {responsible ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemove(category.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <UserMinusIcon className="h-4 w-4 mr-2" />
-                              Retirer
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedCategory(category.id);
-                                setDialogOpen(true);
-                              }}
-                            >
-                              <UserPlusIcon className="h-4 w-4 mr-2" />
-                              Assigner
-                            </Button>
-                          )}
-                        </div>
+                        
+                        {responsibles.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            Aucun responsable assigné
+                          </p>
+                        ) : (
+                          <div className="space-y-2 mt-2">
+                            {responsibles.map((responsible) => (
+                              <div
+                                key={responsible.uid}
+                                className="flex items-center justify-between p-2 bg-white rounded border"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg">👑</span>
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {responsible.firstName} {responsible.lastName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {responsible.email}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemove(
+                                    category.id,
+                                    responsible.uid,
+                                    `${responsible.firstName} ${responsible.lastName}`
+                                  )}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <UserMinusIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -319,13 +336,11 @@ export default function CategoryResponsiblesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {groupedCategories.flatMap((group) =>
-                    group.categories
-                      .filter(cat => !getResponsibleForCategory(cat.id))
-                      .map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {group.group} - {cat.label}
-                        </SelectItem>
-                      ))
+                    group.categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {group.group} - {cat.label}
+                      </SelectItem>
+                    ))
                   )}
                 </SelectContent>
               </Select>

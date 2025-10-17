@@ -42,7 +42,7 @@ const categoryResponsibleConverter = {
 };
 
 /**
- * Assigner un responsable à une catégorie
+ * Assigner un responsable à une catégorie (permet plusieurs responsables)
  */
 export async function assignCategoryResponsible(
   categoryId: string,
@@ -51,10 +51,16 @@ export async function assignCategoryResponsible(
   adminId: string
 ): Promise<string> {
   try {
-    // Vérifier s'il y a déjà un responsable pour cette catégorie
-    const existing = await getCategoryResponsible(categoryId);
-    if (existing) {
-      throw new Error('Cette catégorie a déjà un responsable. Retirez-le d\'abord.');
+    // Vérifier si cet utilisateur est déjà responsable de cette catégorie
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('categoryId', '==', categoryId),
+      where('responsibleId', '==', responsibleId)
+    );
+    const existingSnapshot = await getDocs(q);
+    
+    if (!existingSnapshot.empty) {
+      throw new Error('Cet utilisateur est déjà responsable de cette catégorie.');
     }
 
     // Créer l'assignation
@@ -89,16 +95,18 @@ export async function assignCategoryResponsible(
 }
 
 /**
- * Retirer un responsable d'une catégorie
+ * Retirer un responsable spécifique d'une catégorie
  */
 export async function removeCategoryResponsible(
-  categoryId: string
+  categoryId: string,
+  responsibleId: string
 ): Promise<void> {
   try {
-    // Trouver l'assignation
+    // Trouver l'assignation spécifique
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('categoryId', '==', categoryId)
+      where('categoryId', '==', categoryId),
+      where('responsibleId', '==', responsibleId)
     );
     const snapshot = await getDocs(q);
 
@@ -107,7 +115,6 @@ export async function removeCategoryResponsible(
     }
 
     const assignment = snapshot.docs[0];
-    const responsibleId = assignment.data().responsibleId;
 
     // Supprimer l'assignation
     await deleteDoc(assignment.ref);
@@ -137,7 +144,8 @@ export async function removeCategoryResponsible(
 }
 
 /**
- * Obtenir le responsable d'une catégorie
+ * Obtenir le responsable d'une catégorie (DEPRECATED - utiliser getCategoryResponsibles)
+ * @deprecated Utilisez getCategoryResponsibles pour obtenir tous les responsables
  */
 export async function getCategoryResponsible(
   categoryId: string
@@ -156,6 +164,26 @@ export async function getCategoryResponsible(
     return snapshot.docs[0].data() as CategoryResponsibleClient;
   } catch (error) {
     console.error('Error getting category responsible:', error);
+    throw error;
+  }
+}
+
+/**
+ * Obtenir TOUS les responsables d'une catégorie
+ */
+export async function getCategoryResponsibles(
+  categoryId: string
+): Promise<CategoryResponsibleClient[]> {
+  try {
+    const q = query(
+      collection(db, COLLECTION_NAME).withConverter(categoryResponsibleConverter),
+      where('categoryId', '==', categoryId)
+    );
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map(doc => doc.data() as CategoryResponsibleClient);
+  } catch (error) {
+    console.error('Error getting category responsibles:', error);
     throw error;
   }
 }
@@ -289,7 +317,7 @@ export async function getAllCategoryResponsiblesAdmin(): Promise<CategoryRespons
 }
 
 /**
- * Admin: Assigner un responsable à une catégorie (avec Firebase Admin)
+ * Admin: Assigner un responsable à une catégorie (avec Firebase Admin) - permet plusieurs responsables
  */
 export async function assignCategoryResponsibleAdmin(
   categoryId: string,
@@ -301,10 +329,16 @@ export async function assignCategoryResponsibleAdmin(
     // Import dynamique pour éviter le bundle côté client
     const { adminDb } = await import('./admin');
     
-    // Vérifier s'il y a déjà un responsable pour cette catégorie
-    const existing = await getCategoryResponsibleAdmin(categoryId);
-    if (existing) {
-      throw new Error('Cette catégorie a déjà un responsable. Retirez-le d\'abord.');
+    // Vérifier si cet utilisateur est déjà responsable de cette catégorie
+    const existingSnapshot = await adminDb
+      .collection(COLLECTION_NAME)
+      .where('categoryId', '==', categoryId)
+      .where('responsibleId', '==', responsibleId)
+      .limit(1)
+      .get();
+    
+    if (!existingSnapshot.empty) {
+      throw new Error('Cet utilisateur est déjà responsable de cette catégorie.');
     }
 
     // Créer l'assignation
@@ -339,19 +373,21 @@ export async function assignCategoryResponsibleAdmin(
 }
 
 /**
- * Admin: Retirer un responsable d'une catégorie (avec Firebase Admin)
+ * Admin: Retirer un responsable spécifique d'une catégorie (avec Firebase Admin)
  */
 export async function removeCategoryResponsibleAdmin(
-  categoryId: string
+  categoryId: string,
+  responsibleId: string
 ): Promise<void> {
   try {
     // Import dynamique pour éviter le bundle côté client
     const { adminDb } = await import('./admin');
     
-    // Trouver l'assignation
+    // Trouver l'assignation spécifique
     const snapshot = await adminDb
       .collection(COLLECTION_NAME)
       .where('categoryId', '==', categoryId)
+      .where('responsibleId', '==', responsibleId)
       .limit(1)
       .get();
 
@@ -360,7 +396,6 @@ export async function removeCategoryResponsibleAdmin(
     }
 
     const assignment = snapshot.docs[0];
-    const responsibleId = assignment.data().responsibleId;
 
     // Supprimer l'assignation
     await assignment.ref.delete();
