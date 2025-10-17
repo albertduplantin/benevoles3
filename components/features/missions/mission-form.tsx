@@ -132,11 +132,23 @@ export function MissionForm({
           }
           const data = await response.json();
           const categoryIds = data.categories?.map((c: any) => c.categoryId) || [];
-          setAllowedCategories(categoryIds);
+          
+          // Convertir les categoryIds (IDs Firestore) en values (valeurs textuelles)
+          // pour correspondre au format utilisé dans le dropdown
+          const categoryValues: string[] = [];
+          for (const group of categories) {
+            for (const cat of group.categories) {
+              if (categoryIds.includes(cat.id)) {
+                categoryValues.push(cat.value);
+              }
+            }
+          }
+          
+          setAllowedCategories(categoryValues);
 
           // Si une seule catégorie, la présélectionner
-          if (categoryIds.length === 1 && mode === 'create') {
-            setValue('category', categoryIds[0]);
+          if (categoryValues.length === 1 && mode === 'create') {
+            setValue('category', categoryValues[0]);
           }
         }
 
