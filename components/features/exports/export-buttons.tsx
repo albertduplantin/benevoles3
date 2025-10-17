@@ -95,7 +95,7 @@ export function ExportButtons({
         if (format === 'pdf') {
           await exportVolunteerPlanningPDF(missions, volunteerName, allParticipants);
         } else if (format === 'excel') {
-          exportVolunteerPlanningExcel(missions, volunteerName, allParticipants);
+          await exportVolunteerPlanningExcel(missions, volunteerName, allParticipants);
         }
       }
     } catch (error) {

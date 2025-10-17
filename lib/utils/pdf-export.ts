@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { MissionClient, UserClient } from '@/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { getCategoryResponsibleByValue } from './category-responsible-helper';
 
 /**
  * Génère un PDF avec la liste des bénévoles d'une mission
@@ -552,8 +553,10 @@ export async function exportVolunteerPlanningPDF(
     return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
   });
 
-  // Pour chaque mission
-  sortedMissions.forEach((mission, index) => {
+  // Pour chaque mission - Utiliser une boucle asynchrone
+  for (let index = 0; index < sortedMissions.length; index++) {
+    const mission = sortedMissions[index];
+    
     // Vérifier si on a besoin d'une nouvelle page
     if (yPos > 250) {
       doc.addPage();
@@ -569,6 +572,11 @@ export async function exportVolunteerPlanningPDF(
     // Infos de la mission
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
+
+    if (mission.category) {
+      doc.text(`Catégorie: ${mission.category}`, 25, yPos);
+      yPos += 6;
+    }
 
     if (mission.startDate) {
       const dateStr = format(
@@ -592,13 +600,34 @@ export async function exportVolunteerPlanningPDF(
     yPos += descLines.length * 5 + 5;
 
     // Contacts
+    doc.setFont('helvetica', 'bold');
+    doc.text('Contacts:', 25, yPos);
+    yPos += 6;
+    
+    doc.setFont('helvetica', 'normal');
+
+    // Récupérer et afficher le responsable de catégorie en premier
+    if (mission.category) {
+      try {
+        const categoryResponsible = await getCategoryResponsibleByValue(mission.category);
+        if (categoryResponsible) {
+          doc.setTextColor(59, 130, 246); // Bleu pour le distinguer
+          doc.setFont('helvetica', 'bold');
+          const responsibleContact = `• ${categoryResponsible.firstName} ${categoryResponsible.lastName} (Responsable) - ${categoryResponsible.phone || 'N/A'} - ${categoryResponsible.email}`;
+          const responsibleLines = doc.splitTextToSize(responsibleContact, 155);
+          doc.text(responsibleLines, 30, yPos);
+          yPos += responsibleLines.length * 5;
+          doc.setTextColor(0, 0, 0); // Retour au noir
+          doc.setFont('helvetica', 'normal');
+        }
+      } catch (error) {
+        console.error('Error fetching category responsible for export:', error);
+      }
+    }
+
+    // Afficher les autres participants
     const participants = allParticipants.get(mission.id) || [];
     if (participants.length > 0) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Contacts:', 25, yPos);
-      yPos += 6;
-
-      doc.setFont('helvetica', 'normal');
       participants.slice(0, 3).forEach((participant) => {
         const contact = `• ${participant.firstName} ${participant.lastName} - ${participant.phone || 'N/A'} - ${participant.email}`;
         const contactLines = doc.splitTextToSize(contact, 155);
@@ -618,7 +647,7 @@ export async function exportVolunteerPlanningPDF(
     doc.setDrawColor(200, 200, 200);
     doc.line(20, yPos, 190, yPos);
     yPos += 10;
-  });
+  }
 
   // Pied de page
   const pageCount = (doc as any).internal.getNumberOfPages();

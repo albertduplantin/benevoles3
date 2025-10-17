@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import { MissionClient, UserClient } from '@/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { getCategoryResponsibleByValue } from './category-responsible-helper';
 
 /**
  * Génère un fichier Excel avec la liste des bénévoles d'une mission
@@ -492,7 +493,7 @@ export function exportGlobalPlanningExcel(
 /**
  * Génère un fichier Excel avec le planning personnel d'un bénévole
  */
-export function exportVolunteerPlanningExcel(
+export async function exportVolunteerPlanningExcel(
   missions: MissionClient[],
   volunteerName: string,
   allParticipants: Map<string, UserClient[]> // Map mission.id -> participants
@@ -534,22 +535,44 @@ export function exportVolunteerPlanningExcel(
 
   // Feuille 2: Contacts par Mission
   const contactsData: any[] = [];
-  missions.forEach((mission) => {
+  
+  for (const mission of missions) {
     const participants = allParticipants.get(mission.id) || [];
     
     // Ajouter un header pour chaque mission
     contactsData.push({
       Mission: `--- ${mission.title.toUpperCase()} ---`,
+      'Catégorie': mission.category || 'N/A',
       Nom: '',
       Téléphone: '',
       Email: '',
       Rôle: '',
     });
 
-    // Ajouter les participants
+    // Ajouter d'abord le responsable de catégorie
+    if (mission.category) {
+      try {
+        const categoryResponsible = await getCategoryResponsibleByValue(mission.category);
+        if (categoryResponsible) {
+          contactsData.push({
+            Mission: mission.title,
+            'Catégorie': mission.category,
+            Nom: `${categoryResponsible.firstName} ${categoryResponsible.lastName}`,
+            Téléphone: categoryResponsible.phone || 'N/A',
+            Email: categoryResponsible.email,
+            Rôle: '⭐ RESPONSABLE CATÉGORIE',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching category responsible for Excel export:', error);
+      }
+    }
+
+    // Ajouter les autres participants
     participants.forEach((participant) => {
       contactsData.push({
         Mission: mission.title,
+        'Catégorie': mission.category || 'N/A',
         Nom: `${participant.firstName} ${participant.lastName}`,
         Téléphone: participant.phone || 'N/A',
         Email: participant.email,
@@ -560,20 +583,22 @@ export function exportVolunteerPlanningExcel(
     // Ligne vide entre les missions
     contactsData.push({
       Mission: '',
+      'Catégorie': '',
       Nom: '',
       Téléphone: '',
       Email: '',
       Rôle: '',
     });
-  });
+  }
 
   const wsContacts = XLSX.utils.json_to_sheet(contactsData);
   wsContacts['!cols'] = [
     { wch: 30 }, // Mission
+    { wch: 25 }, // Catégorie
     { wch: 25 }, // Nom
     { wch: 15 }, // Téléphone
     { wch: 30 }, // Email
-    { wch: 15 }, // Rôle
+    { wch: 25 }, // Rôle
   ];
   XLSX.utils.book_append_sheet(wb, wsContacts, 'Contacts');
 
