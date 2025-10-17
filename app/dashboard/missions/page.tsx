@@ -383,6 +383,7 @@ function MissionsPageContent() {
   }
 
   const isAdmin = user.role === 'admin';
+  const canCreateMission = isAdmin || user.role === 'category_responsible';
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -404,7 +405,7 @@ function MissionsPageContent() {
               allParticipants={missionParticipants}
             />
           )}
-          {isAdmin && (
+          {canCreateMission && (
             <Button asChild>
               <Link href="/dashboard/missions/new">Nouvelle mission</Link>
             </Button>
