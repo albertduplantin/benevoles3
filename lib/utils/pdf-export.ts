@@ -3,7 +3,8 @@ import autoTable from 'jspdf-autotable';
 import { MissionClient, UserClient } from '@/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { getCategoryResponsibleByValue } from './category-responsible-helper';
+import { getCategoryResponsibleByValue, getCategoryResponsiblesByValue } from './category-responsible-helper';
+import { getUserById } from '@/lib/firebase/users';
 
 /**
  * Génère un PDF avec la liste des bénévoles d'une mission
@@ -796,7 +797,7 @@ export async function exportFullProgramPDF(
 
     let currentCategory = '';
 
-    continuousMissions.forEach((mission, index) => {
+    for (const mission of continuousMissions) {
       // Afficher le nom de la catégorie si elle change
       if (mission.category !== currentCategory) {
         if (currentCategory !== '') {
@@ -852,14 +853,64 @@ export async function exportFullProgramPDF(
         yPos += descLines.length * 4.5 + 3;
       }
 
+      // Récupérer les responsables de catégorie
+      const categoryResponsibles = await getCategoryResponsiblesByValue(mission.category);
+      
+      // Récupérer les bénévoles inscrits
+      const volunteers: UserClient[] = [];
+      for (const volunteerId of mission.volunteers) {
+        try {
+          const volunteer = await getUserById(volunteerId);
+          if (volunteer) volunteers.push(volunteer);
+        } catch (error) {
+          console.error(`Erreur lors de la récupération du bénévole ${volunteerId}:`, error);
+        }
+      }
+
+      // Afficher les responsables
+      if (categoryResponsibles.length > 0) {
+        yPos += 3;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(37, 99, 235); // Bleu
+        doc.text(`Responsable${categoryResponsibles.length > 1 ? 's' : ''} :`, marginLeft + 8, yPos);
+        doc.setTextColor(0, 0, 0);
+        yPos += 5;
+
+        for (const resp of categoryResponsibles) {
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${resp.firstName} ${resp.lastName} - ${resp.email}${resp.phone ? ' - ' + resp.phone : ''}`, marginLeft + 12, yPos);
+          yPos += 4;
+        }
+      }
+
+      // Afficher les bénévoles
+      if (volunteers.length > 0) {
+        yPos += 3;
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Benevoles inscrits (${volunteers.length}) :`, marginLeft + 8, yPos);
+        doc.setFont('helvetica', 'normal');
+        yPos += 5;
+
+        for (const vol of volunteers) {
+          // Vérifier si on a besoin d'une nouvelle page
+          if (yPos > pageHeight - 20) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(`${vol.firstName} ${vol.lastName} - ${vol.email}${vol.phone ? ' - ' + vol.phone : ''}`, marginLeft + 12, yPos);
+          yPos += 4;
+        }
+      }
+
       yPos += 4;
-    });
+    }
 
     yPos += 10;
   }
 
   // ========== MISSIONS PAR JOUR ==========
-  sortedDays.forEach((day, dayIndex) => {
+  for (let dayIndex = 0; dayIndex < sortedDays.length; dayIndex++) {
+    const day = sortedDays[dayIndex];
     const dayMissions = missionsByDay.get(day)!;
     const dayDate = new Date(day);
     
@@ -885,7 +936,7 @@ export async function exportFullProgramPDF(
 
     let currentCategory = '';
 
-    dayMissions.forEach((mission) => {
+    for (const mission of dayMissions) {
       // Afficher le nom de la catégorie si elle change
       if (mission.category !== currentCategory) {
         if (currentCategory !== '') {
@@ -958,11 +1009,65 @@ export async function exportFullProgramPDF(
         yPos += 5;
       }
 
+      // Récupérer les responsables de catégorie
+      const categoryResponsibles = await getCategoryResponsiblesByValue(mission.category);
+      
+      // Récupérer les bénévoles inscrits
+      const volunteers: UserClient[] = [];
+      for (const volunteerId of mission.volunteers) {
+        try {
+          const volunteer = await getUserById(volunteerId);
+          if (volunteer) volunteers.push(volunteer);
+        } catch (error) {
+          console.error(`Erreur lors de la récupération du bénévole ${volunteerId}:`, error);
+        }
+      }
+
+      // Afficher les responsables
+      if (categoryResponsibles.length > 0) {
+        yPos += 3;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(37, 99, 235); // Bleu
+        doc.text(`Responsable${categoryResponsibles.length > 1 ? 's' : ''} :`, marginLeft + 8, yPos);
+        doc.setTextColor(0, 0, 0);
+        yPos += 5;
+
+        for (const resp of categoryResponsibles) {
+          // Vérifier si on a besoin d'une nouvelle page
+          if (yPos > pageHeight - 20) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${resp.firstName} ${resp.lastName} - ${resp.email}${resp.phone ? ' - ' + resp.phone : ''}`, marginLeft + 12, yPos);
+          yPos += 4;
+        }
+      }
+
+      // Afficher les bénévoles
+      if (volunteers.length > 0) {
+        yPos += 3;
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Benevoles inscrits (${volunteers.length}) :`, marginLeft + 8, yPos);
+        doc.setFont('helvetica', 'normal');
+        yPos += 5;
+
+        for (const vol of volunteers) {
+          // Vérifier si on a besoin d'une nouvelle page
+          if (yPos > pageHeight - 20) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(`${vol.firstName} ${vol.lastName} - ${vol.email}${vol.phone ? ' - ' + vol.phone : ''}`, marginLeft + 12, yPos);
+          yPos += 4;
+        }
+      }
+
       yPos += 4;
-    });
+    }
 
     yPos += 12;
-  });
+  }
 
   // ========== PIED DE PAGE ==========
   const totalPages = (doc as any).internal.getNumberOfPages();

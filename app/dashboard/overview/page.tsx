@@ -17,6 +17,8 @@ import { FullProgramExportButton } from '@/components/features/exports/full-prog
 import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
 import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
 import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
+import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
+import { MissionCategoryClient } from '@/types/category';
 import Link from 'next/link';
 import {
   CalendarIcon,
@@ -41,6 +43,7 @@ export default function DashboardOverviewPage() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [allVolunteersMap, setAllVolunteersMap] = useState<Map<string, UserClient>>(new Map());
   const [responsibleCategories, setResponsibleCategories] = useState<CategoryResponsibleClient[]>([]);
+  const [categoryIdToValueMap, setCategoryIdToValueMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (loading) return;
@@ -51,6 +54,27 @@ export default function DashboardOverviewPage() {
       router.push('/auth/complete-profile');
     }
   }, [user, loading, router]);
+
+  // Charger les catégories depuis Firestore pour créer le mapping ID -> value
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const groupedCategories = await getGroupedCategories();
+        const idToValueMap = new Map<string, string>();
+        
+        groupedCategories.forEach(group => {
+          group.categories.forEach(cat => {
+            idToValueMap.set(cat.id, cat.value);
+          });
+        });
+        
+        setCategoryIdToValueMap(idToValueMap);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   // Charger les catégories dont l'utilisateur est responsable
   useEffect(() => {
@@ -218,8 +242,14 @@ export default function DashboardOverviewPage() {
 
   // Missions coordonnées par le responsable
   const responsibleCategoryIds = responsibleCategories.map(c => c.categoryId);
+  
+  // Convertir les IDs Firestore en valeurs textuelles pour la comparaison
+  const responsibleCategoryValues = responsibleCategoryIds
+    .map(id => categoryIdToValueMap.get(id))
+    .filter((val): val is string => val !== undefined);
+  
   const coordinatingMissions = allMissions.filter((m) =>
-    responsibleCategoryIds.includes(m.category)
+    responsibleCategoryValues.includes(m.category)
   );
 
   const isAdmin = user.role === 'admin';
@@ -524,7 +554,7 @@ export default function DashboardOverviewPage() {
                   </p>
                   <FullProgramExportButton 
                     missions={coordinatingMissions} 
-                    allowedCategories={responsibleCategoryIds}
+                    allowedCategories={responsibleCategoryValues}
                   />
                 </div>
 
