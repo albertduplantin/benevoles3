@@ -27,6 +27,7 @@ import {
   LogOutIcon,
   UserIcon,
   CheckCircle2Icon,
+  WrenchIcon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -77,6 +78,12 @@ const navigation: NavItem[] = [
     label: 'Bénévoles',
     href: '/dashboard/volunteers',
     icon: UsersIcon,
+    roles: ['admin'],
+  },
+  {
+    label: 'Maintenance',
+    href: '/dashboard/admin/maintenance',
+    icon: WrenchIcon,
     roles: ['admin'],
   },
 ];
