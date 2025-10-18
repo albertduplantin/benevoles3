@@ -27,8 +27,8 @@ import {
 import { isProfileComplete } from '@/lib/firebase/users';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
-import { canEditMission } from '@/lib/utils/permissions';
 import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon, CalendarDaysIcon, CopyIcon } from 'lucide-react';
+import { useMissionPermissions } from '@/hooks/useMissionPermissions';
 import { toast } from 'sonner';
 import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/mission-skeleton';
 import { getAdminSettings } from '@/lib/firebase/admin-settings';
@@ -159,6 +159,9 @@ function MissionsPageContent() {
   
   // État pour l'export de planning
   const [missionParticipants, setMissionParticipants] = useState<Map<string, UserClient[]>>(new Map());
+
+  // Calculer les permissions pour toutes les missions
+  const missionPermissions = useMissionPermissions(user, missions);
 
   // Détecter le paramètre URL "filter=my"
   useEffect(() => {
@@ -720,7 +723,7 @@ function MissionsPageContent() {
                     <Link href={`/dashboard/missions/${mission.id}`}>Voir détails</Link>
                   </Button>
                   
-                  {canEditMission(user, mission.category) ? (
+                  {missionPermissions.get(mission.id)?.canEdit ? (
                     <>
                       <Button
                         variant="outline"
@@ -749,7 +752,7 @@ function MissionsPageContent() {
                           <EditIcon className="h-4 w-4" />
                         </Link>
                       </Button>
-                      {isAdmin && (
+                      {missionPermissions.get(mission.id)?.canDelete && (
                         <Button
                           variant="outline"
                           size="icon"
