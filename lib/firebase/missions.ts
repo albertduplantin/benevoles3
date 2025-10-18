@@ -38,17 +38,8 @@ export async function createMission(
   createdBy: string
 ): Promise<string> {
   try {
-    // DEBUG: Log des dates avant conversion
-    console.log('📅 [CREATE MISSION] startDate reçue:', missionData.startDate);
-    console.log('📅 [CREATE MISSION] startDate toString:', missionData.startDate?.toString());
-    console.log('📅 [CREATE MISSION] startDate getHours:', missionData.startDate?.getHours());
-    console.log('📅 [CREATE MISSION] startDate getTimezoneOffset:', missionData.startDate?.getTimezoneOffset());
-    
     const startTimestamp = missionData.startDate ? Timestamp.fromDate(missionData.startDate) : null;
     const endTimestamp = missionData.endDate ? Timestamp.fromDate(missionData.endDate) : null;
-    
-    console.log('🔥 [CREATE MISSION] Timestamp startDate seconds:', startTimestamp?.seconds);
-    console.log('🔥 [CREATE MISSION] Timestamp toDate:', startTimestamp?.toDate().toString());
     
     const docRef = await addDoc(collection(db, COLLECTIONS.MISSIONS), {
       ...missionData,

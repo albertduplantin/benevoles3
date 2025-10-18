@@ -15,8 +15,9 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDateTime } from '@/lib/utils/date';
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar';
-import { hasPermission, canEditMission } from '@/lib/utils/permissions';
+import { hasPermission, canEditMissionAsync } from '@/lib/utils/permissions';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
+import { AssignVolunteerModal } from '@/components/features/missions/assign-volunteer-modal';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -26,6 +27,7 @@ import {
   AlertCircleIcon,
   ArrowLeftIcon,
   CopyIcon,
+  UserPlusIcon,
 } from 'lucide-react';
 
 export default function MissionDetailPage() {
@@ -42,6 +44,8 @@ export default function MissionDetailPage() {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [canManageVolunteers, setCanManageVolunteers] = useState(false);
 
   const isUserRegistered = mission?.volunteers.includes(user?.uid || '') || false;
   const availableSpots = mission ? mission.maxVolunteers - mission.volunteers.length : 0;
@@ -116,7 +120,6 @@ export default function MissionDetailPage() {
         const { getCategoryResponsiblesByValue } = await import('@/lib/utils/category-responsible-helper');
         const responsibles = await getCategoryResponsiblesByValue(mission.category);
         setCategoryResponsibles(responsibles);
-        console.log(`✅ ${responsibles.length} responsable(s) chargé(s) pour la catégorie ${mission.category}`);
       } catch (err) {
         console.error('Erreur chargement responsables de catégorie:', err);
       }
@@ -124,6 +127,49 @@ export default function MissionDetailPage() {
 
     fetchCategoryResponsibles();
   }, [mission]);
+
+  // Vérifier les permissions pour gérer les bénévoles
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!user || !mission) {
+        setCanManageVolunteers(false);
+        return;
+      }
+
+      // Admin peut gérer tous les bénévoles
+      if (user.role === 'admin') {
+        setCanManageVolunteers(true);
+        return;
+      }
+
+      // Responsable de catégorie peut gérer les bénévoles de ses missions
+      const canManage = await canEditMissionAsync(user, mission.category);
+      setCanManageVolunteers(canManage);
+    };
+
+    checkPermissions();
+  }, [user, mission]);
+
+  // Rafraîchir les participants après assignation
+  const handleVolunteerAssigned = async () => {
+    if (!missionId) return;
+    
+    try {
+      // Recharger la mission pour avoir la liste à jour
+      const updatedMission = await getMissionById(missionId);
+      if (updatedMission) {
+        setMission(updatedMission);
+        
+        // Recharger les participants
+        const participantsData = await Promise.all(
+          updatedMission.volunteers.map((uid) => getUserById(uid))
+        );
+        setParticipants(participantsData.filter((p) => p !== null) as UserClient[]);
+      }
+    } catch (err) {
+      console.error('Erreur rafraîchissement:', err);
+    }
+  };
 
   const handleRegister = async () => {
     if (!user || !missionId) return;
@@ -238,7 +284,7 @@ export default function MissionDetailPage() {
           </Button>
 
           <div className="flex gap-2">
-            {mission && (canEditMission(user, mission.category) || participants.length > 0) && (
+            {mission && (canManageVolunteers || participants.length > 0) && (
               <ExportButtons
                 type="mission"
                 mission={mission}
@@ -247,7 +293,7 @@ export default function MissionDetailPage() {
               />
             )}
             
-            {mission && canEditMission(user, mission.category) && (
+            {mission && canManageVolunteers && (
               <>
                 <Button 
                   variant="outline" 
@@ -479,14 +525,28 @@ export default function MissionDetailPage() {
           mission.volunteers.includes(user.uid)) && (
           <Card>
             <CardHeader>
-              <CardTitle>
-                Participants ({participants.length}/{mission.maxVolunteers})
-              </CardTitle>
-              <CardDescription>
-                {hasPermission(user, 'admin')
-                  ? 'Liste des bénévoles inscrits à cette mission'
-                  : 'Coordonnées des autres bénévoles pour vous coordonner'}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>
+                    Participants ({participants.length}/{mission.maxVolunteers})
+                  </CardTitle>
+                  <CardDescription>
+                    {hasPermission(user, 'admin')
+                      ? 'Liste des bénévoles inscrits à cette mission'
+                      : 'Coordonnées des autres bénévoles pour vous coordonner'}
+                  </CardDescription>
+                </div>
+                {canManageVolunteers && (
+                  <Button
+                    onClick={() => setShowAssignModal(true)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <UserPlusIcon className="h-4 w-4 mr-2" />
+                    Assigner
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {participants.length === 0 ? (
@@ -537,6 +597,19 @@ export default function MissionDetailPage() {
           </Card>
         )}
       </div>
+
+      {/* Modal d'assignation de bénévoles */}
+      {mission && canManageVolunteers && (
+        <AssignVolunteerModal
+          open={showAssignModal}
+          onOpenChange={setShowAssignModal}
+          missionId={missionId}
+          missionTitle={mission.title}
+          currentVolunteers={mission.volunteers}
+          maxVolunteers={mission.maxVolunteers}
+          onVolunteerAssigned={handleVolunteerAssigned}
+        />
+      )}
     </div>
   );
 }

@@ -221,14 +221,6 @@ export function MissionForm({
     }
 
     // DEBUG: Log des données du formulaire
-    console.log('📝 [FORM SUBMIT] data:', data);
-    console.log('📝 [FORM SUBMIT] startDate type:', typeof data.startDate);
-    console.log('📝 [FORM SUBMIT] startDate value:', data.startDate);
-    console.log('📝 [FORM SUBMIT] startDate is Date?:', data.startDate instanceof Date);
-    if (data.startDate instanceof Date) {
-      console.log('📝 [FORM SUBMIT] startDate getHours:', data.startDate.getHours());
-      console.log('📝 [FORM SUBMIT] startDate toString:', data.startDate.toString());
-    }
 
     setIsLoading(true);
     setError(null);
