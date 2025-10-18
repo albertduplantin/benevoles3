@@ -909,7 +909,7 @@ function MissionsPageContent() {
                     Voir détails
                   </Button>
                   
-                  {canEditMission(user, selectedMission.category) ? (
+                  {missionPermissions.get(selectedMission.id)?.canEdit ? (
                     <>
                       <Button
                         variant="outline"
@@ -940,7 +940,7 @@ function MissionsPageContent() {
                       >
                         <EditIcon className="h-4 w-4" />
                       </Button>
-                      {isAdmin && (
+                      {missionPermissions.get(selectedMission.id)?.canDelete && (
                         <Button
                           variant="outline"
                           size="icon"
