@@ -9,10 +9,12 @@ import {
   where,
   arrayRemove,
   writeBatch,
+  getDoc,
 } from 'firebase/firestore';
 import { db } from './config';
-import { User, UserClient } from '@/types';
+import { User, UserClient, Mission } from '@/types';
 import { COLLECTIONS } from './collections';
+import { checkUserMissionConflicts } from './registrations';
 
 const USERS = COLLECTIONS.USERS;
 const MISSIONS = COLLECTIONS.MISSIONS;
@@ -133,19 +135,30 @@ export async function adminRegisterVolunteer(
   try {
     const missionRef = doc(db, MISSIONS, missionId);
     
-    // Vérifier d'abord que la mission existe et n'est pas complète
-    const missionDoc = await getDocs(query(collection(db, MISSIONS), where('__name__', '==', missionId)));
-    if (missionDoc.empty) {
+    // Récupérer la mission
+    const missionDoc = await getDoc(missionRef);
+    if (!missionDoc.exists()) {
       throw new Error('Mission introuvable');
     }
 
-    const missionData = missionDoc.docs[0].data();
+    const missionData = missionDoc.data() as Mission;
+    
     if (missionData.volunteers && missionData.volunteers.includes(volunteerId)) {
       throw new Error('Le bénévole est déjà inscrit à cette mission');
     }
 
     if (missionData.volunteers && missionData.volunteers.length >= missionData.maxVolunteers) {
       throw new Error('La mission est complète');
+    }
+
+    // Vérifier les chevauchements avec les missions existantes
+    const overlappingMissions = await checkUserMissionConflicts(volunteerId, missionData);
+
+    if (overlappingMissions.length > 0) {
+      const overlappingTitles = overlappingMissions.map(m => m.title).join(', ');
+      throw new Error(
+        `Le bénévole ne peut pas être inscrit à cette mission car elle se chevauche avec : ${overlappingTitles}`
+      );
     }
 
     // Inscrire le bénévole

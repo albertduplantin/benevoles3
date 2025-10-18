@@ -6,10 +6,67 @@ import {
   arrayRemove,
   serverTimestamp,
   runTransaction,
+  collection,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore';
 import { db } from './config';
 import { COLLECTIONS } from './collections';
 import { Mission } from '@/types';
+
+/**
+ * Vérifier si deux missions se chevauchent temporellement
+ */
+export function doMissionsOverlap(mission1: Mission, mission2: Mission): boolean {
+  // Si l'une des missions n'a pas de dates, pas de chevauchement
+  if (!mission1.startDate || !mission2.startDate) {
+    return false;
+  }
+
+  const start1 = mission1.startDate instanceof Date 
+    ? mission1.startDate 
+    : mission1.startDate.toDate();
+  const end1 = mission1.endDate 
+    ? (mission1.endDate instanceof Date ? mission1.endDate : mission1.endDate.toDate())
+    : start1;
+
+  const start2 = mission2.startDate instanceof Date 
+    ? mission2.startDate 
+    : mission2.startDate.toDate();
+  const end2 = mission2.endDate 
+    ? (mission2.endDate instanceof Date ? mission2.endDate : mission2.endDate.toDate())
+    : start2;
+
+  // Deux missions se chevauchent si :
+  // - Le début de mission1 est avant la fin de mission2 ET
+  // - La fin de mission1 est après le début de mission2
+  return start1 < end2 && end1 > start2;
+}
+
+/**
+ * Vérifier si un utilisateur a des conflits d'horaire avec une mission
+ */
+export async function checkUserMissionConflicts(
+  userId: string,
+  targetMission: Mission
+): Promise<Mission[]> {
+  // Récupérer toutes les missions de l'utilisateur
+  const userMissionsQuery = query(
+    collection(db, COLLECTIONS.MISSIONS),
+    where('volunteers', 'array-contains', userId)
+  );
+  const userMissionsSnapshot = await getDocs(userMissionsQuery);
+  const userMissions = userMissionsSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as Mission));
+
+  // Filtrer les missions qui se chevauchent
+  return userMissions.filter(userMission => 
+    doMissionsOverlap(targetMission, userMission)
+  );
+}
 
 /**
  * Inscrire un bénévole à une mission
@@ -20,6 +77,25 @@ export async function registerToMission(
 ): Promise<void> {
   try {
     const missionRef = doc(db, COLLECTIONS.MISSIONS, missionId);
+    
+    // Récupérer d'abord la mission pour la vérification des chevauchements
+    const missionDoc = await getDoc(missionRef);
+    
+    if (!missionDoc.exists()) {
+      throw new Error('Mission introuvable');
+    }
+
+    const mission = missionDoc.data() as Mission;
+
+    // Vérifier les chevauchements avec les missions existantes AVANT la transaction
+    const overlappingMissions = await checkUserMissionConflicts(userId, mission);
+
+    if (overlappingMissions.length > 0) {
+      const overlappingTitles = overlappingMissions.map(m => m.title).join(', ');
+      throw new Error(
+        `Vous ne pouvez pas vous inscrire à cette mission car elle se chevauche avec : ${overlappingTitles}`
+      );
+    }
 
     // Utiliser une transaction pour éviter les problèmes de concurrence
     await runTransaction(db, async (transaction) => {
