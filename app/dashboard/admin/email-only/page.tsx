@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar';
+import { CreateVolunteerModal } from '@/components/features/admin/create-volunteer-modal';
 import { toast } from 'sonner';
 import {
   MailIcon,
@@ -21,6 +22,7 @@ import {
   ToggleRightIcon,
   SearchIcon,
   XIcon,
+  UserPlusIcon,
 } from 'lucide-react';
 
 export default function EmailOnlyVolunteersPage() {
@@ -31,6 +33,7 @@ export default function EmailOnlyVolunteersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Vérifier les permissions
   useEffect(() => {
@@ -148,6 +151,22 @@ export default function EmailOnlyVolunteersPage() {
     }
   };
 
+  const handleVolunteerCreated = async () => {
+    // Recharger la liste des bénévoles
+    try {
+      const allVolunteers = await getAllVolunteers();
+      allVolunteers.sort((a, b) => {
+        if (a.emailOnly && !b.emailOnly) return -1;
+        if (!a.emailOnly && b.emailOnly) return 1;
+        return a.lastName.localeCompare(b.lastName);
+      });
+      setVolunteers(allVolunteers);
+      setFilteredVolunteers(allVolunteers);
+    } catch (error) {
+      console.error('Error reloading volunteers:', error);
+    }
+  };
+
   const emailOnlyCount = volunteers.filter(v => v.emailOnly).length;
 
   if (loading || isLoading) {
@@ -166,11 +185,17 @@ export default function EmailOnlyVolunteersPage() {
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Bénévoles "Email uniquement"</h1>
-          <p className="text-muted-foreground">
-            Gérez les bénévoles qui utilisent uniquement l'email (sans connexion à la plateforme)
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Bénévoles "Email uniquement"</h1>
+            <p className="text-muted-foreground">
+              Gérez les bénévoles qui utilisent uniquement l'email (sans connexion à la plateforme)
+            </p>
+          </div>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <UserPlusIcon className="h-4 w-4 mr-2" />
+            Créer un bénévole
+          </Button>
         </div>
 
         {/* Stats */}
@@ -343,6 +368,13 @@ export default function EmailOnlyVolunteersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de création de bénévole */}
+      <CreateVolunteerModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onVolunteerCreated={handleVolunteerCreated}
+      />
     </div>
   );
 }
