@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
 
 export default withPWA({
   dest: "public",
-  disable: process.env.NODE_ENV === "development",
+  disable: true, // Temporairement désactivé pour corriger un bug de cache
   register: true,
   workboxOptions: {
     runtimeCaching: [
