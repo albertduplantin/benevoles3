@@ -8,11 +8,11 @@ const nextConfig: NextConfig = {
 
 export default withPWA({
   dest: "public",
-  disable: false, // Réactivé avec skipWaiting pour forcer le remplacement
+  disable: true, // PWA désactivé définitivement à cause d'un bug de cache persistant
   register: true,
   workboxOptions: {
-    clientsClaim: true, // Prendre le contrôle dès l'activation
-    skipWaiting: true, // Activer le nouveau SW sans attendre
+    clientsClaim: true,
+    skipWaiting: true,
     runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
