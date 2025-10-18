@@ -43,19 +43,36 @@ export async function isUserResponsibleForCategoryValue(
   if (!user) return false;
   if (user.role === 'admin') return true;
   
+  console.log('[CATEGORY HELPER] Checking permissions:', {
+    userRole: user.role,
+    userEmail: user.email,
+    categoryValue,
+    responsibleForCategories: user.responsibleForCategories
+  });
+  
   if (user.role === 'category_responsible' && user.responsibleForCategories) {
     // Charger le mapping ID -> value
     const mapping = await getCategoryMapping();
+    console.log('[CATEGORY HELPER] Mapping loaded:', mapping.length, 'categories');
     
     // Convertir les IDs de l'utilisateur en values
     const userCategoryValues = user.responsibleForCategories
-      .map(id => mapping.find(m => m.id === id)?.value)
+      .map(id => {
+        const found = mapping.find(m => m.id === id);
+        console.log(`[CATEGORY HELPER] ID ${id} -> value ${found?.value}`);
+        return found?.value;
+      })
       .filter(Boolean) as string[];
+    
+    console.log('[CATEGORY HELPER] User category values:', userCategoryValues);
+    console.log('[CATEGORY HELPER] Looking for:', categoryValue);
+    console.log('[CATEGORY HELPER] Result:', userCategoryValues.includes(categoryValue));
     
     // Vérifier si la catégorie recherchée est dans les catégories de l'utilisateur
     return userCategoryValues.includes(categoryValue);
   }
   
+  console.log('[CATEGORY HELPER] User is not category_responsible or has no categories');
   return false;
 }
 
