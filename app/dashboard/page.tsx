@@ -37,11 +37,9 @@ export default function CalendarPage() {
         const userMissions = await getUserMissions(user.uid);
         setMissions(userMissions);
 
-        // Pour les admins et responsables, charger toutes les missions
-        if (user.role === 'admin' || user.role === 'category_responsible') {
-          const all = await getAllMissions();
-          setAllMissions(all);
-        }
+        // Charger toutes les missions pour tout le monde (pour le calendrier)
+        const all = await getAllMissions();
+        setAllMissions(all);
 
         // Charger les participants pour l'export planning (en parallèle pour optimiser)
         if (user.role === 'volunteer') {
@@ -102,9 +100,9 @@ export default function CalendarPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Mes Missions</CardTitle>
+              <CardTitle>{isAdmin ? 'Toutes les Missions' : 'Calendrier des Missions'}</CardTitle>
               <CardDescription>
-                Planning complet de vos missions
+                {isAdmin ? 'Planning de toutes les missions' : 'Visualisez toutes les missions disponibles'}
               </CardDescription>
             </div>
             {!isAdmin && missions.length > 0 && !isLoadingMissions && (
@@ -127,7 +125,7 @@ export default function CalendarPage() {
             </div>
           ) : (
             <MissionCalendar
-              missions={isAdmin ? allMissions : missions}
+              missions={allMissions}
               currentUserId={user.uid}
               isAdmin={isAdmin}
               onDelete={(missionId) => {
