@@ -4,7 +4,7 @@ import { Calendar, momentLocalizer, Event, View } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { MissionClient, UserClient } from '@/types';
+import { MissionClient, UserClient, User } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ const localizer = momentLocalizer(moment);
 interface MissionCalendarProps {
   missions: MissionClient[];
   currentUserId?: string; // Pour afficher les badges
-  currentUser?: UserClient | null; // Pour vérifier les permissions
+  currentUser?: User | UserClient | null; // Pour vérifier les permissions
   isAdmin?: boolean; // Pour compatibilité (sera déprécié)
   onDelete?: (missionId: string) => void; // Callback pour la suppression
 }
