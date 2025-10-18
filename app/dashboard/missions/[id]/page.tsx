@@ -91,10 +91,11 @@ export default function MissionDetailPage() {
     const fetchParticipants = async () => {
       if (!user || !mission) return;
 
-      // Charger les participants seulement si admin OU bénévole inscrit
+      // Charger les participants si admin, bénévole inscrit, ou responsable de catégorie
       if (
         hasPermission(user, 'admin') || 
-        mission.volunteers.includes(user.uid)
+        mission.volunteers.includes(user.uid) ||
+        canManageVolunteers
       ) {
         try {
           const participantsData = await Promise.all(
@@ -108,7 +109,7 @@ export default function MissionDetailPage() {
     };
 
     fetchParticipants();
-  }, [user, mission]);
+  }, [user, mission, canManageVolunteers]);
 
   // Charger les responsables de la catégorie
   useEffect(() => {
@@ -520,9 +521,10 @@ export default function MissionDetailPage() {
           </Card>
         )}
 
-        {/* Participants List (Admin/Bénévoles inscrits) */}
+        {/* Participants List (Admin/Bénévoles inscrits/Responsables de catégorie) */}
         {(hasPermission(user, 'admin') || 
-          mission.volunteers.includes(user.uid)) && (
+          mission.volunteers.includes(user.uid) ||
+          canManageVolunteers) && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -531,7 +533,7 @@ export default function MissionDetailPage() {
                     Participants ({participants.length}/{mission.maxVolunteers})
                   </CardTitle>
                   <CardDescription>
-                    {hasPermission(user, 'admin')
+                    {canManageVolunteers
                       ? 'Liste des bénévoles inscrits à cette mission'
                       : 'Coordonnées des autres bénévoles pour vous coordonner'}
                   </CardDescription>
