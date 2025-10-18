@@ -28,6 +28,7 @@ import {
   UserIcon,
   CheckCircle2Icon,
   WrenchIcon,
+  MailIcon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -78,6 +79,12 @@ const navigation: NavItem[] = [
     label: 'Bénévoles',
     href: '/dashboard/volunteers',
     icon: UsersIcon,
+    roles: ['admin'],
+  },
+  {
+    label: 'Bénévoles Email',
+    href: '/dashboard/admin/email-only',
+    icon: MailIcon,
     roles: ['admin'],
   },
   {

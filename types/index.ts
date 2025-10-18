@@ -37,6 +37,8 @@ export interface User {
   photoURL?: string;
   role: UserRole;
   responsibleForCategories?: string[]; // Categories where user is responsible
+  emailOnly?: boolean; // For volunteers who only use email, no login
+  personalToken?: string; // Unique token for email-only access to personal mission list
   createdAt: Timestamp | Date;
   updatedAt?: Timestamp | Date;
   consents: {

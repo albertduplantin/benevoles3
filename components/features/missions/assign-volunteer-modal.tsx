@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { getAllVolunteers } from '@/lib/firebase/volunteers';
 import { adminRegisterVolunteer, adminUnregisterVolunteer } from '@/lib/firebase/volunteers';
 import { UserClient } from '@/types';
-import { SearchIcon, UserPlusIcon, UserMinusIcon, XIcon } from 'lucide-react';
+import { SearchIcon, UserPlusIcon, UserMinusIcon, XIcon, MailIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 
@@ -165,13 +165,19 @@ export function AssignVolunteerModal({
                     className="flex items-center justify-between p-4 hover:bg-muted/50"
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium">
                           {volunteer.firstName} {volunteer.lastName}
                         </p>
                         {isAssigned && (
                           <Badge variant="secondary" className="text-xs">
                             Inscrit
+                          </Badge>
+                        )}
+                        {volunteer.emailOnly && (
+                          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                            <MailIcon className="h-3 w-3 mr-1" />
+                            Email uniquement
                           </Badge>
                         )}
                       </div>
