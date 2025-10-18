@@ -52,6 +52,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { CreateVolunteerModal } from '@/components/features/admin/create-volunteer-modal';
 import { SearchIcon, EditIcon, Trash2Icon, UserPlusIcon, UserMinusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
@@ -68,6 +69,7 @@ export default function VolunteersPage() {
   const [isMissionsDialogOpen, setIsMissionsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Form states
   const [editForm, setEditForm] = useState({
@@ -258,6 +260,16 @@ export default function VolunteersPage() {
     }
   };
 
+  const handleVolunteerCreated = async () => {
+    // Recharger la liste des bénévoles
+    try {
+      const volunteersData = await getAllVolunteers();
+      setVolunteers(volunteersData);
+    } catch (error) {
+      console.error('Error reloading volunteers:', error);
+    }
+  };
+
   if (loading || isLoadingVolunteers) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -275,11 +287,17 @@ export default function VolunteersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Gestion des Bénévoles</h1>
-        <p className="text-muted-foreground">
-          Gérez les bénévoles, leurs informations et leurs inscriptions aux missions
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Gestion des Bénévoles</h1>
+          <p className="text-muted-foreground">
+            Gérez les bénévoles, leurs informations et leurs inscriptions aux missions
+          </p>
+        </div>
+        <Button onClick={() => setShowCreateModal(true)}>
+          <UserPlusIcon className="h-4 w-4 mr-2" />
+          Créer un bénévole
+        </Button>
       </div>
 
       <Card>
@@ -544,6 +562,13 @@ export default function VolunteersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de création de bénévole */}
+      <CreateVolunteerModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onVolunteerCreated={handleVolunteerCreated}
+      />
     </div>
   );
 }
