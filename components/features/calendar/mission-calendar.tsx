@@ -4,7 +4,7 @@ import { Calendar, momentLocalizer, Event, View } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { MissionClient } from '@/types';
+import { MissionClient, UserClient } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/utils/date';
+import { canEditMission, canDeleteMission } from '@/lib/utils/permissions';
 import { EditIcon, TrashIcon, EyeIcon } from 'lucide-react';
 import './calendar.css';
 
@@ -26,7 +27,8 @@ const localizer = momentLocalizer(moment);
 interface MissionCalendarProps {
   missions: MissionClient[];
   currentUserId?: string; // Pour afficher les badges
-  isAdmin?: boolean; // Pour afficher les options d'édition/suppression
+  currentUser?: UserClient | null; // Pour vérifier les permissions
+  isAdmin?: boolean; // Pour compatibilité (sera déprécié)
   onDelete?: (missionId: string) => void; // Callback pour la suppression
 }
 
@@ -56,11 +58,15 @@ const messages = {
   showMore: (total: number) => `+ ${total} mission(s)`,
 };
 
-export function MissionCalendar({ missions, currentUserId, isAdmin, onDelete }: MissionCalendarProps) {
+export function MissionCalendar({ missions, currentUserId, currentUser, isAdmin, onDelete }: MissionCalendarProps) {
   const router = useRouter();
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
   const [selectedMission, setSelectedMission] = useState<MissionClient | null>(null);
+
+  // Vérifier si l'utilisateur peut éditer/supprimer la mission sélectionnée
+  const canUserEdit = selectedMission && currentUser ? canEditMission(currentUser, selectedMission.category) : isAdmin;
+  const canUserDelete = selectedMission && currentUser ? canDeleteMission(currentUser, selectedMission.category) : isAdmin;
 
   // Convertir les missions en événements calendrier
   const events: CalendarEvent[] = missions
@@ -192,8 +198,8 @@ export function MissionCalendar({ missions, currentUserId, isAdmin, onDelete }: 
         />
       </div>
       
-      {/* Modal Admin pour les actions rapides */}
-      {isAdmin && selectedMission && (
+      {/* Modal pour les actions rapides */}
+      {(canUserEdit || canUserDelete) && selectedMission && (
         <Dialog open={!!selectedMission} onOpenChange={(open) => !open && setSelectedMission(null)}>
           <DialogContent>
             <DialogHeader>
@@ -235,30 +241,34 @@ export function MissionCalendar({ missions, currentUserId, isAdmin, onDelete }: 
                   <EyeIcon className="h-4 w-4" />
                   Voir les détails
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                  onClick={() => {
-                    router.push(`/dashboard/missions/${selectedMission.id}/edit`);
-                    setSelectedMission(null);
-                  }}
-                >
-                  <EditIcon className="h-4 w-4" />
-                  Éditer la mission
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => {
-                    if (onDelete) {
-                      onDelete(selectedMission.id);
+                {canUserEdit && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      router.push(`/dashboard/missions/${selectedMission.id}/edit`);
                       setSelectedMission(null);
-                    }
-                  }}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                  Supprimer la mission
-                </Button>
+                    }}
+                  >
+                    <EditIcon className="h-4 w-4" />
+                    Éditer la mission
+                  </Button>
+                )}
+                {canUserDelete && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      if (onDelete) {
+                        onDelete(selectedMission.id);
+                        setSelectedMission(null);
+                      }
+                    }}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    Supprimer la mission
+                  </Button>
+                )}
               </div>
             </div>
           </DialogContent>

@@ -88,3 +88,15 @@ export function canCreateMissionForCategory(
   return isResponsibleForCategory(user, categoryId);
 }
 
+/**
+ * Check if a user can delete a specific mission based on its category
+ */
+export function canDeleteMission(
+  user: User | UserClient | null,
+  missionCategory: string
+): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return isResponsibleForCategory(user, missionCategory);
+}
+

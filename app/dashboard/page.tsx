@@ -127,6 +127,7 @@ export default function CalendarPage() {
             <MissionCalendar
               missions={allMissions}
               currentUserId={user.uid}
+              currentUser={user}
               isAdmin={isAdmin}
               onDelete={(missionId) => {
                 setAllMissions(allMissions.filter(m => m.id !== missionId));

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { getMissionById, deleteMission, duplicateMission } from '@/lib/firebase/missions';
 import { MissionClient } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
-import { canEditMission } from '@/lib/utils/permissions';
+import { canEditMission, canDeleteMission } from '@/lib/utils/permissions';
 import { MissionForm } from '@/components/features/missions/mission-form';
 import { Button } from '@/components/ui/button';
 import { ArrowLeftIcon, Trash2Icon, CopyIcon } from 'lucide-react';
@@ -71,17 +71,18 @@ export default function EditMissionPage() {
   }, [missionId, user, router]);
 
   const handleDelete = async () => {
-    if (!missionId || !user) return;
+    if (!missionId || !user || !mission) return;
 
-    // Seuls les admins peuvent supprimer des missions
-    if (user.role !== 'admin') {
-      setError('Seuls les administrateurs peuvent supprimer des missions');
+    // Vérifier les permissions de suppression
+    if (!canDeleteMission(user, mission.category)) {
+      setError('Vous n\'avez pas la permission de supprimer cette mission');
       return;
     }
 
     setIsDeleting(true);
     try {
       await deleteMission(missionId);
+      toast.success('Mission supprimée avec succès');
       router.push('/dashboard/missions');
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la suppression de la mission');
