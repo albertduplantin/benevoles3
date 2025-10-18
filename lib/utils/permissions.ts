@@ -1,4 +1,5 @@
 import { User, UserRole, UserClient } from '@/types';
+import { isUserResponsibleForCategoryValue } from './category-helper';
 
 /**
  * Check if a user has a specific role or admin privileges
@@ -98,5 +99,35 @@ export function canDeleteMission(
   if (!user) return false;
   if (user.role === 'admin') return true;
   return isResponsibleForCategory(user, missionCategory);
+}
+
+/**
+ * Check if a user can edit a specific mission (ASYNC version with proper category matching)
+ * Use this version when possible as it properly matches category IDs to values
+ */
+export async function canEditMissionAsync(
+  user: User | UserClient | null,
+  missionCategory: string
+): Promise<boolean> {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  
+  // Use the helper that converts category IDs to values
+  return await isUserResponsibleForCategoryValue(user, missionCategory);
+}
+
+/**
+ * Check if a user can delete a specific mission (ASYNC version with proper category matching)
+ * Use this version when possible as it properly matches category IDs to values
+ */
+export async function canDeleteMissionAsync(
+  user: User | UserClient | null,
+  missionCategory: string
+): Promise<boolean> {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  
+  // Use the helper that converts category IDs to values
+  return await isUserResponsibleForCategoryValue(user, missionCategory);
 }
 

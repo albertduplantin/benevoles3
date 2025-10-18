@@ -6,7 +6,7 @@ import 'moment/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { MissionClient, UserClient, User } from '@/types';
 import { useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/utils/date';
-import { canEditMission, canDeleteMission } from '@/lib/utils/permissions';
+import { canEditMissionAsync, canDeleteMissionAsync } from '@/lib/utils/permissions';
 import { EditIcon, TrashIcon, EyeIcon } from 'lucide-react';
 import './calendar.css';
 
@@ -63,10 +63,37 @@ export function MissionCalendar({ missions, currentUserId, currentUser, isAdmin,
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
   const [selectedMission, setSelectedMission] = useState<MissionClient | null>(null);
+  const [canUserEdit, setCanUserEdit] = useState(false);
+  const [canUserDelete, setCanUserDelete] = useState(false);
 
-  // Vérifier si l'utilisateur peut éditer/supprimer la mission sélectionnée
-  const canUserEdit = selectedMission && currentUser ? canEditMission(currentUser, selectedMission.category) : isAdmin;
-  const canUserDelete = selectedMission && currentUser ? canDeleteMission(currentUser, selectedMission.category) : isAdmin;
+  // Vérifier les permissions de manière asynchrone quand une mission est sélectionnée
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!selectedMission) {
+        setCanUserEdit(false);
+        setCanUserDelete(false);
+        return;
+      }
+
+      if (isAdmin) {
+        setCanUserEdit(true);
+        setCanUserDelete(true);
+        return;
+      }
+
+      if (currentUser) {
+        const canEdit = await canEditMissionAsync(currentUser, selectedMission.category);
+        const canDelete = await canDeleteMissionAsync(currentUser, selectedMission.category);
+        setCanUserEdit(canEdit);
+        setCanUserDelete(canDelete);
+      } else {
+        setCanUserEdit(false);
+        setCanUserDelete(false);
+      }
+    };
+
+    checkPermissions();
+  }, [selectedMission, currentUser, isAdmin]);
 
   // Convertir les missions en événements calendrier
   const events: CalendarEvent[] = missions

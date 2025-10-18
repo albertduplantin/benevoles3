@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { getMissionById, deleteMission, duplicateMission } from '@/lib/firebase/missions';
 import { MissionClient } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
-import { canEditMission, canDeleteMission } from '@/lib/utils/permissions';
+import { canEditMissionAsync, canDeleteMissionAsync } from '@/lib/utils/permissions';
 import { MissionForm } from '@/components/features/missions/mission-form';
 import { Button } from '@/components/ui/button';
 import { ArrowLeftIcon, Trash2Icon, CopyIcon } from 'lucide-react';
@@ -52,8 +52,8 @@ export default function EditMissionPage() {
           return;
         }
 
-        // Vérifier les permissions (basé sur la catégorie maintenant)
-        const canEdit = canEditMission(user, missionData.category);
+        // Vérifier les permissions (avec conversion ID -> value)
+        const canEdit = await canEditMissionAsync(user, missionData.category);
         if (!canEdit) {
           setError('Vous n\'avez pas la permission d\'éditer cette mission');
           setTimeout(() => router.push('/dashboard/missions'), 2000);
@@ -73,8 +73,9 @@ export default function EditMissionPage() {
   const handleDelete = async () => {
     if (!missionId || !user || !mission) return;
 
-    // Vérifier les permissions de suppression
-    if (!canDeleteMission(user, mission.category)) {
+    // Vérifier les permissions de suppression (avec conversion ID -> value)
+    const canDelete = await canDeleteMissionAsync(user, mission.category);
+    if (!canDelete) {
       setError('Vous n\'avez pas la permission de supprimer cette mission');
       return;
     }
