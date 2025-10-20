@@ -112,6 +112,8 @@ export async function signInWithGoogle(): Promise<FirebaseUser> {
         email: user.email,
         firstName: displayNameParts[0] || '',
         lastName: displayNameParts.slice(1).join(' ') || '',
+        // Laisser une chaîne vide si pas de téléphone
+        // isProfileComplete() détectera maintenant les chaînes vides et retournera false
         phone: user.phoneNumber || '',
         photoURL: user.photoURL,
         role: 'volunteer' as UserRole,

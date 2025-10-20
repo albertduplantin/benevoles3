@@ -1,10 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { signInWithGoogle } from '@/lib/firebase/auth';
 import { getUserById } from '@/lib/firebase/users';
-import { isProfileComplete } from '@/lib/firebase/users';
 import { Button } from '@/components/ui/button';
 
 interface GoogleSignInButtonProps {
@@ -12,7 +10,6 @@ interface GoogleSignInButtonProps {
 }
 
 export function GoogleSignInButton({ disabled }: GoogleSignInButtonProps) {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,12 +41,9 @@ export function GoogleSignInButton({ disabled }: GoogleSignInButtonProps) {
       // Attendre encore un peu pour que l'AuthProvider se mette à jour
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Vérifier si le profil est complet (téléphone obligatoire)
-      if (userData && !isProfileComplete(userData)) {
-        router.push('/auth/complete-profile');
-      } else {
-        router.push('/dashboard/missions');
-      }
+      // Utiliser window.location.href pour forcer un rechargement complet
+      // Le layout du dashboard gérera automatiquement la redirection vers complete-profile si nécessaire
+      window.location.href = '/dashboard/missions';
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');
       console.error('Google sign-in error:', err);

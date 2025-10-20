@@ -54,11 +54,16 @@ export async function updateUserProfile(
 export function isProfileComplete(user: User | UserClient | null): boolean {
   if (!user) return false;
   
+  // Vérifier que tous les champs requis existent ET ne sont pas des chaînes vides
   return !!(
     user.firstName &&
+    user.firstName.trim() !== '' &&
     user.lastName &&
+    user.lastName.trim() !== '' &&
     user.phone &&
-    user.email
+    user.phone.trim() !== '' &&
+    user.email &&
+    user.email.trim() !== ''
   );
 }
 
