@@ -388,6 +388,9 @@ function MissionsPageContent() {
 
   const isAdmin = user.role === 'admin';
   const canCreateMission = isAdmin || user.role === 'category_responsible';
+  
+  // Filtrer les missions du bénévole pour l'export
+  const myMissions = missions.filter(m => m.volunteers.includes(user.uid));
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -401,10 +404,10 @@ function MissionsPageContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {!isAdmin && showMyMissionsOnly && filteredMissions.length > 0 && (
+          {!isAdmin && myMissions.length > 0 && (
             <ExportButtons
               type="volunteer-planning"
-              missions={filteredMissions}
+              missions={myMissions}
               volunteerName={`${user.firstName} ${user.lastName}`}
               allParticipants={missionParticipants}
             />
