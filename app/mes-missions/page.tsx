@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { getUserByToken } from '@/lib/firebase/email-only-users';
 import { getAllMissions } from '@/lib/firebase/missions';
 import { unregisterFromMission } from '@/lib/firebase/registrations';
+import { getUserById } from '@/lib/firebase/users';
 import { UserClient, MissionClient } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/utils/date';
 import { CalendarIcon, MapPinIcon, UsersIcon, LogOutIcon, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { ExportButtons } from '@/components/features/exports/export-buttons';
 
 function MyMissionsContent() {
   const searchParams = useSearchParams();
@@ -23,6 +25,7 @@ function MyMissionsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unregisteringMissionId, setUnregisteringMissionId] = useState<string | null>(null);
+  const [missionParticipants, setMissionParticipants] = useState<Map<string, UserClient[]>>(new Map());
 
   useEffect(() => {
     const loadUserAndMissions = async () => {
@@ -69,6 +72,36 @@ function MyMissionsContent() {
 
     loadUserAndMissions();
   }, [token]);
+
+  // Charger les participants pour l'export de planning
+  useEffect(() => {
+    const loadParticipants = async () => {
+      if (missions.length === 0) return;
+
+      const participantsMap = new Map<string, UserClient[]>();
+
+      for (const mission of missions) {
+        if (mission.volunteers.length > 0) {
+          const participants: UserClient[] = [];
+          for (const volunteerId of mission.volunteers) {
+            try {
+              const volunteer = await getUserById(volunteerId);
+              if (volunteer) {
+                participants.push(volunteer);
+              }
+            } catch (error) {
+              console.error(`Error loading volunteer ${volunteerId}:`, error);
+            }
+          }
+          participantsMap.set(mission.id, participants);
+        }
+      }
+
+      setMissionParticipants(participantsMap);
+    };
+
+    loadParticipants();
+  }, [missions]);
 
   const handleUnregister = async (missionId: string, missionTitle: string) => {
     if (!user) return;
@@ -146,12 +179,26 @@ function MyMissionsContent() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-3xl font-bold mb-2">
-            Bonjour {user?.firstName} 👋
-          </h1>
-          <p className="text-muted-foreground">
-            Voici le récapitulatif de vos missions pour le festival
-          </p>
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold mb-2">
+                Bonjour {user?.firstName} 👋
+              </h1>
+              <p className="text-muted-foreground">
+                Voici le récapitulatif de vos missions pour le festival
+              </p>
+            </div>
+            {missions.length > 0 && user && (
+              <div className="flex-shrink-0">
+                <ExportButtons
+                  type="volunteer-planning"
+                  missions={missions}
+                  volunteerName={`${user.firstName} ${user.lastName}`}
+                  allParticipants={missionParticipants}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Info message */}
