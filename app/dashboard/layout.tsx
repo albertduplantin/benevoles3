@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
 import { isProfileComplete } from '@/lib/firebase/users';
 import { Header } from '@/components/layouts/header';
+import { SupportBanner } from '@/components/features/support/support-banner';
 
 export default function DashboardLayout({
   children,
@@ -51,6 +52,7 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main className="container mx-auto px-4 py-6">{children}</main>
+      <SupportBanner />
     </div>
   );
 }
