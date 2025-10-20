@@ -32,18 +32,18 @@ export function SupportBanner() {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-500">
-      <div className="bg-white border border-gray-200 rounded-lg shadow-lg max-w-md mx-4">
-        <div className="flex items-start gap-3 p-3">
-          <div className="flex-shrink-0 mt-0.5">
+    <div className="bg-blue-50 border-b border-blue-200 animate-in slide-in-from-top-5 duration-500">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center gap-3 py-2">
+          <div className="flex-shrink-0">
             <MessageCircle className="h-4 w-4 text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-700 leading-relaxed">
+            <p className="text-xs text-blue-900 leading-relaxed">
               <span className="font-medium">Bug ou question ?</span> Contactez Jérôme :{' '}
               <a 
                 href="tel:0687563440" 
-                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-semibold hover:underline"
               >
                 <Phone className="h-3 w-3" />
                 06 87 56 34 40
@@ -52,7 +52,7 @@ export function SupportBanner() {
           </div>
           <button
             onClick={handleClose}
-            className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100"
+            className="flex-shrink-0 text-blue-400 hover:text-blue-600 transition-colors p-1 rounded hover:bg-blue-100"
             aria-label="Fermer"
           >
             <X className="h-4 w-4" />
