@@ -16,6 +16,7 @@ import { ExportButtons } from '@/components/features/exports/export-buttons';
 import { FullProgramExportButton } from '@/components/features/exports/full-program-export-button';
 import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
 import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
+import { ResponsibleCategoriesBanner } from '@/components/features/category-responsibles/responsible-categories-banner';
 import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
 import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
 import { MissionCategoryClient } from '@/types/category';
@@ -266,6 +267,9 @@ export default function DashboardOverviewPage() {
           Bienvenue, {user.firstName} 👋
         </p>
       </div>
+
+      {/* Bandeau pour les responsables de catégorie */}
+      <ResponsibleCategoriesBanner />
 
       {/* Stats Cards */}
       {isAdmin ? (

@@ -34,6 +34,7 @@ import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/
 import { getAdminSettings } from '@/lib/firebase/admin-settings';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
 import { getUserById } from '@/lib/firebase/users';
+import { ResponsibleCategoriesBanner } from '@/components/features/category-responsibles/responsible-categories-banner';
 
 // Fonction pour générer tous les jours entre deux dates
 function generateFestivalDays(startDate: Date, endDate: Date): Array<{ date: string; label: string }> {
@@ -415,6 +416,9 @@ function MissionsPageContent() {
           )}
         </div>
       </div>
+
+      {/* Bandeau pour les responsables de catégorie */}
+      <ResponsibleCategoriesBanner />
 
       {/* Filtres */}
       <Card>
