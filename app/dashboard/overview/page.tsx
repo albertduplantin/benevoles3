@@ -272,6 +272,24 @@ export default function DashboardOverviewPage() {
       {/* Bandeau pour les responsables de catégorie */}
       <ResponsibleCategoriesBanner />
 
+      {/* Communication - En haut pour Admin et Responsable */}
+      {(isAdmin || isResponsible) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">📢</span>
+              Communication
+            </CardTitle>
+            <CardDescription>
+              {isAdmin ? 'Générez des appels aux bénévoles' : 'Appelez des bénévoles pour vos missions'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <VolunteerCallModal missions={isAdmin ? allMissions : coordinatingMissions} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       {isAdmin ? (
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
@@ -477,23 +495,7 @@ export default function DashboardOverviewPage() {
 
       {/* Actions Admin */}
       {isAdmin && !isLoadingSettings && (
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Communication */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">📢</span>
-                Communication
-              </CardTitle>
-              <CardDescription>
-                Générez des appels aux bénévoles
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VolunteerCallModal missions={allMissions} />
-            </CardContent>
-          </Card>
-
+        <div className="grid gap-6 md:grid-cols-1">
           {/* Exports */}
           <Card>
             <CardHeader>
@@ -552,22 +554,6 @@ export default function DashboardOverviewPage() {
                   Créer une mission
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Communication */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">📢</span>
-                Communication
-              </CardTitle>
-              <CardDescription>
-                Appelez des bénévoles pour vos missions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VolunteerCallModal missions={coordinatingMissions} />
             </CardContent>
           </Card>
 
