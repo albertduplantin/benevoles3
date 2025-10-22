@@ -28,6 +28,7 @@ import { isProfileComplete } from '@/lib/firebase/users';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
 import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon, CalendarDaysIcon, CopyIcon } from 'lucide-react';
+import { WhatsAppShareButton } from '@/components/features/missions/whatsapp-share-button';
 import { useMissionPermissions } from '@/hooks/useMissionPermissions';
 import { toast } from 'sonner';
 import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/mission-skeleton';
@@ -730,6 +731,11 @@ function MissionsPageContent() {
                   <Button variant="outline" className="flex-1" asChild>
                     <Link href={`/dashboard/missions/${mission.id}`}>Voir détails</Link>
                   </Button>
+                  
+                  {/* Bouton Partage WhatsApp */}
+                  {(isAdmin || user?.role === 'category_responsible') && (
+                    <WhatsAppShareButton mission={mission} size="icon" showLabel={false} />
+                  )}
                   
                   {missionPermissions.get(mission.id)?.canEdit ? (
                     <>
