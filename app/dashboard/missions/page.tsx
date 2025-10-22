@@ -149,6 +149,9 @@ function MissionsPageContent() {
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [festivalDays, setFestivalDays] = useState<Array<{ date: string; label: string }>>([]);
   
+  // Filtres intelligents
+  const [smartFilter, setSmartFilter] = useState<string | null>(null);
+  
   // État pour la modale mobile
   const [selectedMission, setSelectedMission] = useState<MissionClient | null>(null);
   
@@ -363,9 +366,50 @@ function MissionsPageContent() {
         return false;
       }
 
+      // Filtres intelligents
+      if (smartFilter) {
+        const now = new Date();
+        
+        if (smartFilter === 'weekend') {
+          // Missions ce week-end
+          if (!mission.startDate) return false;
+          const missionDate = new Date(mission.startDate);
+          const day = missionDate.getDay();
+          // 0 = dimanche, 6 = samedi
+          if (day !== 0 && day !== 6) return false;
+        }
+        
+        if (smartFilter === 'short') {
+          // Missions courtes (<3h)
+          if (!mission.startDate || !mission.endDate) return false;
+          const duration = (new Date(mission.endDate).getTime() - new Date(mission.startDate).getTime()) / (1000 * 60 * 60);
+          if (duration >= 3) return false;
+        }
+        
+        if (smartFilter === 'evening') {
+          // Missions de soirée (après 18h)
+          if (!mission.startDate) return false;
+          const hour = new Date(mission.startDate).getHours();
+          if (hour < 18) return false;
+        }
+        
+        if (smartFilter === 'morning') {
+          // Missions de matin (avant 12h)
+          if (!mission.startDate) return false;
+          const hour = new Date(mission.startDate).getHours();
+          if (hour >= 12) return false;
+        }
+        
+        if (smartFilter === 'lowDemand') {
+          // Missions peu demandées (<50% rempli)
+          const fillRate = (mission.volunteers.length / mission.maxVolunteers) * 100;
+          if (fillRate >= 50) return false;
+        }
+      }
+
       return true;
     });
-  }, [missions, filterCategory, filterDay, showMyMissionsOnly, showUrgentOnly, user]);
+  }, [missions, filterCategory, filterDay, showMyMissionsOnly, showUrgentOnly, smartFilter, user]);
 
   // Réinitialiser tous les filtres
   const resetFilters = () => {
@@ -373,12 +417,13 @@ function MissionsPageContent() {
     setFilterDay('all');
     setShowMyMissionsOnly(false);
     setShowUrgentOnly(false);
+    setSmartFilter(null);
     // Retirer le paramètre URL
     router.push('/dashboard/missions');
   };
 
   // Vérifier si des filtres sont actifs
-  const hasActiveFilters = filterCategory !== 'all' || filterDay !== 'all' || showMyMissionsOnly || showUrgentOnly;
+  const hasActiveFilters = filterCategory !== 'all' || filterDay !== 'all' || showMyMissionsOnly || showUrgentOnly || smartFilter !== null;
 
   if (loading || !user) {
     return (
@@ -424,6 +469,72 @@ function MissionsPageContent() {
 
       {/* Bandeau pour les responsables de catégorie */}
       <ResponsibleCategoriesBanner />
+
+      {/* Filtres Rapides / Intelligents */}
+      {!isAdmin && (
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span className="text-xl">⚡</span>
+              Filtres Rapides
+            </CardTitle>
+            <CardDescription>
+              Trouvez rapidement les missions qui vous correspondent
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Badge
+                variant={smartFilter === 'weekend' ? 'default' : 'outline'}
+                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+                onClick={() => setSmartFilter(smartFilter === 'weekend' ? null : 'weekend')}
+              >
+                📅 Ce week-end
+              </Badge>
+              <Badge
+                variant={smartFilter === 'short' ? 'default' : 'outline'}
+                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+                onClick={() => setSmartFilter(smartFilter === 'short' ? null : 'short')}
+              >
+                ⏰ Courtes (&lt;3h)
+              </Badge>
+              <Badge
+                variant={smartFilter === 'evening' ? 'default' : 'outline'}
+                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+                onClick={() => setSmartFilter(smartFilter === 'evening' ? null : 'evening')}
+              >
+                🌙 Soirée (après 18h)
+              </Badge>
+              <Badge
+                variant={smartFilter === 'morning' ? 'default' : 'outline'}
+                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+                onClick={() => setSmartFilter(smartFilter === 'morning' ? null : 'morning')}
+              >
+                🌅 Matin (avant 12h)
+              </Badge>
+              <Badge
+                variant={smartFilter === 'lowDemand' ? 'default' : 'outline'}
+                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+                onClick={() => setSmartFilter(smartFilter === 'lowDemand' ? null : 'lowDemand')}
+              >
+                💪 Peu demandées (&lt;50%)
+              </Badge>
+              <Badge
+                variant={showUrgentOnly ? 'destructive' : 'outline'}
+                className="cursor-pointer hover:bg-destructive/80 transition-colors px-3 py-1.5 text-sm border-red-300"
+                onClick={() => setShowUrgentOnly(!showUrgentOnly)}
+              >
+                🔥 Urgentes
+              </Badge>
+            </div>
+            {smartFilter && (
+              <p className="text-xs text-muted-foreground mt-3">
+                💡 Cliquez à nouveau sur le filtre pour le désactiver
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filtres */}
       <Card>
@@ -493,10 +604,10 @@ function MissionsPageContent() {
             )}
 
             {/* Options de filtrage */}
-            <div className="space-y-2">
-              <Label>Options</Label>
-              <div className="flex flex-col gap-2 pt-2">
-                {!isAdmin && (
+            {!isAdmin && (
+              <div className="space-y-2">
+                <Label>Options</Label>
+                <div className="flex flex-col gap-2 pt-2">
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -509,21 +620,9 @@ function MissionsPageContent() {
                       Mes missions uniquement
                     </label>
                   </div>
-                )}
-                <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="urgent"
-                  checked={showUrgentOnly}
-                  onChange={(e) => setShowUrgentOnly(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300"
-                />
-                <label htmlFor="urgent" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Urgentes uniquement
-                </label>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
