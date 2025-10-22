@@ -384,7 +384,7 @@ export default function DashboardOverviewPage() {
           </Card>
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Mes Missions</CardTitle>
@@ -421,7 +421,172 @@ export default function DashboardOverviewPage() {
               </p>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Heures Totales</CardTitle>
+              <TrendingUpIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {missions.reduce((total, mission) => {
+                  if (mission.startDate && mission.endDate) {
+                    const start = new Date(mission.startDate);
+                    const end = new Date(mission.endDate);
+                    const hours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60));
+                    return total + Math.max(hours, 0);
+                  }
+                  return total;
+                }, 0)}h
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Contribution estimée
+              </p>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {/* Prochaines Missions - Bénévole uniquement */}
+      {!isAdmin && !isResponsible && upcomingMissions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">🎯</span>
+                  Mes Prochaines Missions
+                </CardTitle>
+                <CardDescription>
+                  Les {Math.min(upcomingMissions.length, 5)} missions les plus proches
+                </CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/missions?filter=my">Voir toutes mes missions</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {upcomingMissions
+                .sort((a, b) => {
+                  const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+                  const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+                  return dateA - dateB;
+                })
+                .slice(0, 5)
+                .map((mission) => {
+                  const daysUntil = mission.startDate
+                    ? Math.ceil((new Date(mission.startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                    : null;
+                  const isUrgent = mission.isUrgent;
+                  const isSoon = daysUntil !== null && daysUntil <= 3;
+                  
+                  return (
+                    <Link
+                      key={mission.id}
+                      href={`/dashboard/missions/${mission.id}`}
+                      className={`block p-4 rounded-lg transition-all hover:shadow-md ${
+                        isUrgent ? 'bg-red-50 border-2 border-red-200' : 
+                        isSoon ? 'bg-orange-50 border-2 border-orange-200' : 
+                        'bg-gray-50 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-base">{mission.title}</h3>
+                            {isUrgent && (
+                              <Badge variant="destructive" className="text-xs">
+                                🚨 URGENT
+                              </Badge>
+                            )}
+                            {isSoon && !isUrgent && (
+                              <Badge className="bg-orange-500 text-xs">
+                                ⏰ Bientôt
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p className="flex items-center gap-2">
+                              <CalendarIcon className="h-4 w-4" />
+                              {mission.startDate
+                                ? new Date(mission.startDate).toLocaleDateString('fr-FR', {
+                                    weekday: 'long',
+                                    day: 'numeric',
+                                    month: 'long',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
+                                : 'Date à définir'}
+                            </p>
+                            <p className="flex items-center gap-2">
+                              📍 {mission.location}
+                            </p>
+                            <p className="flex items-center gap-2">
+                              👥 {mission.volunteers.length}/{mission.maxVolunteers} bénévoles
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {daysUntil !== null && (
+                            <div className={`text-sm font-semibold ${
+                              isUrgent ? 'text-red-600' : 
+                              isSoon ? 'text-orange-600' : 
+                              'text-blue-600'
+                            }`}>
+                              {daysUntil === 0 ? "Aujourd'hui !" : 
+                               daysUntil === 1 ? 'Demain' : 
+                               `Dans ${daysUntil} jours`}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Actions Rapides - Bénévole uniquement */}
+      {!isAdmin && !isResponsible && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">⚡</span>
+              Actions Rapides
+            </CardTitle>
+            <CardDescription>
+              Accès rapide aux fonctionnalités principales
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Button asChild variant="default" className="h-auto py-4 flex flex-col gap-2">
+                <Link href="/dashboard/missions">
+                  <CalendarIcon className="h-6 w-6" />
+                  <span className="font-semibold">Voir toutes les missions</span>
+                  <span className="text-xs opacity-80">Découvrir de nouvelles missions</span>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-auto py-4 flex flex-col gap-2">
+                <Link href="/dashboard/missions?filter=my">
+                  <CheckCircleIcon className="h-6 w-6" />
+                  <span className="font-semibold">Mes missions</span>
+                  <span className="text-xs opacity-80">{missions.length} mission{missions.length > 1 ? 's' : ''} inscrite{missions.length > 1 ? 's' : ''}</span>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-auto py-4 flex flex-col gap-2">
+                <Link href="/mes-missions">
+                  <UsersIcon className="h-6 w-6" />
+                  <span className="font-semibold">Mon planning</span>
+                  <span className="text-xs opacity-80">Gérer mes inscriptions</span>
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Export Planning - Bénévole uniquement */}
