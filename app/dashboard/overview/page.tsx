@@ -384,7 +384,7 @@ export default function DashboardOverviewPage() {
           </Card>
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Mes Missions</CardTitle>
@@ -418,28 +418,6 @@ export default function DashboardOverviewPage() {
               <div className="text-2xl font-bold">{completedMissions.length}</div>
               <p className="text-xs text-muted-foreground">
                 Missions accomplies
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Heures Totales</CardTitle>
-              <TrendingUpIcon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {missions.reduce((total, mission) => {
-                  if (mission.startDate && mission.endDate) {
-                    const start = new Date(mission.startDate);
-                    const end = new Date(mission.endDate);
-                    const hours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60));
-                    return total + Math.max(hours, 0);
-                  }
-                  return total;
-                }, 0)}h
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Contribution estimée
               </p>
             </CardContent>
           </Card>
