@@ -301,6 +301,7 @@ export default function DashboardOverviewPage() {
               <FullProgramExportButton 
                 missions={isAdmin ? allMissions : coordinatingMissions}
                 allowedCategories={isResponsible ? responsibleCategoryValues : undefined}
+                fullWidth={false}
               />
             </div>
           </CardContent>

@@ -17,11 +17,13 @@ import { PrinterIcon } from 'lucide-react';
 interface FullProgramExportButtonProps {
   missions: MissionClient[];
   allowedCategories?: string[];
+  fullWidth?: boolean;
 }
 
 export function FullProgramExportButton({
   missions,
   allowedCategories,
+  fullWidth = true,
 }: FullProgramExportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -42,7 +44,7 @@ export function FullProgramExportButton({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="w-full bg-black hover:bg-gray-800">
+        <Button className={`${fullWidth ? 'w-full' : ''} bg-black hover:bg-gray-800`}>
           <PrinterIcon className="h-4 w-4 mr-2" />
           Imprimer toutes les missions
         </Button>
