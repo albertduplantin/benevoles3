@@ -281,11 +281,28 @@ export default function DashboardOverviewPage() {
               Communication
             </CardTitle>
             <CardDescription>
-              {isAdmin ? 'Générez des appels aux bénévoles' : 'Appelez des bénévoles pour vos missions'}
+              {isAdmin ? 'Générez des appels aux bénévoles et imprimez le programme' : 'Appelez des bénévoles pour vos missions'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <VolunteerCallModal missions={isAdmin ? allMissions : coordinatingMissions} />
+          <CardContent className="space-y-4">
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">Appel aux bénévoles</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Générez un message pour recruter des bénévoles
+              </p>
+              <VolunteerCallModal missions={isAdmin ? allMissions : coordinatingMissions} />
+            </div>
+            
+            <div className="border-t pt-4">
+              <Label className="text-sm font-semibold mb-2 block">Programme Complet</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Pour impression et réunions bénévoles
+              </p>
+              <FullProgramExportButton 
+                missions={isAdmin ? allMissions : coordinatingMissions}
+                allowedCategories={isResponsible ? responsibleCategoryValues : undefined}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -501,33 +518,23 @@ export default function DashboardOverviewPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="text-2xl">📄</span>
-                Exports
+                Exports Statistiques
               </CardTitle>
               <CardDescription>
                 Téléchargez les données en PDF ou Excel
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm font-semibold mb-2 block">Programme Complet</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Pour impression et réunions bénévoles
-                </p>
-                <FullProgramExportButton missions={allMissions} />
-              </div>
-
-              <div className="border-t pt-4">
-                <Label className="text-sm font-semibold mb-2 block">Statistiques</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Rapports et données du festival
-                </p>
-                <ExportButtons
-                  type="global"
-                  missions={allMissions}
-                  totalVolunteers={totalVolunteers}
-                  allVolunteers={allVolunteersMap}
-                />
-              </div>
+            <CardContent>
+              <Label className="text-sm font-semibold mb-2 block">Statistiques</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Rapports et données du festival
+              </p>
+              <ExportButtons
+                type="global"
+                missions={allMissions}
+                totalVolunteers={totalVolunteers}
+                allVolunteers={allVolunteersMap}
+              />
             </CardContent>
           </Card>
         </div>
@@ -562,38 +569,23 @@ export default function DashboardOverviewPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="text-2xl">📄</span>
-                Exports de vos missions
+                Exports Statistiques
               </CardTitle>
               <CardDescription>
-                Téléchargez vos missions en PDF ou Excel
+                Téléchargez les statistiques de vos missions
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label className="text-sm font-semibold mb-2 block">Programme Complet</Label>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Pour impression et réunions bénévoles
-                  </p>
-                  <FullProgramExportButton 
-                    missions={coordinatingMissions} 
-                    allowedCategories={responsibleCategoryValues}
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm font-semibold mb-2 block">Statistiques</Label>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Rapports de vos missions
-                  </p>
-                  <ExportButtons
-                    type="global"
-                    missions={coordinatingMissions}
-                    totalVolunteers={new Set(coordinatingMissions.flatMap(m => m.volunteers)).size}
-                    allVolunteers={allVolunteersMap}
-                  />
-                </div>
-              </div>
+            <CardContent>
+              <Label className="text-sm font-semibold mb-2 block">Statistiques</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Rapports de vos missions
+              </p>
+              <ExportButtons
+                type="global"
+                missions={coordinatingMissions}
+                totalVolunteers={new Set(coordinatingMissions.flatMap(m => m.volunteers)).size}
+                allVolunteers={allVolunteersMap}
+              />
             </CardContent>
           </Card>
 
