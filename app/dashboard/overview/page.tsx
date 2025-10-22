@@ -17,6 +17,7 @@ import { FullProgramExportButton } from '@/components/features/exports/full-prog
 import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
 import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
 import { ResponsibleCategoriesBanner } from '@/components/features/category-responsibles/responsible-categories-banner';
+import { PostFestivalReport } from '@/components/features/admin/post-festival-report';
 import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
 import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
 import { MissionCategoryClient } from '@/types/category';
@@ -603,58 +604,88 @@ export default function DashboardOverviewPage() {
 
       {/* Actions Admin */}
       {isAdmin && !isLoadingSettings && (
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Communication */}
-          <Card>
+        <>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Communication */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">📢</span>
+                  Communication
+                </CardTitle>
+                <CardDescription>
+                  Générez des appels aux bénévoles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <VolunteerCallModal missions={allMissions} />
+              </CardContent>
+            </Card>
+
+            {/* Exports */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">📄</span>
+                  Exports
+                </CardTitle>
+                <CardDescription>
+                  Téléchargez les données en PDF ou Excel
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">Programme Complet</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Pour impression et réunions bénévoles
+                  </p>
+                  <FullProgramExportButton missions={allMissions} />
+                </div>
+
+                <div className="border-t pt-4">
+                  <Label className="text-sm font-semibold mb-2 block">Statistiques</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Rapports et données du festival
+                  </p>
+                  <ExportButtons
+                    type="global"
+                    missions={allMissions}
+                    totalVolunteers={totalVolunteers}
+                    allVolunteers={allVolunteersMap}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Rapports et Analyses */}
+          <Card className="border-purple-200 bg-purple-50/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">📢</span>
-                Communication
+                <span className="text-2xl">📊</span>
+                Rapports et Analyses
               </CardTitle>
               <CardDescription>
-                Générez des appels aux bénévoles
+                Générez des rapports détaillés pour vos bilans et présentations
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VolunteerCallModal missions={allMissions} />
-            </CardContent>
-          </Card>
-
-          {/* Exports */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">📄</span>
-                Exports
-              </CardTitle>
-              <CardDescription>
-                Téléchargez les données en PDF ou Excel
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm font-semibold mb-2 block">Programme Complet</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Pour impression et réunions bénévoles
-                </p>
-                <FullProgramExportButton missions={allMissions} />
-              </div>
-
-              <div className="border-t pt-4">
-                <Label className="text-sm font-semibold mb-2 block">Statistiques</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Rapports et données du festival
-                </p>
-                <ExportButtons
-                  type="global"
-                  missions={allMissions}
-                  totalVolunteers={totalVolunteers}
-                  allVolunteers={allVolunteersMap}
-                />
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">Rapport Post-Festival</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Un PDF complet avec toutes les statistiques : bénévoles mobilisés, répartition par catégorie, 
+                    top 15 des plus actifs, taux de remplissage, missions urgentes et bien plus.
+                  </p>
+                  <PostFestivalReport 
+                    missions={allMissions}
+                    allVolunteers={allVolunteersMap}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </>
       )}
 
       {/* Actions Responsable */}
