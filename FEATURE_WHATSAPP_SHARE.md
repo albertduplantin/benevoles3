@@ -1,8 +1,8 @@
 # 📱 Feature : Partage WhatsApp des Missions
 
 **Date** : 22 octobre 2025  
-**Statut** : 🧪 En test sur Vercel Preview  
-**Branche** : `feature/whatsapp-share`
+**Statut** : ✅ Déployé en Production  
+**Branche** : `main` (mergé depuis `feature/whatsapp-share`)
 
 ---
 
