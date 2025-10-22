@@ -562,12 +562,12 @@ export default function DashboardOverviewPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Button asChild variant="default" className="h-auto py-4 flex flex-col gap-2">
                 <Link href="/dashboard/missions">
                   <CalendarIcon className="h-6 w-6" />
-                  <span className="font-semibold">Voir toutes les missions</span>
-                  <span className="text-xs opacity-80">Découvrir de nouvelles missions</span>
+                  <span className="font-semibold">Découvrir les missions</span>
+                  <span className="text-xs opacity-80">Toutes les missions disponibles</span>
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-auto py-4 flex flex-col gap-2">
@@ -575,13 +575,6 @@ export default function DashboardOverviewPage() {
                   <CheckCircleIcon className="h-6 w-6" />
                   <span className="font-semibold">Mes missions</span>
                   <span className="text-xs opacity-80">{missions.length} mission{missions.length > 1 ? 's' : ''} inscrite{missions.length > 1 ? 's' : ''}</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-auto py-4 flex flex-col gap-2">
-                <Link href="/mes-missions">
-                  <UsersIcon className="h-6 w-6" />
-                  <span className="font-semibold">Mon planning</span>
-                  <span className="text-xs opacity-80">Gérer mes inscriptions</span>
                 </Link>
               </Button>
             </div>
