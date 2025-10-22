@@ -30,6 +30,7 @@ import {
   FolderIcon,
   PlusIcon,
 } from 'lucide-react';
+import { AdvancedStatistics } from '@/components/features/dashboard/advanced-statistics';
 
 export default function DashboardOverviewPage() {
   const { user, loading } = useAuth();
@@ -422,6 +423,15 @@ export default function DashboardOverviewPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Statistiques Avancées */}
+      {(isAdmin || isResponsible) && !isLoadingMissions && (
+        <AdvancedStatistics
+          missions={isAdmin ? allMissions : coordinatingMissions}
+          allVolunteers={isAdmin ? allVolunteersMap : undefined}
+          isAdmin={isAdmin}
+        />
       )}
 
       {/* Export Planning - Bénévole uniquement */}
