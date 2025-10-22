@@ -732,10 +732,8 @@ function MissionsPageContent() {
                     <Link href={`/dashboard/missions/${mission.id}`}>Voir détails</Link>
                   </Button>
                   
-                  {/* Bouton Partage WhatsApp */}
-                  {(isAdmin || user?.role === 'category_responsible') && (
-                    <WhatsAppShareButton mission={mission} size="icon" showLabel={false} />
-                  )}
+                  {/* Bouton Partage WhatsApp - Accessible à tous */}
+                  <WhatsAppShareButton mission={mission} size="icon" showLabel={false} />
                   
                   {missionPermissions.get(mission.id)?.canEdit ? (
                     <>
@@ -922,6 +920,9 @@ function MissionsPageContent() {
                   >
                     Voir détails
                   </Button>
+                  
+                  {/* Bouton Partage WhatsApp - Accessible à tous */}
+                  <WhatsAppShareButton mission={selectedMission} size="icon" showLabel={false} />
                   
                   {missionPermissions.get(selectedMission.id)?.canEdit ? (
                     <>

@@ -8,7 +8,7 @@
 
 ## 🎯 Objectif
 
-Permettre aux admins et responsables de partager facilement une mission sur WhatsApp pour recruter des bénévoles.
+Permettre à **tous les utilisateurs** (bénévoles, responsables et admins) de partager facilement une mission sur WhatsApp pour recruter des bénévoles et promouvoir le festival.
 
 ---
 
@@ -16,8 +16,8 @@ Permettre aux admins et responsables de partager facilement une mission sur What
 
 ### Bouton de Partage
 - 📱 Icône WhatsApp verte cliquable
-- 📍 Visible sur chaque carte mission (vue grille desktop)
-- 👥 Accessible uniquement aux admins et responsables de catégories
+- 📍 Visible sur chaque carte mission (vue grille desktop ET modale mobile)
+- 👥 Accessible à **tous les utilisateurs** (bénévoles, responsables, admins)
 
 ### Message Pré-formaté
 
@@ -49,9 +49,9 @@ Inscris-toi ici : [lien direct vers la mission]
 
 | Rôle | Voit le Bouton ? | Cas d'Usage |
 |------|-----------------|-------------|
-| **Admin** | ✅ Oui | Partage toutes missions |
-| **Responsable** | ✅ Oui | Partage ses missions |
-| **Bénévole** | ❌ Non | N/A |
+| **Admin** | ✅ Oui | Partage toutes missions pour recrutement |
+| **Responsable** | ✅ Oui | Partage ses missions aux bénévoles potentiels |
+| **Bénévole** | ✅ Oui | Partage missions à ses amis pour les recruter |
 
 ---
 
@@ -70,6 +70,8 @@ Inscris-toi ici : [lien direct vers la mission]
 1. **`app/dashboard/missions/page.tsx`**
    - Import du composant WhatsAppShareButton
    - Ajout du bouton dans les cartes missions (vue desktop)
+   - Ajout du bouton dans la modale détails (vue mobile)
+   - Suppression de la restriction de permissions (accessible à tous)
 
 ---
 
@@ -78,15 +80,18 @@ Inscris-toi ici : [lien direct vers la mission]
 ### Test 1 : Visibilité du Bouton
 
 **En tant qu'Admin** :
-- [ ] Voir l'icône WhatsApp verte sur chaque mission
+- [ ] Voir l'icône WhatsApp verte sur chaque mission (desktop)
+- [ ] Voir l'icône WhatsApp dans la modale détails (mobile)
 - [ ] Icône bien positionnée à côté des autres actions
 
 **En tant que Responsable** :
-- [ ] Voir l'icône WhatsApp verte
-- [ ] Uniquement sur missions de ses catégories
+- [ ] Voir l'icône WhatsApp verte sur toutes les missions
+- [ ] Bouton visible dans les vues desktop et mobile
 
 **En tant que Bénévole** :
-- [ ] Ne PAS voir le bouton WhatsApp
+- [ ] Voir l'icône WhatsApp verte sur toutes les missions
+- [ ] Bouton accessible pour partager à ses amis
+- [ ] Fonctionne sur desktop et mobile
 
 ---
 
@@ -147,13 +152,11 @@ Si problème, le rollback est immédiat :
 
 #### Méthode 1 : Commentaire (2 secondes)
 
-Dans `app/dashboard/missions/page.tsx` ligne ~732 :
+Dans `app/dashboard/missions/page.tsx` lignes ~735-736 (desktop) et ~925 (mobile) :
 
 ```typescript
 {/* Temporairement désactivé
-{(isAdmin || user?.role === 'category_responsible') && (
-  <WhatsAppShareButton mission={mission} size="icon" showLabel={false} />
-)}
+<WhatsAppShareButton mission={mission} size="icon" showLabel={false} />
 */}
 ```
 
@@ -204,18 +207,22 @@ git push origin main
 
 ### Avant
 - Responsable doit copier-coller manuellement infos mission
+- Bénévoles ne pouvaient pas facilement partager
 - Processus long et source d'erreurs
 - Peu de partages = moins de recrutement
 
 ### Après
 - ✅ 1 clic → WhatsApp avec message parfait
+- ✅ **Effet viral** : Les bénévoles deviennent ambassadeurs
 - ✅ Partage facile = plus de recrutement
 - ✅ Message professionnel et cohérent
+- ✅ Croissance organique du nombre de bénévoles
 
 ### Métriques de Succès
-- Nombre de clics sur bouton WhatsApp
+- Nombre de clics sur bouton WhatsApp (par rôle)
 - Inscriptions issues de liens WhatsApp
 - Retours utilisateurs positifs
+- Augmentation du taux de remplissage des missions
 
 ---
 
