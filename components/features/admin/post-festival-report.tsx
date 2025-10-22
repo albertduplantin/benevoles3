@@ -24,17 +24,18 @@ export function PostFestivalReport({ missions, allVolunteers }: PostFestivalRepo
       // ============================================
       doc.setFontSize(24);
       doc.setFont('helvetica', 'bold');
-      doc.text('🎬 Rapport Post-Festival', pageWidth / 2, yPosition, { align: 'center' });
+      doc.text('RAPPORT POST-FESTIVAL', pageWidth / 2, yPosition, { align: 'center' });
       
       yPosition += 10;
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
       doc.text('Festival Films Courts de Dinan', pageWidth / 2, yPosition, { align: 'center' });
       
-      yPosition += 6;
+      yPosition += 8;
       doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 100, 100);
-      doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR', { 
+      doc.text(`Genere le ${new Date().toLocaleDateString('fr-FR', { 
         day: 'numeric', 
         month: 'long', 
         year: 'numeric' 
@@ -48,7 +49,7 @@ export function PostFestivalReport({ missions, allVolunteers }: PostFestivalRepo
       // ============================================
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('📊 Vue d\'ensemble', 14, yPosition);
+      doc.text('1. VUE D\'ENSEMBLE', 14, yPosition);
       yPosition += 10;
 
       // Calculs statistiques
@@ -112,7 +113,7 @@ export function PostFestivalReport({ missions, allVolunteers }: PostFestivalRepo
 
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('📂 Répartition par Catégorie', 14, yPosition);
+      doc.text('2. REPARTITION PAR CATEGORIE', 14, yPosition);
       yPosition += 10;
 
       // Calculer stats par catégorie
@@ -167,7 +168,7 @@ export function PostFestivalReport({ missions, allVolunteers }: PostFestivalRepo
 
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('🏆 Top 15 Bénévoles les Plus Actifs', 14, yPosition);
+      doc.text('3. TOP 15 BENEVOLES LES PLUS ACTIFS', 14, yPosition);
       yPosition += 10;
 
       // Compter missions par bénévole
@@ -229,7 +230,7 @@ export function PostFestivalReport({ missions, allVolunteers }: PostFestivalRepo
       if (urgentMissions.length > 0) {
         doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
-        doc.text(`🚨 Missions Urgentes (${urgentMissions.length})`, 14, yPosition);
+        doc.text(`4. MISSIONS URGENTES (${urgentMissions.length})`, 14, yPosition);
         yPosition += 10;
 
         const urgentData = urgentMissions.map(mission => [
@@ -263,7 +264,7 @@ export function PostFestivalReport({ missions, allVolunteers }: PostFestivalRepo
 
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('📋 Répartition par Statut', 14, yPosition);
+      doc.text('5. REPARTITION PAR STATUT', 14, yPosition);
       yPosition += 10;
 
       const statusCounts = {

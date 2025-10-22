@@ -666,7 +666,7 @@ export default function DashboardOverviewPage() {
                 Rapports et Analyses
               </CardTitle>
               <CardDescription>
-                Générez des rapports détaillés pour vos bilans et présentations
+                Generez des rapports detailles pour vos bilans et presentations
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -674,7 +674,7 @@ export default function DashboardOverviewPage() {
                 <div>
                   <Label className="text-sm font-semibold mb-2 block">Rapport Post-Festival</Label>
                   <p className="text-xs text-muted-foreground mb-3">
-                    Un PDF complet avec toutes les statistiques : bénévoles mobilisés, répartition par catégorie, 
+                    Un PDF complet avec toutes les statistiques : benevoles mobilises, repartition par categorie, 
                     top 15 des plus actifs, taux de remplissage, missions urgentes et bien plus.
                   </p>
                   <PostFestivalReport 
