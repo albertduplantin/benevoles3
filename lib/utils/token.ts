@@ -37,3 +37,6 @@ export function isValidTokenFormat(token: string): boolean {
   return /^[A-Za-z0-9]{32}$/.test(token);
 }
 
+
+
+

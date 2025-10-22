@@ -421,3 +421,6 @@ Cette fonctionnalité apporte :
 - `REFACTORING_CATEGORY_RESPONSIBLES.md` - Contexte du système de responsables
 - `PHASE4_RESPONSABLES.md` - Historique des permissions de responsables
 
+
+
+

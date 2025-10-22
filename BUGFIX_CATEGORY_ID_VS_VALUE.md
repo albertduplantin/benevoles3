@@ -292,3 +292,6 @@ Les **responsables de catégorie** peuvent maintenant :
 
 **Impact** : Le système de permissions fonctionne maintenant comme prévu pour tous les types d'utilisateurs ! 🎉
 
+
+
+

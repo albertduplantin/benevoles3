@@ -172,3 +172,6 @@ Aucun bug connu pour le moment.
 **Date de déploiement** : 18 octobre 2025  
 **Commit** : `d003218` - feat: assignation manuelle de bénévoles par admins et responsables de catégorie + nettoyage console.log
 
+
+
+

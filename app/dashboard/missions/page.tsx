@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getPublishedMissions, getAllMissions, deleteMission, duplicateMission } from '@/lib/firebase/missions';
+import { getPublishedMissions, getVisibleMissions, getAllMissions, deleteMission, duplicateMission } from '@/lib/firebase/missions';
 import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
 import { MissionClient, MissionStatus, MissionType, UserClient } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -219,11 +219,12 @@ function MissionsPageContent() {
 
       try {
         console.log('Fetching missions for user role:', user.role);
-        // Les admins voient toutes les missions, les bénévoles seulement les publiées
+        // Les admins voient toutes les missions
+        // Les responsables de catégories et bénévoles voient les missions publiées ET complètes
         const data =
           user.role === 'admin'
             ? await getAllMissions()
-            : await getPublishedMissions();
+            : await getVisibleMissions();
         console.log('Missions fetched:', data.length, data);
         setMissions(data);
       } catch (error) {

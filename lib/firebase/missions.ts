@@ -118,6 +118,39 @@ export async function getPublishedMissions(): Promise<MissionClient[]> {
 }
 
 /**
+ * Récupérer toutes les missions visibles (publiées ET complètes)
+ * Utilisé par les responsables de catégories et les bénévoles pour voir toutes les missions disponibles
+ */
+export async function getVisibleMissions(): Promise<MissionClient[]> {
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.MISSIONS),
+      where('status', 'in', ['published', 'full']),
+      orderBy('createdAt', 'desc'),
+      limit(100)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const missions: MissionClient[] = [];
+
+    querySnapshot.forEach((doc) => {
+      const mission = { id: doc.id, ...doc.data() } as Mission;
+      missions.push(convertMissionToClient(mission));
+    });
+
+    // Trier par urgence côté client pour éviter l'index composite
+    return missions.sort((a, b) => {
+      if (a.isUrgent && !b.isUrgent) return -1;
+      if (!a.isUrgent && b.isUrgent) return 1;
+      return 0;
+    });
+  } catch (error) {
+    console.error('Error getting visible missions:', error);
+    throw new Error('Erreur lors de la récupération des missions');
+  }
+}
+
+/**
  * Récupérer toutes les missions (Admin uniquement)
  */
 export async function getAllMissions(): Promise<MissionClient[]> {
@@ -164,6 +197,13 @@ export async function updateMission(
 ): Promise<void> {
   try {
     const docRef = doc(db, COLLECTIONS.MISSIONS, missionId);
+    
+    // Récupérer la mission actuelle pour recalculer le statut si nécessaire
+    const missionSnap = await getDoc(docRef);
+    if (!missionSnap.exists()) {
+      throw new Error('Mission introuvable');
+    }
+    const currentMission = missionSnap.data() as Mission;
 
     // Convertir les dates si présentes
     const updateData: any = { ...updates };
@@ -202,6 +242,25 @@ export async function updateMission(
     } else if (updates.endDate === undefined || updates.endDate === '') {
       // Si undefined ou vide, supprimer le champ
       delete updateData.endDate;
+    }
+    
+    // Recalculer le statut si maxVolunteers a changé
+    // Cela permet de passer de 'full' à 'published' si on augmente maxVolunteers
+    if (updates.maxVolunteers !== undefined) {
+      const newMaxVolunteers = updates.maxVolunteers;
+      const currentVolunteersCount = currentMission.volunteers.length;
+      const currentStatus = currentMission.status;
+      
+      // Si la mission était 'full' et que maintenant il y a de la place, repasser à 'published'
+      if (currentStatus === 'full' && currentVolunteersCount < newMaxVolunteers) {
+        updateData.status = 'published';
+        console.log(`Mission ${missionId}: statut changé de 'full' à 'published' (${currentVolunteersCount}/${newMaxVolunteers} bénévoles)`);
+      }
+      // Si la mission était 'published' et est maintenant pleine, passer à 'full'
+      else if (currentStatus === 'published' && currentVolunteersCount >= newMaxVolunteers) {
+        updateData.status = 'full';
+        console.log(`Mission ${missionId}: statut changé de 'published' à 'full' (${currentVolunteersCount}/${newMaxVolunteers} bénévoles)`);
+      }
     }
     
     updateData.updatedAt = serverTimestamp();

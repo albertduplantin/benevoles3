@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getAllMissions,
   getPublishedMissions,
+  getVisibleMissions,
   getUserMissions,
   getMissionById,
   deleteMission as deleteMissionFB,
@@ -13,6 +14,7 @@ export const missionKeys = {
   all: ['missions'] as const,
   allMissions: () => [...missionKeys.all, 'all'] as const,
   published: () => [...missionKeys.all, 'published'] as const,
+  visible: () => [...missionKeys.all, 'visible'] as const,
   user: (userId: string) => [...missionKeys.all, 'user', userId] as const,
   detail: (id: string) => [...missionKeys.all, 'detail', id] as const,
 };
@@ -31,6 +33,15 @@ export function usePublishedMissions() {
   return useQuery({
     queryKey: missionKeys.published(),
     queryFn: getPublishedMissions,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+// Hook pour récupérer les missions visibles (publiées ET complètes)
+export function useVisibleMissions() {
+  return useQuery({
+    queryKey: missionKeys.visible(),
+    queryFn: getVisibleMissions,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -95,6 +106,9 @@ export function useDeleteMission() {
     },
   });
 }
+
+
+
 
 
 

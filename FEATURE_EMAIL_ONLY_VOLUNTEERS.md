@@ -254,3 +254,6 @@ Pour toute question sur cette fonctionnalité :
 **Version** : Phase 1 (MVP)  
 **Commit** : `5760433` - feat: système bénévoles email-only (Phase 1)
 
+
+
+
