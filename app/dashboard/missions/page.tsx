@@ -27,7 +27,7 @@ import {
 import { isProfileComplete } from '@/lib/firebase/users';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
-import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon, CalendarDaysIcon, CopyIcon } from 'lucide-react';
+import { SearchIcon, FilterIcon, XIcon, EditIcon, TrashIcon, UserPlusIcon, UserMinusIcon, CalendarDaysIcon, CopyIcon, CalendarPlus } from 'lucide-react';
 import { WhatsAppShareButton } from '@/components/features/missions/whatsapp-share-button';
 import { useMissionPermissions } from '@/hooks/useMissionPermissions';
 import { toast } from 'sonner';
@@ -36,6 +36,7 @@ import { getAdminSettings } from '@/lib/firebase/admin-settings';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
 import { getUserById } from '@/lib/firebase/users';
 import { ResponsibleCategoriesBanner } from '@/components/features/category-responsibles/responsible-categories-banner';
+import { exportMissionsToCalendar } from '@/lib/utils/calendar';
 
 // Fonction pour générer tous les jours entre deux dates
 function generateFestivalDays(startDate: Date, endDate: Date): Array<{ date: string; label: string }> {
@@ -425,6 +426,30 @@ function MissionsPageContent() {
   // Vérifier si des filtres sont actifs
   const hasActiveFilters = filterCategory !== 'all' || filterDay !== 'all' || showMyMissionsOnly || showUrgentOnly || smartFilter !== null;
 
+  // Handler pour exporter vers le calendrier
+  const handleExportToCalendar = () => {
+    if (!user) return;
+    
+    const myMissions = missions.filter(m => m.volunteers.includes(user.uid));
+    
+    if (myMissions.length === 0) {
+      toast.error('Vous n\'avez aucune mission à exporter');
+      return;
+    }
+
+    try {
+      exportMissionsToCalendar(
+        myMissions,
+        `${user.firstName} ${user.lastName}`,
+        missionParticipants
+      );
+      toast.success('Calendrier téléchargé avec succès ! Importez-le dans votre application de calendrier.');
+    } catch (err: any) {
+      console.error('Error exporting to calendar:', err);
+      toast.error(err.message || 'Erreur lors de l\'export du calendrier');
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -452,12 +477,24 @@ function MissionsPageContent() {
         </div>
         <div className="flex items-center gap-2">
           {!isAdmin && myMissions.length > 0 && (
-            <ExportButtons
-              type="volunteer-planning"
-              missions={myMissions}
-              volunteerName={`${user.firstName} ${user.lastName}`}
-              allParticipants={missionParticipants}
-            />
+            <>
+              <Button
+                onClick={handleExportToCalendar}
+                variant="outline"
+                size="default"
+                className="gap-2"
+              >
+                <CalendarPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Ajouter au calendrier</span>
+                <span className="sm:hidden">Calendrier</span>
+              </Button>
+              <ExportButtons
+                type="volunteer-planning"
+                missions={myMissions}
+                volunteerName={`${user.firstName} ${user.lastName}`}
+                allParticipants={missionParticipants}
+              />
+            </>
           )}
           {canCreateMission && (
             <Button asChild>
