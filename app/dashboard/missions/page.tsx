@@ -483,10 +483,11 @@ function MissionsPageContent() {
                 variant="outline"
                 size="default"
                 className="gap-2"
+                title="Télécharger un fichier .ics de toutes vos missions pour l'importer dans Google Calendar, Apple Calendar, Outlook, etc."
               >
                 <CalendarPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">Ajouter au calendrier</span>
-                <span className="sm:hidden">Calendrier</span>
+                <span className="hidden sm:inline">Exporter calendrier</span>
+                <span className="sm:hidden">.ics</span>
               </Button>
               <ExportButtons
                 type="volunteer-planning"
