@@ -25,23 +25,39 @@ export function WhatsAppShareButton({
     // Calculer places restantes
     const placesRestantes = mission.maxVolunteers - mission.volunteers.length;
 
-    // Construire le message WhatsApp
-    const message = `🎬 Festival Films Courts de Dinan 🎬
+    // DEBUG: Afficher toute la mission pour vérifier si description existe
+    console.log('🔍 [WhatsApp] Mission complète:', mission);
+    console.log('🔍 [WhatsApp] Description:', mission.description);
+    console.log('🔍 [WhatsApp] Type de description:', typeof mission.description);
+    console.log('🔍 [WhatsApp] Description est vide?', !mission.description);
+
+    // Construire le message WhatsApp avec la description
+    let message = `🎬 Festival Films Courts de Dinan 🎬
 
 Rejoins-moi pour cette mission bénévole !
 
-📍 Mission : ${mission.title}
-${mission.startDate ? `📅 ${formatDateTime(mission.startDate)}` : '📅 Mission au long cours'}
+📍 Mission : ${mission.title}`;
+
+    // Ajouter la description si elle existe
+    if (mission.description && mission.description.trim() !== '') {
+      message += `\n📝 ${mission.description}`;
+    }
+
+    message += `\n📅 ${mission.startDate ? formatDateTime(mission.startDate) : 'Mission au long cours'}
 📍 Lieu : ${mission.location}
 👥 ${placesRestantes} place${placesRestantes > 1 ? 's' : ''} restante${placesRestantes > 1 ? 's' : ''}${mission.isUrgent ? ' - 🚨 URGENT' : ''}
 
 Inscris-toi ici : ${missionUrl}`;
+    
+    console.log('📱 [WhatsApp] Message final:', message);
 
     // Encoder le message pour l'URL
     const encodedMessage = encodeURIComponent(message);
 
     // Construire l'URL WhatsApp
     const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+
+    console.log('🔗 [WhatsApp] URL:', whatsappUrl);
 
     // Ouvrir WhatsApp dans un nouvel onglet
     window.open(whatsappUrl, '_blank');
@@ -60,5 +76,4 @@ Inscris-toi ici : ${missionUrl}`;
     </Button>
   );
 }
-
 
