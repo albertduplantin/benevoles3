@@ -11,9 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/utils/date';
-import { CalendarIcon, MapPinIcon, UsersIcon, LogOutIcon, AlertCircle } from 'lucide-react';
+import { CalendarIcon, MapPinIcon, UsersIcon, LogOutIcon, AlertCircle, CalendarPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
+import { exportMissionsToCalendar } from '@/lib/utils/calendar';
 
 function MyMissionsContent() {
   const searchParams = useSearchParams();
@@ -126,6 +127,22 @@ function MyMissionsContent() {
     }
   };
 
+  const handleExportToCalendar = () => {
+    if (!user || missions.length === 0) return;
+
+    try {
+      exportMissionsToCalendar(
+        missions,
+        `${user.firstName} ${user.lastName}`,
+        missionParticipants
+      );
+      toast.success('Calendrier téléchargé avec succès ! Importez-le dans votre application de calendrier.');
+    } catch (err: any) {
+      console.error('Error exporting to calendar:', err);
+      toast.error(err.message || 'Erreur lors de l\'export du calendrier');
+    }
+  };
+
   const statusLabels: Record<string, string> = {
     draft: 'Brouillon',
     published: 'Publiée',
@@ -189,7 +206,17 @@ function MyMissionsContent() {
               </p>
             </div>
             {missions.length > 0 && user && (
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex gap-2">
+                <Button
+                  onClick={handleExportToCalendar}
+                  variant="outline"
+                  size="default"
+                  className="gap-2"
+                >
+                  <CalendarPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Ajouter au calendrier</span>
+                  <span className="sm:hidden">Calendrier</span>
+                </Button>
                 <ExportButtons
                   type="volunteer-planning"
                   missions={missions}
