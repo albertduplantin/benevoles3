@@ -440,6 +440,19 @@ function MissionsPageContent() {
     });
   }, [missions, filterCategory, filterDay, showMyMissionsOnly, showUrgentOnly, smartFilter, user, categoryIdToValueMap]);
 
+  // Trier les missions : au long cours en premier, puis par date
+  const sortedMissions = useMemo(() => {
+    return [...filteredMissions].sort((a, b) => {
+      // Les missions au long cours (sans startDate) en premier
+      if (!a.startDate && !b.startDate) return 0;
+      if (!a.startDate) return -1; // a au long cours, passe avant b
+      if (!b.startDate) return 1;  // b au long cours, passe avant a
+      
+      // Sinon, tri par date (plus tôt en premier)
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    });
+  }, [filteredMissions]);
+
   // Réinitialiser tous les filtres
   const resetFilters = () => {
     setFilterCategory('all');
@@ -513,7 +526,7 @@ function MissionsPageContent() {
         <div>
           <h1 className="text-3xl font-bold">Missions</h1>
           <p className="text-muted-foreground">
-            {filteredMissions.length} mission{filteredMissions.length > 1 ? 's' : ''} 
+            {sortedMissions.length} mission{sortedMissions.length > 1 ? 's' : ''} 
             {hasActiveFilters ? ' (filtrées)' : ''}
           </p>
         </div>
@@ -687,7 +700,7 @@ function MissionsPageContent() {
             <MissionListSkeletonMobile count={8} />
           </div>
         </>
-      ) : filteredMissions.length === 0 && missions.length > 0 ? (
+      ) : sortedMissions.length === 0 && missions.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>Aucune mission trouvée</CardTitle>
@@ -701,7 +714,7 @@ function MissionsPageContent() {
             </CardDescription>
           </CardHeader>
         </Card>
-      ) : filteredMissions.length === 0 ? (
+      ) : sortedMissions.length === 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>Aucune mission disponible</CardTitle>
@@ -716,7 +729,7 @@ function MissionsPageContent() {
         <>
           {/* Vue mobile ultra-compacte */}
           <div className="md:hidden space-y-1.5">
-            {filteredMissions.map((mission) => {
+            {sortedMissions.map((mission) => {
               const isRegistered = user && mission.volunteers.includes(user.uid);
               const isFull = mission.volunteers.length >= mission.maxVolunteers;
               const canRegister = mission.status === 'published' && !isFull;
@@ -797,7 +810,7 @@ function MissionsPageContent() {
 
           {/* Vue desktop (grille) */}
           <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredMissions.map((mission) => (
+          {sortedMissions.map((mission) => (
             <Card key={mission.id} className={mission.isUrgent ? 'border-red-500 border-2' : ''}>
               <CardHeader>
                 <div className="flex items-start justify-between">
