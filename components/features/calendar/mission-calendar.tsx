@@ -6,7 +6,7 @@ import 'moment/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { MissionClient, UserClient, User } from '@/types';
 import { useRouter } from 'next/navigation';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,7 +18,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/utils/date';
 import { canEditMissionAsync, canDeleteMissionAsync } from '@/lib/utils/permissions';
-import { EditIcon, TrashIcon, EyeIcon } from 'lucide-react';
+import { EditIcon, TrashIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
+import { MissionCategoryClient } from '@/types/category';
 import './calendar.css';
 
 moment.locale('fr');
@@ -65,6 +67,27 @@ export function MissionCalendar({ missions, currentUserId, currentUser, isAdmin,
   const [selectedMission, setSelectedMission] = useState<MissionClient | null>(null);
   const [canUserEdit, setCanUserEdit] = useState(false);
   const [canUserDelete, setCanUserDelete] = useState(false);
+  const [showAllMissions, setShowAllMissions] = useState(false); // État pour afficher toutes les missions
+  const [categoryIdToValueMap, setCategoryIdToValueMap] = useState<Map<string, string>>(new Map());
+
+  // Charger les catégories pour le mapping ID -> value
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categories = await getGroupedCategories();
+        const idToValueMap = new Map<string, string>();
+        categories.forEach((group: { group: string; categories: MissionCategoryClient[] }) => {
+          group.categories.forEach((cat: MissionCategoryClient) => {
+            idToValueMap.set(cat.id, cat.value);
+          });
+        });
+        setCategoryIdToValueMap(idToValueMap);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   // Vérifier les permissions de manière asynchrone quand une mission est sélectionnée
   useEffect(() => {
@@ -95,8 +118,38 @@ export function MissionCalendar({ missions, currentUserId, currentUser, isAdmin,
     checkPermissions();
   }, [selectedMission, currentUser, isAdmin]);
 
+  // Filtrer les missions selon le rôle et l'état showAllMissions
+  const filteredMissions = useMemo(() => {
+    // Pour les admins : toujours toutes les missions
+    if (isAdmin) {
+      return missions;
+    }
+
+    // Pour les bénévoles : toujours toutes les missions
+    if (!currentUser || currentUser.role === 'volunteer') {
+      return missions;
+    }
+
+    // Pour les responsables de catégorie
+    if (currentUser.role === 'category_responsible' && currentUser.responsibleForCategories) {
+      // Si showAllMissions est activé, montrer toutes les missions
+      if (showAllMissions) {
+        return missions;
+      }
+
+      // Sinon, filtrer par catégories responsables
+      const responsibleCategoryValues = currentUser.responsibleForCategories
+        .map(id => categoryIdToValueMap.get(id))
+        .filter((val): val is string => val !== undefined);
+      
+      return missions.filter(m => responsibleCategoryValues.includes(m.category));
+    }
+
+    return missions;
+  }, [missions, currentUser, isAdmin, showAllMissions, categoryIdToValueMap]);
+
   // Convertir les missions en événements calendrier
-  const events: CalendarEvent[] = missions
+  const events: CalendarEvent[] = filteredMissions
     .filter((mission) => mission.type === 'scheduled' && mission.startDate)
     .map((mission) => {
       const isUserRegistered = currentUserId ? mission.volunteers.includes(currentUserId) : false;
@@ -161,7 +214,7 @@ export function MissionCalendar({ missions, currentUserId, currentUser, isAdmin,
   const handleSelectEvent = (event: CalendarEvent) => {
     if (isAdmin) {
       // Pour les admins, ouvrir le modal avec les options
-      const mission = missions.find(m => m.id === event.resource.missionId);
+      const mission = filteredMissions.find(m => m.id === event.resource.missionId);
       if (mission) {
         setSelectedMission(mission);
       }
@@ -179,8 +232,35 @@ export function MissionCalendar({ missions, currentUserId, currentUser, isAdmin,
     setView(newView);
   }, []);
 
+  // Vérifier si l'utilisateur est un responsable de catégorie
+  const isCategoryResponsible = currentUser?.role === 'category_responsible' && currentUser.responsibleForCategories && currentUser.responsibleForCategories.length > 0;
+
   return (
     <div className="space-y-4">
+      {/* Bouton pour basculer entre mes missions et toutes les missions (uniquement pour les responsables) */}
+      {isCategoryResponsible && (
+        <div className="flex justify-end">
+          <Button
+            variant={showAllMissions ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowAllMissions(!showAllMissions)}
+            className="gap-2"
+          >
+            {showAllMissions ? (
+              <>
+                <EyeOffIcon className="h-4 w-4" />
+                Voir mes missions uniquement
+              </>
+            ) : (
+              <>
+                <EyeIcon className="h-4 w-4" />
+                Voir toutes les missions
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
       {/* Légende */}
       <div className="calendar-legend">
         <div className="legend-item">
