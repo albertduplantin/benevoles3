@@ -142,6 +142,7 @@ function MissionsPageContent() {
   const [missions, setMissions] = useState<MissionClient[]>([]);
   const [isLoadingMissions, setIsLoadingMissions] = useState(true);
   const [groupedCategories, setGroupedCategories] = useState<Array<{ group: string; categories: MissionCategoryClient[] }>>([]);
+  const [categoryIdToValueMap, setCategoryIdToValueMap] = useState<Map<string, string>>(new Map());
   
   // États pour les filtres
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -211,6 +212,15 @@ function MissionsPageContent() {
       try {
         const categories = await getGroupedCategories();
         setGroupedCategories(categories);
+        
+        // Créer le mapping ID -> value pour les catégories
+        const idToValueMap = new Map<string, string>();
+        categories.forEach(group => {
+          group.categories.forEach(cat => {
+            idToValueMap.set(cat.id, cat.value);
+          });
+        });
+        setCategoryIdToValueMap(idToValueMap);
       } catch (error) {
         console.error('Error loading categories:', error);
       }
@@ -357,9 +367,27 @@ function MissionsPageContent() {
         }
       }
 
-      // Filtre "Mes missions" (seulement les missions où l'utilisateur est inscrit)
-      if (showMyMissionsOnly && user && !mission.volunteers.includes(user.uid)) {
-        return false;
+      // Filtre "Mes missions"
+      if (showMyMissionsOnly && user) {
+        // Pour les bénévoles : missions où ils sont inscrits
+        const isVolunteer = mission.volunteers.includes(user.uid);
+        
+        // Pour les responsables de catégorie : missions de leurs catégories
+        let isResponsibleForThisMission = false;
+        if (user.role === 'category_responsible' && user.responsibleForCategories) {
+          // Convertir les IDs de catégories du responsable en valeurs
+          const responsibleCategoryValues = user.responsibleForCategories
+            .map(id => categoryIdToValueMap.get(id))
+            .filter((val): val is string => val !== undefined);
+          
+          // Vérifier si la mission fait partie des catégories du responsable
+          isResponsibleForThisMission = responsibleCategoryValues.includes(mission.category);
+        }
+        
+        // Afficher la mission si l'utilisateur est bénévole OU responsable de la catégorie
+        if (!isVolunteer && !isResponsibleForThisMission) {
+          return false;
+        }
       }
 
       // Filtre urgentes uniquement
@@ -410,7 +438,7 @@ function MissionsPageContent() {
 
       return true;
     });
-  }, [missions, filterCategory, filterDay, showMyMissionsOnly, showUrgentOnly, smartFilter, user]);
+  }, [missions, filterCategory, filterDay, showMyMissionsOnly, showUrgentOnly, smartFilter, user, categoryIdToValueMap]);
 
   // Réinitialiser tous les filtres
   const resetFilters = () => {
@@ -430,7 +458,21 @@ function MissionsPageContent() {
   const handleExportToCalendar = () => {
     if (!user) return;
     
-    const myMissions = missions.filter(m => m.volunteers.includes(user.uid));
+    // Pour les bénévoles : leurs missions inscrites
+    // Pour les responsables : missions de leurs catégories + missions inscrites
+    let myMissions = missions.filter(m => m.volunteers.includes(user.uid));
+    
+    if (user.role === 'category_responsible' && user.responsibleForCategories) {
+      const responsibleCategoryValues = user.responsibleForCategories
+        .map(id => categoryIdToValueMap.get(id))
+        .filter((val): val is string => val !== undefined);
+      
+      const responsibleMissions = missions.filter(m => 
+        responsibleCategoryValues.includes(m.category) && !m.volunteers.includes(user.uid)
+      );
+      
+      myMissions = [...myMissions, ...responsibleMissions];
+    }
     
     if (myMissions.length === 0) {
       toast.error('Vous n\'avez aucune mission à exporter');
