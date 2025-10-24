@@ -469,25 +469,7 @@ function MissionsPageContent() {
 
   // Handler pour exporter vers le calendrier
   const handleExportToCalendar = () => {
-    if (!user) return;
-    
-    // Pour les bénévoles : leurs missions inscrites
-    // Pour les responsables : missions de leurs catégories + missions inscrites
-    let myMissions = missions.filter(m => m.volunteers.includes(user.uid));
-    
-    if (user.role === 'category_responsible' && user.responsibleForCategories) {
-      const responsibleCategoryValues = user.responsibleForCategories
-        .map(id => categoryIdToValueMap.get(id))
-        .filter((val): val is string => val !== undefined);
-      
-      const responsibleMissions = missions.filter(m => 
-        responsibleCategoryValues.includes(m.category) && !m.volunteers.includes(user.uid)
-      );
-      
-      myMissions = [...myMissions, ...responsibleMissions];
-    }
-    
-    if (myMissions.length === 0) {
+    if (!user || myMissions.length === 0) {
       toast.error('Vous n\'avez aucune mission à exporter');
       return;
     }
@@ -516,8 +498,22 @@ function MissionsPageContent() {
   const isAdmin = user.role === 'admin';
   const canCreateMission = isAdmin || user.role === 'category_responsible';
   
-  // Filtrer les missions du bénévole pour l'export
-  const myMissions = missions.filter(m => m.volunteers.includes(user.uid));
+  // Calculer les missions à exporter selon le rôle
+  const myMissions = useMemo(() => {
+    if (user.role === 'category_responsible' && user.responsibleForCategories) {
+      // Pour les responsables : missions de leurs catégories
+      const responsibleCategoryValues = user.responsibleForCategories
+        .map(id => categoryIdToValueMap.get(id))
+        .filter((val): val is string => val !== undefined);
+      
+      return missions.filter(m => 
+        responsibleCategoryValues.includes(m.category)
+      );
+    } else {
+      // Pour les bénévoles : missions où ils sont inscrits
+      return missions.filter(m => m.volunteers.includes(user.uid));
+    }
+  }, [user, missions, categoryIdToValueMap]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
