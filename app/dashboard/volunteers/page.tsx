@@ -53,9 +53,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { CreateVolunteerModal } from '@/components/features/admin/create-volunteer-modal';
-import { SearchIcon, EditIcon, Trash2Icon, UserPlusIcon, UserMinusIcon } from 'lucide-react';
+import { SearchIcon, EditIcon, Trash2Icon, UserPlusIcon, UserMinusIcon, CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { formatDateTime } from '@/lib/utils/date';
 
 export default function VolunteersPage() {
   const { user, loading } = useAuth();
@@ -503,14 +504,35 @@ export default function VolunteersPage() {
               return (
                 <div
                   key={mission.id}
-                  className="flex items-center justify-between rounded-lg border p-4"
+                  className="flex items-center justify-between rounded-lg border p-4 hover:bg-accent/50 transition-colors"
+                  title={
+                    mission.startDate
+                      ? `📅 ${formatDateTime(mission.startDate)}`
+                      : 'Mission au long cours'
+                  }
                 >
                   <div className="flex-1">
                     <p className="font-medium">{mission.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {mission.location} • {mission.volunteers.length}/{mission.maxVolunteers}{' '}
-                      bénévoles
-                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>{mission.location}</span>
+                      <span>•</span>
+                      <span>{mission.volunteers.length}/{mission.maxVolunteers} bénévoles</span>
+                      {mission.startDate && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <CalendarIcon className="h-3 w-3" />
+                            {formatDateTime(mission.startDate)}
+                          </span>
+                        </>
+                      )}
+                      {!mission.startDate && (
+                        <>
+                          <span>•</span>
+                          <span className="italic">Mission au long cours</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                   {isRegistered ? (
                     <Button
