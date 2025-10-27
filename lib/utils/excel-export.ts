@@ -853,8 +853,15 @@ export function exportVolunteerMissionGridExcel(
       // En-tête (ligne 0)
       if (R === 0) {
         ws[cellAddress].s = {
-          fill: { fgColor: { rgb: 'D0D0D0' } },
-          font: { bold: true, sz: 9 },
+          fill: { 
+            patternType: 'solid',
+            fgColor: { rgb: 'D0D0D0' }
+          },
+          font: { 
+            bold: true, 
+            sz: 9,
+            color: { rgb: '000000' }
+          },
           alignment: { 
             horizontal: 'center', 
             vertical: 'center',
@@ -876,9 +883,21 @@ export function exportVolunteerMissionGridExcel(
         const cellValue = ws[cellAddress]?.v;
         const isAssigned = cellValue && cellValue.trim() !== '';
         
+        // Déterminer la couleur de fond
+        let fillColor = { rgb: 'FFFFFF' };
+        if (isAssigned && category && C > 0 && categoryColors[category]) {
+          fillColor = categoryColors[category].fgColor;
+        }
+        
         ws[cellAddress].s = {
-          fill: isAssigned && category && C > 0 ? categoryColors[category] : { fgColor: { rgb: 'FFFFFF' } },
-          font: { sz: 9 },
+          fill: {
+            patternType: 'solid',
+            fgColor: fillColor
+          },
+          font: { 
+            sz: 9,
+            color: { rgb: '000000' }
+          },
           alignment: { 
             horizontal: C === 0 ? 'left' : 'center', 
             vertical: 'center',
@@ -930,14 +949,20 @@ export function exportVolunteerMissionGridExcel(
     const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
     if (wsLegend[cellAddress]) {
       wsLegend[cellAddress].s = {
-        fill: categoryColors[category],
-        font: { bold: true },
+        fill: {
+          patternType: 'solid',
+          fgColor: categoryColors[category].fgColor
+        },
+        font: { 
+          bold: true,
+          color: { rgb: '000000' }
+        },
         alignment: { horizontal: 'left', vertical: 'center' },
         border: {
-          top: { style: 'thin' },
-          bottom: { style: 'thin' },
-          left: { style: 'thin' },
-          right: { style: 'thin' },
+          top: { style: 'thin', color: { rgb: '000000' } },
+          bottom: { style: 'thin', color: { rgb: '000000' } },
+          left: { style: 'thin', color: { rgb: '000000' } },
+          right: { style: 'thin', color: { rgb: '000000' } },
         },
       };
     }
@@ -945,9 +970,9 @@ export function exportVolunteerMissionGridExcel(
   
   XLSX.utils.book_append_sheet(wb, wsLegend, 'Légende');
 
-  // Télécharger le fichier
+  // Télécharger le fichier avec support des styles
   const fileName = `planning-visuel-benevoles-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-  XLSX.writeFile(wb, fileName);
+  XLSX.writeFile(wb, fileName, { cellStyles: true });
 }
 
 // Helpers
