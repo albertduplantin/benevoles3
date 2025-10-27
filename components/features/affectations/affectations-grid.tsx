@@ -6,8 +6,9 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { adminRegisterVolunteer, adminUnregisterVolunteer } from '@/lib/firebase/volunteers';
 import { toast } from 'sonner';
-import { AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
+import { AlertTriangle, ZoomIn, ZoomOut, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AffectationsGridProps {
   missions: MissionClient[];
@@ -80,8 +81,8 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
     return false;
   };
 
-  // Gérer le clic sur une cellule
-  const handleCellClick = async (missionId: string, volunteerId: string) => {
+  // Gérer le double clic sur une cellule
+  const handleCellDoubleClick = async (missionId: string, volunteerId: string) => {
     if (isProcessing) return;
 
     const mission = missions.find(m => m.id === missionId);
@@ -241,7 +242,7 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
   };
 
   const getMissionColumnWidth = () => {
-    const baseWidth = 250; // pixels
+    const baseWidth = 280; // pixels - augmenté pour tenir toutes les infos sur une ligne
     return (baseWidth * zoomLevel) / 100;
   };
 
@@ -250,39 +251,45 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
     return (baseSize * zoomLevel) / 100;
   };
 
+  // Vérifier si une mission est complète
+  const isMissionComplete = (mission: MissionClient): boolean => {
+    return mission.volunteers.length >= mission.maxVolunteers;
+  };
+
   return (
-    <div className="space-y-2">
-      {/* Contrôles de zoom */}
-      <div className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleZoomOut}
-            disabled={zoomLevel <= 50}
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleResetZoom}
-          >
-            {zoomLevel}%
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleZoomIn}
-            disabled={zoomLevel >= 150}
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
+    <TooltipProvider>
+      <div className="space-y-2">
+        {/* Contrôles de zoom */}
+        <div className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 50}
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleResetZoom}
+            >
+              {zoomLevel}%
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= 150}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            💡 Double-cliquez sur une case pour affecter/désaffecter
+          </div>
         </div>
-        <div className="text-xs text-muted-foreground">
-          Utilisez les boutons de zoom ou la molette pour ajuster la vue
-        </div>
-      </div>
 
       {/* Tableau */}
       <div className="overflow-auto border rounded-lg" style={{ maxHeight: 'calc(100vh - 320px)' }}>
@@ -320,20 +327,39 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
               const missionLabel = mission.startDate
                 ? `${format(new Date(mission.startDate), 'dd/MM HH:mm', { locale: fr })} - ${mission.title}`
                 : mission.title;
+              const isComplete = isMissionComplete(mission);
 
               return (
                 <tr key={mission.id} className="hover:bg-gray-50">
                   <td
-                    className="border p-2 font-medium sticky left-0 z-10 bg-white"
+                    className="border p-1 px-2 font-medium sticky left-0 z-10 bg-white"
                     style={{
                       backgroundColor: categoryColor,
                       minWidth: `${getMissionColumnWidth()}px`,
                       maxWidth: `${getMissionColumnWidth()}px`,
                     }}
                   >
-                    <div className="overflow-hidden text-ellipsis">{missionLabel}</div>
-                    <div className="text-gray-600 mt-1" style={{ fontSize: `${getFontSize() * 0.85}px` }}>
-                      {mission.volunteers.length}/{mission.maxVolunteers}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="overflow-hidden text-ellipsis whitespace-nowrap flex-1">
+                        {missionLabel}
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span 
+                          className="text-gray-700 font-semibold"
+                          style={{ fontSize: `${getFontSize() * 0.9}px` }}
+                        >
+                          {mission.volunteers.length}/{mission.maxVolunteers}
+                        </span>
+                        {isComplete && (
+                          <CheckCircle2 
+                            className="text-green-600" 
+                            style={{ 
+                              width: `${getFontSize() * 1.2}px`, 
+                              height: `${getFontSize() * 1.2}px` 
+                            }}
+                          />
+                        )}
+                      </div>
                     </div>
                   </td>
                   {sortedVolunteers.map((volunteer) => {
@@ -341,30 +367,44 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
                     const hasConflictHere = isAssigned ? false : hasConflict(volunteer.uid, mission);
 
                     return (
-                      <td
-                        key={`${mission.id}-${volunteer.uid}`}
-                        className={`border text-center cursor-pointer select-none transition-colors ${
-                          isProcessing ? 'opacity-50 cursor-wait' : 'hover:bg-gray-100'
-                        }`}
-                        style={{
-                          backgroundColor: isAssigned ? categoryColor : 'transparent',
-                          minWidth: `${getColumnWidth()}px`,
-                          maxWidth: `${getColumnWidth()}px`,
-                          padding: '4px',
-                        }}
-                        onClick={() => handleCellClick(mission.id, volunteer.uid)}
-                        draggable={isAssigned}
-                        onDragStart={(e) => isAssigned && handleDragStart(e, mission.id, volunteer.uid)}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, mission.id, volunteer.uid)}
-                      >
-                        {isAssigned && (
-                          <span className="font-bold">X</span>
-                        )}
-                        {hasConflictHere && (
-                          <AlertTriangle className="h-3 w-3 text-red-500 mx-auto" />
-                        )}
-                      </td>
+                      <Tooltip key={`${mission.id}-${volunteer.uid}`}>
+                        <TooltipTrigger asChild>
+                          <td
+                            className={`border text-center cursor-pointer select-none transition-colors ${
+                              isProcessing ? 'opacity-50 cursor-wait' : 'hover:bg-gray-100'
+                            }`}
+                            style={{
+                              backgroundColor: isAssigned ? categoryColor : 'transparent',
+                              minWidth: `${getColumnWidth()}px`,
+                              maxWidth: `${getColumnWidth()}px`,
+                              padding: '4px',
+                            }}
+                            onDoubleClick={() => handleCellDoubleClick(mission.id, volunteer.uid)}
+                            draggable={isAssigned}
+                            onDragStart={(e) => isAssigned && handleDragStart(e, mission.id, volunteer.uid)}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, mission.id, volunteer.uid)}
+                          >
+                            {isAssigned && (
+                              <span className="font-bold">X</span>
+                            )}
+                            {hasConflictHere && (
+                              <AlertTriangle className="h-3 w-3 text-red-500 mx-auto" />
+                            )}
+                          </td>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">
+                            {isAssigned 
+                              ? 'Double-clic pour désaffecter' 
+                              : hasConflictHere 
+                                ? 'Conflit de créneaux !'
+                                : isComplete
+                                  ? 'Mission complète'
+                                  : 'Double-clic pour affecter'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     );
                   })}
                 </tr>
@@ -374,6 +414,7 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
         </table>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
