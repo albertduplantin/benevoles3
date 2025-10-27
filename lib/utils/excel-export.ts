@@ -607,6 +607,132 @@ export async function exportVolunteerPlanningExcel(
   XLSX.writeFile(wb, fileName);
 }
 
+/**
+ * Génère un fichier Excel avec les affectations de tous les bénévoles
+ * Liste chaque bénévole avec toutes ses missions
+ */
+export function exportVolunteerAssignmentsExcel(
+  volunteers: UserClient[],
+  missions: MissionClient[]
+) {
+  const wb = XLSX.utils.book_new();
+
+  // Préparer les données : chaque ligne = un bénévole avec une mission
+  const assignmentsData: any[] = [];
+
+  volunteers
+    .sort((a, b) => a.lastName.localeCompare(b.lastName))
+    .forEach((volunteer) => {
+      // Trouver toutes les missions où ce bénévole est inscrit
+      const volunteerMissions = missions
+        .filter((m) => m.volunteers.includes(volunteer.uid))
+        .sort((a, b) => {
+          // Trier par date
+          if (!a.startDate && !b.startDate) return 0;
+          if (!a.startDate) return -1;
+          if (!b.startDate) return 1;
+          return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+        });
+
+      if (volunteerMissions.length === 0) {
+        // Bénévole sans mission
+        assignmentsData.push({
+          Nom: volunteer.lastName,
+          Prénom: volunteer.firstName,
+          Email: volunteer.email,
+          Téléphone: volunteer.phone || 'N/A',
+          'Nombre de missions': 0,
+          'Titre mission': 'Aucune mission',
+          Date: '',
+          Horaire: '',
+          Lieu: '',
+          Catégorie: '',
+        });
+      } else {
+        // Pour chaque mission, créer une ligne
+        volunteerMissions.forEach((mission, index) => {
+          const startDate = mission.startDate ? new Date(mission.startDate) : null;
+          const endDate = mission.endDate ? new Date(mission.endDate) : null;
+
+          assignmentsData.push({
+            Nom: index === 0 ? volunteer.lastName : '', // Afficher le nom uniquement sur la 1ère ligne
+            Prénom: index === 0 ? volunteer.firstName : '',
+            Email: index === 0 ? volunteer.email : '',
+            Téléphone: index === 0 ? (volunteer.phone || 'N/A') : '',
+            'Nombre de missions': index === 0 ? volunteerMissions.length : '',
+            'Titre mission': mission.title,
+            Date: startDate
+              ? format(startDate, 'dd/MM/yyyy', { locale: fr })
+              : 'Au long cours',
+            Horaire: startDate && endDate
+              ? `${format(startDate, 'HH:mm', { locale: fr })} - ${format(endDate, 'HH:mm', { locale: fr })}`
+              : '',
+            Lieu: mission.location,
+            Catégorie: mission.category || 'N/A',
+          });
+        });
+
+        // Ajouter une ligne vide entre chaque bénévole
+        assignmentsData.push({
+          Nom: '',
+          Prénom: '',
+          Email: '',
+          Téléphone: '',
+          'Nombre de missions': '',
+          'Titre mission': '',
+          Date: '',
+          Horaire: '',
+          Lieu: '',
+          Catégorie: '',
+        });
+      }
+    });
+
+  // Créer la feuille
+  const ws = XLSX.utils.json_to_sheet(assignmentsData);
+
+  // Définir la largeur des colonnes
+  ws['!cols'] = [
+    { wch: 20 }, // Nom
+    { wch: 20 }, // Prénom
+    { wch: 30 }, // Email
+    { wch: 15 }, // Téléphone
+    { wch: 18 }, // Nombre de missions
+    { wch: 40 }, // Titre mission
+    { wch: 15 }, // Date
+    { wch: 20 }, // Horaire
+    { wch: 30 }, // Lieu
+    { wch: 25 }, // Catégorie
+  ];
+
+  // Ajouter la feuille au workbook
+  XLSX.utils.book_append_sheet(wb, ws, 'Affectations');
+
+  // Créer une feuille de statistiques
+  const statsData = [
+    ['STATISTIQUES GLOBALES', ''],
+    ['', ''],
+    ['Nombre total de bénévoles', volunteers.length],
+    ['Nombre total de missions', missions.length],
+    [
+      'Bénévoles avec missions',
+      volunteers.filter((v) => missions.some((m) => m.volunteers.includes(v.uid))).length,
+    ],
+    [
+      'Bénévoles sans mission',
+      volunteers.filter((v) => !missions.some((m) => m.volunteers.includes(v.uid))).length,
+    ],
+  ];
+
+  const wsStats = XLSX.utils.aoa_to_sheet(statsData);
+  wsStats['!cols'] = [{ wch: 35 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiques');
+
+  // Télécharger le fichier
+  const fileName = `affectations-benevoles-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
 // Helpers
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {

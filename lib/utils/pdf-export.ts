@@ -1094,3 +1094,158 @@ export async function exportFullProgramPDF(
   doc.save(fileName);
 }
 
+/**
+ * Génère un PDF avec les affectations de tous les bénévoles
+ * Liste chaque bénévole avec toutes ses missions
+ */
+export async function exportVolunteerAssignmentsPDF(
+  volunteers: UserClient[],
+  missions: MissionClient[]
+) {
+  const doc = new jsPDF();
+
+  // En-tête
+  doc.setFontSize(20);
+  doc.text('Festival Films Courts de Dinan 2025', 105, 20, { align: 'center' });
+
+  doc.setFontSize(16);
+  doc.text('Affectations des Bénévoles', 105, 30, { align: 'center' });
+
+  // Statistiques
+  doc.setFontSize(10);
+  const volunteersWithMissions = volunteers.filter((v) =>
+    missions.some((m) => m.volunteers.includes(v.uid))
+  ).length;
+  const volunteersWithoutMissions = volunteers.length - volunteersWithMissions;
+
+  doc.text(`Total bénévoles: ${volunteers.length}`, 20, 45);
+  doc.text(`Avec missions: ${volunteersWithMissions}`, 20, 52);
+  doc.text(`Sans mission: ${volunteersWithoutMissions}`, 20, 59);
+  doc.text(`Total missions: ${missions.length}`, 120, 45);
+
+  let yPos = 75;
+
+  // Trier les bénévoles par nom
+  const sortedVolunteers = [...volunteers].sort((a, b) =>
+    a.lastName.localeCompare(b.lastName)
+  );
+
+  for (const volunteer of sortedVolunteers) {
+    // Trouver toutes les missions du bénévole
+    const volunteerMissions = missions
+      .filter((m) => m.volunteers.includes(volunteer.uid))
+      .sort((a, b) => {
+        if (!a.startDate && !b.startDate) return 0;
+        if (!a.startDate) return -1;
+        if (!b.startDate) return 1;
+        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      });
+
+    // Vérifier si on a besoin d'une nouvelle page
+    const neededHeight = 25 + (volunteerMissions.length * 20);
+    if (yPos + neededHeight > 270) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Informations du bénévole
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(
+      `${volunteer.firstName} ${volunteer.lastName}`,
+      20,
+      yPos
+    );
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    yPos += 5;
+    doc.text(`📧 ${volunteer.email}`, 25, yPos);
+    yPos += 5;
+    if (volunteer.phone) {
+      doc.text(`📱 ${volunteer.phone}`, 25, yPos);
+      yPos += 5;
+    }
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(
+      `${volunteerMissions.length} mission${volunteerMissions.length > 1 ? 's' : ''}`,
+      25,
+      yPos
+    );
+    doc.setFont('helvetica', 'normal');
+    yPos += 7;
+
+    // Tableau des missions du bénévole
+    if (volunteerMissions.length > 0) {
+      const tableData = volunteerMissions.map((mission) => {
+        const startDate = mission.startDate ? new Date(mission.startDate) : null;
+        const endDate = mission.endDate ? new Date(mission.endDate) : null;
+
+        return [
+          mission.title,
+          startDate
+            ? format(startDate, 'dd/MM/yyyy', { locale: fr })
+            : 'Au long cours',
+          startDate && endDate
+            ? `${format(startDate, 'HH:mm', { locale: fr })} - ${format(endDate, 'HH:mm', { locale: fr })}`
+            : '',
+          mission.location,
+          mission.category || 'N/A',
+        ];
+      });
+
+      autoTable(doc, {
+        head: [['Mission', 'Date', 'Horaire', 'Lieu', 'Catégorie']],
+        body: tableData,
+        startY: yPos,
+        margin: { left: 25 },
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [37, 99, 235], fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 40 },
+          4: { cellWidth: 25 },
+        },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    } else {
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Aucune mission affectée', 25, yPos);
+      doc.setTextColor(0, 0, 0);
+      yPos += 10;
+    }
+
+    // Ligne de séparation
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 10;
+  }
+
+  // Pied de page
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      `Généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })}`,
+      20,
+      doc.internal.pageSize.height - 10
+    );
+    doc.text(
+      `Page ${i} / ${pageCount}`,
+      doc.internal.pageSize.width - 40,
+      doc.internal.pageSize.height - 10,
+      { align: 'right' }
+    );
+  }
+
+  // Télécharger le PDF
+  const fileName = `affectations-benevoles-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  doc.save(fileName);
+}
+

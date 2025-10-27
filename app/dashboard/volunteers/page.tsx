@@ -53,10 +53,20 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { CreateVolunteerModal } from '@/components/features/admin/create-volunteer-modal';
-import { SearchIcon, EditIcon, Trash2Icon, UserPlusIcon, UserMinusIcon, CalendarIcon } from 'lucide-react';
+import { SearchIcon, EditIcon, Trash2Icon, UserPlusIcon, UserMinusIcon, CalendarIcon, Download, FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { formatDateTime } from '@/lib/utils/date';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { exportVolunteerAssignmentsExcel } from '@/lib/utils/excel-export';
+import { exportVolunteerAssignmentsPDF } from '@/lib/utils/pdf-export';
 
 export default function VolunteersPage() {
   const { user, loading } = useAuth();
@@ -71,6 +81,7 @@ export default function VolunteersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Form states
   const [editForm, setEditForm] = useState({
@@ -271,6 +282,24 @@ export default function VolunteersPage() {
     }
   };
 
+  const handleExportAssignments = async (format: 'pdf' | 'excel') => {
+    setIsExporting(true);
+    try {
+      if (format === 'pdf') {
+        await exportVolunteerAssignmentsPDF(volunteers, missions);
+        toast.success('Export PDF généré avec succès');
+      } else {
+        exportVolunteerAssignmentsExcel(volunteers, missions);
+        toast.success('Export Excel généré avec succès');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      toast.error('Erreur lors de l\'export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (loading || isLoadingVolunteers) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -295,10 +324,41 @@ export default function VolunteersPage() {
             Gérez les bénévoles, leurs informations et leurs inscriptions aux missions
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <UserPlusIcon className="h-4 w-4 mr-2" />
-          Créer un bénévole
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={isExporting}>
+                {isExporting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Export...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Affectations des bénévoles
+                  </>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Exporter les affectations</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExportAssignments('pdf')}>
+                <FileText className="mr-2 h-4 w-4" />
+                PDF - Liste détaillée par bénévole
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportAssignments('excel')}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Excel - Tableau d'affectations
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <UserPlusIcon className="h-4 w-4 mr-2" />
+            Créer un bénévole
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -494,7 +554,23 @@ export default function VolunteersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {missions.map((mission) => {
+            {missions
+              .sort((a, b) => {
+                // Trier pour mettre en premier les missions où le bénévole est inscrit
+                if (!selectedVolunteer) return 0;
+                const aIsRegistered = a.volunteers.includes(selectedVolunteer.uid);
+                const bIsRegistered = b.volunteers.includes(selectedVolunteer.uid);
+                
+                if (aIsRegistered && !bIsRegistered) return -1;
+                if (!aIsRegistered && bIsRegistered) return 1;
+                
+                // Pour les missions du même type (inscrit ou non), trier par date
+                if (!a.startDate && !b.startDate) return 0;
+                if (!a.startDate) return -1;
+                if (!b.startDate) return 1;
+                return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+              })
+              .map((mission) => {
               const isRegistered = selectedVolunteer
                 ? mission.volunteers.includes(selectedVolunteer.uid)
                 : false;
@@ -504,7 +580,9 @@ export default function VolunteersPage() {
               return (
                 <div
                   key={mission.id}
-                  className="flex items-center justify-between rounded-lg border p-4 hover:bg-accent/50 transition-colors"
+                  className={`flex items-center justify-between rounded-lg border p-4 hover:bg-accent/50 transition-colors ${
+                    isRegistered ? 'bg-green-50 border-green-300' : ''
+                  }`}
                   title={
                     mission.startDate
                       ? `📅 ${formatDateTime(mission.startDate)}`
@@ -512,7 +590,10 @@ export default function VolunteersPage() {
                   }
                 >
                   <div className="flex-1">
-                    <p className="font-medium">{mission.title}</p>
+                    <p className="font-medium flex items-center gap-2">
+                      {isRegistered && <span className="text-green-600">✓</span>}
+                      {mission.title}
+                    </p>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{mission.location}</span>
                       <span>•</span>
