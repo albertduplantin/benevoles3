@@ -628,59 +628,57 @@ function MissionsPageContent() {
           </div>
 
           {/* Filtres Rapides - Sans encadré */}
-          {!isAdmin && (
-            <div className="flex flex-wrap gap-2 pt-2 border-t">
-              <Badge
-                variant={showMyMissionsOnly ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
-                onClick={() => setShowMyMissionsOnly(!showMyMissionsOnly)}
-              >
-                ✓ Mes missions
-              </Badge>
-              <Badge
-                variant={smartFilter === 'weekend' ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
-                onClick={() => setSmartFilter(smartFilter === 'weekend' ? null : 'weekend')}
-              >
-                📅 Le week-end
-              </Badge>
-              <Badge
-                variant={smartFilter === 'short' ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
-                onClick={() => setSmartFilter(smartFilter === 'short' ? null : 'short')}
-              >
-                ⏰ Courtes (&lt;3h)
-              </Badge>
-              <Badge
-                variant={smartFilter === 'evening' ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
-                onClick={() => setSmartFilter(smartFilter === 'evening' ? null : 'evening')}
-              >
-                🌙 Soirée
-              </Badge>
-              <Badge
-                variant={smartFilter === 'morning' ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
-                onClick={() => setSmartFilter(smartFilter === 'morning' ? null : 'morning')}
-              >
-                🌅 Matin
-              </Badge>
-              <Badge
-                variant={smartFilter === 'lowDemand' ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
-                onClick={() => setSmartFilter(smartFilter === 'lowDemand' ? null : 'lowDemand')}
-              >
-                💪 Peu demandées
-              </Badge>
-              <Badge
-                variant={showUrgentOnly ? 'destructive' : 'outline'}
-                className="cursor-pointer hover:bg-destructive/80 transition-colors px-3 py-1.5 text-sm border-red-300"
-                onClick={() => setShowUrgentOnly(!showUrgentOnly)}
-              >
-                🔥 Urgentes
-              </Badge>
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            <Badge
+              variant={showMyMissionsOnly ? 'default' : 'outline'}
+              className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+              onClick={() => setShowMyMissionsOnly(!showMyMissionsOnly)}
+            >
+              ✓ Mes missions
+            </Badge>
+            <Badge
+              variant={smartFilter === 'weekend' ? 'default' : 'outline'}
+              className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+              onClick={() => setSmartFilter(smartFilter === 'weekend' ? null : 'weekend')}
+            >
+              📅 Le week-end
+            </Badge>
+            <Badge
+              variant={smartFilter === 'short' ? 'default' : 'outline'}
+              className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+              onClick={() => setSmartFilter(smartFilter === 'short' ? null : 'short')}
+            >
+              ⏰ Courtes (&lt;3h)
+            </Badge>
+            <Badge
+              variant={smartFilter === 'evening' ? 'default' : 'outline'}
+              className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+              onClick={() => setSmartFilter(smartFilter === 'evening' ? null : 'evening')}
+            >
+              🌙 Soirée
+            </Badge>
+            <Badge
+              variant={smartFilter === 'morning' ? 'default' : 'outline'}
+              className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+              onClick={() => setSmartFilter(smartFilter === 'morning' ? null : 'morning')}
+            >
+              🌅 Matin
+            </Badge>
+            <Badge
+              variant={smartFilter === 'lowDemand' ? 'default' : 'outline'}
+              className="cursor-pointer hover:bg-primary/80 transition-colors px-3 py-1.5 text-sm"
+              onClick={() => setSmartFilter(smartFilter === 'lowDemand' ? null : 'lowDemand')}
+            >
+              💪 Peu demandées
+            </Badge>
+            <Badge
+              variant={showUrgentOnly ? 'destructive' : 'outline'}
+              className="cursor-pointer hover:bg-destructive/80 transition-colors px-3 py-1.5 text-sm border-red-300"
+              onClick={() => setShowUrgentOnly(!showUrgentOnly)}
+            >
+              🔥 Urgentes
+            </Badge>
+          </div>
         </CardContent>
       </Card>
 
