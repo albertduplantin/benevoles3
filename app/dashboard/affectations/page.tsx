@@ -55,9 +55,9 @@ export default function AffectationsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="w-full p-4 md:p-6 space-y-4">
       {/* Header */}
-      <div>
+      <div className="container mx-auto">
         <h1 className="text-3xl font-bold">Gestion des Affectations</h1>
         <p className="text-muted-foreground">
           Cliquez sur une case pour affecter/désaffecter un bénévole. Glissez-déposez pour déplacer une affectation.
@@ -65,7 +65,7 @@ export default function AffectationsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Missions</CardTitle>
@@ -97,15 +97,15 @@ export default function AffectationsPage() {
         </Card>
       </div>
 
-      {/* Grid */}
-      <Card>
+      {/* Grid - Full Width */}
+      <Card className="w-full mx-auto" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
         <CardHeader>
           <CardTitle>Tableau d'Affectations</CardTitle>
           <CardDescription>
             Missions en lignes, bénévoles en colonnes. Les conflits de créneaux sont détectés automatiquement.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2">
           {isLoadingData ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">

@@ -6,7 +6,8 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { adminRegisterVolunteer, adminUnregisterVolunteer } from '@/lib/firebase/volunteers';
 import { toast } from 'sonner';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface AffectationsGridProps {
   missions: MissionClient[];
@@ -36,6 +37,7 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
     volunteerId: string;
   } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(100); // Pourcentage de zoom
 
   // Grouper et trier les missions par catégorie puis date
   const sortedMissions = [...missions].sort((a, b) => {
@@ -219,78 +221,158 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
     return CATEGORY_COLORS[category] || '#CCCCCC';
   };
 
+  // Gestion du zoom
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.min(prev + 10, 150));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => Math.max(prev - 10, 50));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(100);
+  };
+
+  // Calculer la largeur des colonnes en fonction du zoom
+  const getColumnWidth = () => {
+    const baseWidth = 32; // pixels
+    return (baseWidth * zoomLevel) / 100;
+  };
+
+  const getMissionColumnWidth = () => {
+    const baseWidth = 250; // pixels
+    return (baseWidth * zoomLevel) / 100;
+  };
+
+  const getFontSize = () => {
+    const baseSize = 11; // pixels
+    return (baseSize * zoomLevel) / 100;
+  };
+
   return (
-    <div className="overflow-auto max-h-[70vh] border rounded-lg">
-      <table className="w-full border-collapse text-sm">
-        <thead className="sticky top-0 bg-gray-100 z-10">
-          <tr>
-            <th className="border p-2 text-left bg-gray-200 min-w-[300px] sticky left-0 z-20">
-              Mission
-            </th>
-            {sortedVolunteers.map((volunteer) => (
+    <div className="space-y-2">
+      {/* Contrôles de zoom */}
+      <div className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleZoomOut}
+            disabled={zoomLevel <= 50}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleResetZoom}
+          >
+            {zoomLevel}%
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleZoomIn}
+            disabled={zoomLevel >= 150}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Utilisez les boutons de zoom ou la molette pour ajuster la vue
+        </div>
+      </div>
+
+      {/* Tableau */}
+      <div className="overflow-auto border rounded-lg" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+        <table className="border-collapse" style={{ fontSize: `${getFontSize()}px` }}>
+          <thead className="sticky top-0 bg-gray-100 z-10">
+            <tr>
               <th
-                key={volunteer.uid}
-                className="border p-1 text-center min-w-[60px] max-w-[60px]"
-                style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+                className="border p-2 text-left bg-gray-200 sticky left-0 z-20"
+                style={{ minWidth: `${getMissionColumnWidth()}px`, maxWidth: `${getMissionColumnWidth()}px` }}
               >
-                <div className="text-xs font-medium whitespace-nowrap">
-                  {volunteer.firstName} {volunteer.lastName}
-                </div>
+                Mission
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedMissions.map((mission) => {
-            const categoryColor = getCategoryColor(mission.category);
-            const missionLabel = mission.startDate
-              ? `${format(new Date(mission.startDate), 'dd/MM HH:mm', { locale: fr })} - ${mission.title}`
-              : mission.title;
-
-            return (
-              <tr key={mission.id} className="hover:bg-gray-50">
-                <td
-                  className="border p-2 text-xs font-medium sticky left-0 z-10"
-                  style={{ backgroundColor: categoryColor }}
+              {sortedVolunteers.map((volunteer) => (
+                <th
+                  key={volunteer.uid}
+                  className="border p-1 text-center bg-gray-100"
+                  style={{
+                    minWidth: `${getColumnWidth()}px`,
+                    maxWidth: `${getColumnWidth()}px`,
+                    writingMode: 'vertical-rl',
+                    transform: 'rotate(180deg)',
+                    height: '120px',
+                  }}
                 >
-                  {missionLabel}
-                  <div className="text-[10px] text-gray-600 mt-1">
-                    {mission.volunteers.length}/{mission.maxVolunteers} bénévoles
+                  <div className="font-medium whitespace-nowrap">
+                    {volunteer.firstName} {volunteer.lastName}
                   </div>
-                </td>
-                {sortedVolunteers.map((volunteer) => {
-                  const isAssigned = mission.volunteers.includes(volunteer.uid);
-                  const hasConflictHere = isAssigned ? false : hasConflict(volunteer.uid, mission);
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedMissions.map((mission) => {
+              const categoryColor = getCategoryColor(mission.category);
+              const missionLabel = mission.startDate
+                ? `${format(new Date(mission.startDate), 'dd/MM HH:mm', { locale: fr })} - ${mission.title}`
+                : mission.title;
 
-                  return (
-                    <td
-                      key={`${mission.id}-${volunteer.uid}`}
-                      className={`border p-1 text-center cursor-pointer select-none transition-colors ${
-                        isProcessing ? 'opacity-50 cursor-wait' : 'hover:bg-gray-100'
-                      }`}
-                      style={{
-                        backgroundColor: isAssigned ? categoryColor : 'transparent',
-                      }}
-                      onClick={() => handleCellClick(mission.id, volunteer.uid)}
-                      draggable={isAssigned}
-                      onDragStart={(e) => isAssigned && handleDragStart(e, mission.id, volunteer.uid)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, mission.id, volunteer.uid)}
-                    >
-                      {isAssigned && (
-                        <span className="font-bold text-sm">X</span>
-                      )}
-                      {hasConflictHere && (
-                        <AlertTriangle className="h-3 w-3 text-red-500 mx-auto" />
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+              return (
+                <tr key={mission.id} className="hover:bg-gray-50">
+                  <td
+                    className="border p-2 font-medium sticky left-0 z-10 bg-white"
+                    style={{
+                      backgroundColor: categoryColor,
+                      minWidth: `${getMissionColumnWidth()}px`,
+                      maxWidth: `${getMissionColumnWidth()}px`,
+                    }}
+                  >
+                    <div className="overflow-hidden text-ellipsis">{missionLabel}</div>
+                    <div className="text-gray-600 mt-1" style={{ fontSize: `${getFontSize() * 0.85}px` }}>
+                      {mission.volunteers.length}/{mission.maxVolunteers}
+                    </div>
+                  </td>
+                  {sortedVolunteers.map((volunteer) => {
+                    const isAssigned = mission.volunteers.includes(volunteer.uid);
+                    const hasConflictHere = isAssigned ? false : hasConflict(volunteer.uid, mission);
+
+                    return (
+                      <td
+                        key={`${mission.id}-${volunteer.uid}`}
+                        className={`border text-center cursor-pointer select-none transition-colors ${
+                          isProcessing ? 'opacity-50 cursor-wait' : 'hover:bg-gray-100'
+                        }`}
+                        style={{
+                          backgroundColor: isAssigned ? categoryColor : 'transparent',
+                          minWidth: `${getColumnWidth()}px`,
+                          maxWidth: `${getColumnWidth()}px`,
+                          padding: '4px',
+                        }}
+                        onClick={() => handleCellClick(mission.id, volunteer.uid)}
+                        draggable={isAssigned}
+                        onDragStart={(e) => isAssigned && handleDragStart(e, mission.id, volunteer.uid)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, mission.id, volunteer.uid)}
+                      >
+                        {isAssigned && (
+                          <span className="font-bold">X</span>
+                        )}
+                        {hasConflictHere && (
+                          <AlertTriangle className="h-3 w-3 text-red-500 mx-auto" />
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
