@@ -763,48 +763,55 @@ export function exportVolunteerMissionGridExcel(
     });
   });
 
-  // Créer les en-têtes
-  const headers: string[] = ['Bénévole'];
-  const categoryHeaders: string[] = [''];
-  const allMissions: MissionClient[] = [];
-  
-  sortedCategories.forEach((category) => {
-    const categoryMissions = missionsByCategory.get(category)!;
-    categoryMissions.forEach((mission) => {
-      headers.push(mission.title);
-      categoryHeaders.push(category);
-      allMissions.push(mission);
-    });
-  });
-
-  // Créer les lignes de données
-  const data: any[][] = [categoryHeaders, headers];
-
   // Trier les bénévoles par nom
   const sortedVolunteers = [...volunteers].sort((a, b) =>
     a.lastName.localeCompare(b.lastName)
   );
 
+  // Créer les en-têtes - INVERSÉ : bénévoles en colonnes
+  const headers: string[] = ['Mission'];
   sortedVolunteers.forEach((volunteer) => {
-    const row: any[] = [`${volunteer.firstName} ${volunteer.lastName}`];
-    
-    allMissions.forEach((mission) => {
-      const isAssigned = mission.volunteers.includes(volunteer.uid);
-      // Mettre un espace pour les cellules affectées (pour forcer la cellule à exister)
-      // La couleur sera appliquée via les styles
-      row.push(isAssigned ? ' ' : '');
-    });
+    headers.push(`${volunteer.firstName} ${volunteer.lastName}`);
+  });
 
-    data.push(row);
+  // Créer les lignes de données - Une ligne par mission
+  const data: any[][] = [headers];
+  const missionCategories: string[] = []; // Pour tracer quelle ligne appartient à quelle catégorie
+
+  sortedCategories.forEach((category) => {
+    const categoryMissions = missionsByCategory.get(category)!;
+    categoryMissions.forEach((mission) => {
+      // Formater le nom de la mission avec date et heure
+      let missionLabel = mission.title;
+      if (mission.startDate) {
+        const dateStr = format(new Date(mission.startDate), 'dd/MM', { locale: fr });
+        const timeStr = format(new Date(mission.startDate), 'HH:mm', { locale: fr });
+        missionLabel = `${dateStr} ${timeStr} - ${mission.title}`;
+      }
+
+      const row: any[] = [missionLabel];
+      missionCategories.push(category);
+
+      // Pour chaque bénévole, vérifier s'il est affecté
+      sortedVolunteers.forEach((volunteer) => {
+        const isAssigned = mission.volunteers.includes(volunteer.uid);
+        row.push(isAssigned ? ' ' : '');
+      });
+
+      data.push(row);
+    });
   });
 
   // Créer la feuille
   const ws = XLSX.utils.aoa_to_sheet(data);
 
   // Définir la largeur des colonnes
-  const colWidths = [{ wch: 25 }]; // Colonne des noms
-  allMissions.forEach(() => colWidths.push({ wch: 30 })); // Colonnes des missions
+  const colWidths = [{ wch: 40 }]; // Colonne des missions (plus large pour date + titre)
+  sortedVolunteers.forEach(() => colWidths.push({ wch: 4 })); // Colonnes bénévoles (étroites)
   ws['!cols'] = colWidths;
+
+  // Définir la hauteur de la ligne d'en-tête pour les noms en rotation
+  ws['!rows'] = [{ hpt: 120 }]; // Hauteur de 120 pour l'en-tête
 
   // Appliquer les couleurs et styles - Couleurs vives pour meilleure visibilité
   const categoryColors: Record<string, { fgColor: { rgb: string } }> = {};
@@ -829,20 +836,7 @@ export function exportVolunteerMissionGridExcel(
     colorIndex++;
   });
 
-  // Fusionner les cellules de catégorie en en-tête
-  const merges: any[] = [];
-  let currentCol = 1;
-  sortedCategories.forEach((category) => {
-    const categoryMissions = missionsByCategory.get(category)!;
-    if (categoryMissions.length > 1) {
-      merges.push({
-        s: { r: 0, c: currentCol },
-        e: { r: 0, c: currentCol + categoryMissions.length - 1 },
-      });
-    }
-    currentCol += categoryMissions.length;
-  });
-  ws['!merges'] = merges;
+  // Pas de fusion nécessaire avec la nouvelle orientation
 
   // Appliquer les styles aux cellules
   const range = XLSX.utils.decode_range(ws['!ref']!);
@@ -851,49 +845,45 @@ export function exportVolunteerMissionGridExcel(
     for (let R = range.s.r; R <= range.e.r; ++R) {
       const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
       
-      if (!ws[cellAddress]) continue;
-
-      // En-tête de catégorie (ligne 0)
-      if (R === 0 && C > 0) {
-        const category = categoryHeaders[C];
-        ws[cellAddress].s = {
-          fill: categoryColors[category],
-          font: { bold: true },
-          alignment: { horizontal: 'center', vertical: 'center' },
-          border: {
-            top: { style: 'thin' },
-            bottom: { style: 'thin' },
-            left: { style: 'thin' },
-            right: { style: 'thin' },
-          },
-        };
+      if (!ws[cellAddress]) {
+        // Créer une cellule vide pour pouvoir appliquer les styles
+        ws[cellAddress] = { t: 's', v: '' };
       }
-      
-      // En-tête de mission (ligne 1)
-      if (R === 1) {
+
+      // En-tête (ligne 0)
+      if (R === 0) {
         ws[cellAddress].s = {
-          fill: { fgColor: { rgb: 'E0E0E0' } },
-          font: { bold: true },
-          alignment: { horizontal: C === 0 ? 'left' : 'center', vertical: 'center', wrapText: true },
+          fill: { fgColor: { rgb: 'D0D0D0' } },
+          font: { bold: true, sz: 9 },
+          alignment: { 
+            horizontal: 'center', 
+            vertical: 'center',
+            textRotation: C === 0 ? 0 : 90, // Rotation à 90° pour les noms de bénévoles
+            wrapText: false
+          },
           border: {
-            top: { style: 'thin' },
-            bottom: { style: 'thin' },
-            left: { style: 'thin' },
-            right: { style: 'thin' },
+            top: { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } },
+            left: { style: 'thin', color: { rgb: '000000' } },
+            right: { style: 'thin', color: { rgb: '000000' } },
           },
         };
       }
 
-      // Cellules de données
-      if (R > 1) {
-        const category = C > 0 ? categoryHeaders[C] : '';
+      // Cellules de données (lignes > 0)
+      if (R > 0) {
+        const category = missionCategories[R - 1]; // -1 car première ligne est l'en-tête
         const cellValue = ws[cellAddress]?.v;
-        // Vérifier si c'est une cellule affectée (contient un espace ou une valeur)
-        const isAssigned = cellValue && cellValue !== '';
+        const isAssigned = cellValue && cellValue.trim() !== '';
         
         ws[cellAddress].s = {
-          fill: isAssigned && category ? categoryColors[category] : { fgColor: { rgb: 'FFFFFF' } },
-          alignment: { horizontal: C === 0 ? 'left' : 'center', vertical: 'center' },
+          fill: isAssigned && category && C > 0 ? categoryColors[category] : { fgColor: { rgb: 'FFFFFF' } },
+          font: { sz: 9 },
+          alignment: { 
+            horizontal: C === 0 ? 'left' : 'center', 
+            vertical: 'center',
+            wrapText: C === 0 // Wrap text uniquement pour la colonne mission
+          },
           border: {
             top: { style: 'thin', color: { rgb: 'CCCCCC' } },
             bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
@@ -905,8 +895,8 @@ export function exportVolunteerMissionGridExcel(
     }
   }
 
-  // Figer les volets (première ligne et première colonne)
-  ws['!freeze'] = { xSplit: 1, ySplit: 2 };
+  // Figer les volets (première colonne et première ligne)
+  ws['!freeze'] = { xSplit: 1, ySplit: 1 };
 
   XLSX.utils.book_append_sheet(wb, ws, 'Planning Visuel');
 
