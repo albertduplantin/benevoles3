@@ -30,20 +30,35 @@ if (typeof window !== 'undefined') {
   db = getFirestore(app);
   storage = getStorage(app);
 
-  // Enable offline persistence for Firestore
+  // Enable offline persistence for Firestore with improved error handling
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    // Use dynamic import to avoid bundling issues
     import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
-      enableIndexedDbPersistence(db).catch((err) => {
+      enableIndexedDbPersistence(db, {
+        forceOwnership: false, // Don't force ownership - allows multiple tabs
+      }).catch((err) => {
         if (err.code === 'failed-precondition') {
+          // Multiple tabs open, persistence can only be enabled in one tab at a time
           console.warn(
-            'Firestore persistence failed: Multiple tabs open, persistence can only be enabled in one tab at a time.'
+            '⚠️ Firestore persistence: Multiple tabs detected. Using network-only mode for this tab.'
           );
         } else if (err.code === 'unimplemented') {
+          // Browser doesn't support all required features
           console.warn(
-            'Firestore persistence failed: The current browser does not support all of the features required to enable persistence'
+            '⚠️ Firestore persistence: Browser does not support offline persistence. Using network-only mode.'
+          );
+        } else {
+          // Other errors (e.g., IndexedDB issues)
+          console.warn(
+            '⚠️ Firestore persistence error:',
+            err.message || err.code || 'Unknown error'
           );
         }
+        // Application will continue to work without persistence
       });
+    }).catch((err) => {
+      // Handle import errors
+      console.warn('⚠️ Failed to load Firestore persistence module:', err);
     });
   }
 }

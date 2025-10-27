@@ -414,3 +414,6 @@ git push origin main
 
 **Prochaine étape** : Tester sur Vercel Preview puis merger si validé ! 🎉
 
+
+
+

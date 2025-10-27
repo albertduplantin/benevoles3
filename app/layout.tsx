@@ -5,6 +5,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
 import { NetworkStatus } from '@/components/features/pwa/network-status';
+import { ServiceWorkerRegister } from '@/components/features/pwa/service-worker-register';
 import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <QueryProvider>
           <AuthProvider>
+            <ServiceWorkerRegister />
             {children}
             <InstallPWAButton />
             <NetworkStatus />

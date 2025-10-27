@@ -27,7 +27,7 @@ import {
   LogOutIcon,
   UserIcon,
   CheckCircle2Icon,
-  WrenchIcon,
+  LayoutGridIcon,
   MailIcon,
 } from 'lucide-react';
 
@@ -88,9 +88,9 @@ const navigation: NavItem[] = [
     roles: ['admin'],
   },
   {
-    label: 'Maintenance',
-    href: '/dashboard/admin/maintenance',
-    icon: WrenchIcon,
+    label: 'Affectations',
+    href: '/dashboard/affectations',
+    icon: LayoutGridIcon,
     roles: ['admin'],
   },
 ];
