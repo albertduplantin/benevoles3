@@ -795,7 +795,7 @@ export function exportVolunteerMissionGridExcel(
       // Pour chaque bénévole, vérifier s'il est affecté
       sortedVolunteers.forEach((volunteer) => {
         const isAssigned = mission.volunteers.includes(volunteer.uid);
-        row.push(isAssigned ? ' ' : '');
+        row.push(isAssigned ? 'X' : '');
       });
 
       data.push(row);
@@ -881,13 +881,14 @@ export function exportVolunteerMissionGridExcel(
       if (R > 0) {
         const category = missionCategories[R - 1]; // -1 car première ligne est l'en-tête
         const cellValue = ws[cellAddress]?.v;
-        const isAssigned = cellValue && cellValue.trim() !== '';
+        const isAssigned = cellValue === 'X';
         
         // Construire le style de la cellule
         const cellStyle: any = {
           font: { 
             sz: 9,
-            name: 'Arial'
+            name: 'Arial',
+            bold: isAssigned // X en gras
           },
           alignment: { 
             horizontal: C === 0 ? 'left' : 'center', 
@@ -914,7 +915,7 @@ export function exportVolunteerMissionGridExcel(
               bgColor: { rgb: colorRgb }
             };
           }
-          // Autres colonnes : colorées seulement si bénévole affecté
+          // Autres colonnes : colorées seulement si X présent
           else if (isAssigned) {
             cellStyle.fill = {
               patternType: 'solid',
