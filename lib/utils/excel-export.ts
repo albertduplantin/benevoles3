@@ -855,12 +855,13 @@ export function exportVolunteerMissionGridExcel(
         ws[cellAddress].s = {
           fill: { 
             patternType: 'solid',
-            fgColor: { rgb: 'D0D0D0' }
+            fgColor: { rgb: 'D0D0D0' },
+            bgColor: { rgb: 'D0D0D0' }
           },
           font: { 
             bold: true, 
             sz: 8,
-            color: { rgb: '000000' }
+            name: 'Arial'
           },
           alignment: { 
             horizontal: 'center', 
@@ -868,10 +869,10 @@ export function exportVolunteerMissionGridExcel(
             textRotation: C === 0 ? 0 : 90 // Rotation à 90° pour les noms de bénévoles
           },
           border: {
-            top: { style: 'thin', color: { rgb: '000000' } },
-            bottom: { style: 'thin', color: { rgb: '000000' } },
-            left: { style: 'thin', color: { rgb: '000000' } },
-            right: { style: 'thin', color: { rgb: '000000' } },
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' },
           },
         };
       }
@@ -882,33 +883,42 @@ export function exportVolunteerMissionGridExcel(
         const cellValue = ws[cellAddress]?.v;
         const isAssigned = cellValue && cellValue.trim() !== '';
         
-        // Déterminer la couleur de fond
-        let fillColor = { rgb: 'FFFFFF' };
-        if (isAssigned && category && C > 0 && categoryColors[category]) {
-          fillColor = categoryColors[category].fgColor;
-        }
-        
-        ws[cellAddress].s = {
-          fill: {
-            patternType: 'solid',
-            fgColor: fillColor
-          },
+        // Construire le style de la cellule
+        const cellStyle: any = {
           font: { 
             sz: 9,
-            color: { rgb: '000000' }
+            name: 'Arial'
           },
           alignment: { 
             horizontal: C === 0 ? 'left' : 'center', 
             vertical: 'center',
-            wrapText: C === 0 // Wrap text uniquement pour la colonne mission
+            wrapText: C === 0
           },
           border: {
-            top: { style: 'thin', color: { rgb: 'CCCCCC' } },
-            bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
-            left: { style: 'thin', color: { rgb: 'CCCCCC' } },
-            right: { style: 'thin', color: { rgb: 'CCCCCC' } },
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' },
           },
         };
+        
+        // Ajouter la couleur si bénévole affecté
+        if (isAssigned && category && C > 0) {
+          const colorRgb = categoryColors[category]?.fgColor?.rgb || 'FFFFFF';
+          cellStyle.fill = {
+            patternType: 'solid',
+            fgColor: { rgb: colorRgb },
+            bgColor: { rgb: colorRgb }
+          };
+        } else {
+          cellStyle.fill = {
+            patternType: 'solid',
+            fgColor: { rgb: 'FFFFFF' },
+            bgColor: { rgb: 'FFFFFF' }
+          };
+        }
+        
+        ws[cellAddress].s = cellStyle;
       }
     }
   }
@@ -947,21 +957,23 @@ export function exportVolunteerMissionGridExcel(
     const rowIndex = categoryStartRow + index;
     const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
     if (wsLegend[cellAddress]) {
+      const colorRgb = categoryColors[category]?.fgColor?.rgb || 'FFFFFF';
       wsLegend[cellAddress].s = {
         fill: {
           patternType: 'solid',
-          fgColor: categoryColors[category].fgColor
+          fgColor: { rgb: colorRgb },
+          bgColor: { rgb: colorRgb }
         },
         font: { 
           bold: true,
-          color: { rgb: '000000' }
+          name: 'Arial'
         },
         alignment: { horizontal: 'left', vertical: 'center' },
         border: {
-          top: { style: 'thin', color: { rgb: '000000' } },
-          bottom: { style: 'thin', color: { rgb: '000000' } },
-          left: { style: 'thin', color: { rgb: '000000' } },
-          right: { style: 'thin', color: { rgb: '000000' } },
+          top: { style: 'thin' },
+          bottom: { style: 'thin' },
+          left: { style: 'thin' },
+          right: { style: 'thin' },
         },
       };
     }
@@ -971,7 +983,7 @@ export function exportVolunteerMissionGridExcel(
 
   // Télécharger le fichier avec support des styles
   const fileName = `planning-visuel-benevoles-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-  XLSX.writeFile(wb, fileName, { cellStyles: true });
+  XLSX.writeFile(wb, fileName, { bookType: 'xlsx', type: 'binary' });
 }
 
 // Helpers
