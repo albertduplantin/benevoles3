@@ -795,7 +795,7 @@ export function exportVolunteerMissionGridExcel(
       // Pour chaque bénévole, vérifier s'il est affecté
       sortedVolunteers.forEach((volunteer) => {
         const isAssigned = mission.volunteers.includes(volunteer.uid);
-        row.push(isAssigned ? 'X' : '');
+        row.push(isAssigned ? ' ' : '');
       });
 
       data.push(row);
@@ -881,14 +881,13 @@ export function exportVolunteerMissionGridExcel(
       if (R > 0) {
         const category = missionCategories[R - 1]; // -1 car première ligne est l'en-tête
         const cellValue = ws[cellAddress]?.v;
-        const isAssigned = cellValue === 'X';
+        const isAssigned = cellValue && cellValue.trim() !== '';
         
         // Construire le style de la cellule
         const cellStyle: any = {
           font: { 
             sz: 9,
-            name: 'Arial',
-            bold: isAssigned
+            name: 'Arial'
           },
           alignment: { 
             horizontal: C === 0 ? 'left' : 'center', 
@@ -903,14 +902,26 @@ export function exportVolunteerMissionGridExcel(
           },
         };
         
-        // Ajouter la couleur si bénévole affecté (X présent)
-        if (isAssigned && category && C > 0 && categoryColors[category]) {
+        // Appliquer la couleur de catégorie
+        if (category && categoryColors[category]) {
           const colorRgb = categoryColors[category].fgColor.rgb;
-          cellStyle.fill = {
-            patternType: 'solid',
-            fgColor: { rgb: colorRgb },
-            bgColor: { rgb: colorRgb }
-          };
+          
+          // Colonne A (Mission) : toujours colorée selon la catégorie
+          if (C === 0) {
+            cellStyle.fill = {
+              patternType: 'solid',
+              fgColor: { rgb: colorRgb },
+              bgColor: { rgb: colorRgb }
+            };
+          }
+          // Autres colonnes : colorées seulement si bénévole affecté
+          else if (isAssigned) {
+            cellStyle.fill = {
+              patternType: 'solid',
+              fgColor: { rgb: colorRgb },
+              bgColor: { rgb: colorRgb }
+            };
+          }
         }
         
         ws[cellAddress].s = cellStyle;
