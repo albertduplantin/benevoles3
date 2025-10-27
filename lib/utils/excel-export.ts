@@ -790,7 +790,9 @@ export function exportVolunteerMissionGridExcel(
     
     allMissions.forEach((mission) => {
       const isAssigned = mission.volunteers.includes(volunteer.uid);
-      row.push(isAssigned ? 'X' : '');
+      // Mettre un espace pour les cellules affectées (pour forcer la cellule à exister)
+      // La couleur sera appliquée via les styles
+      row.push(isAssigned ? ' ' : '');
     });
 
     data.push(row);
@@ -804,17 +806,21 @@ export function exportVolunteerMissionGridExcel(
   allMissions.forEach(() => colWidths.push({ wch: 30 })); // Colonnes des missions
   ws['!cols'] = colWidths;
 
-  // Appliquer les couleurs et styles
+  // Appliquer les couleurs et styles - Couleurs vives pour meilleure visibilité
   const categoryColors: Record<string, { fgColor: { rgb: string } }> = {};
   const colors = [
-    'FFFF99', // Jaune clair
-    'FFD699', // Orange clair
-    '99CCFF', // Bleu clair
-    '99FF99', // Vert clair
-    'FF99CC', // Rose clair
-    'CC99FF', // Violet clair
-    'FFCC99', // Pêche
-    '99FFFF', // Cyan clair
+    'FFFF00', // Jaune vif
+    'FF9900', // Orange vif
+    '00CCFF', // Bleu ciel
+    '00FF00', // Vert vif
+    'FF66CC', // Rose vif
+    'CC66FF', // Violet vif
+    'FF6600', // Orange rouge
+    '00FFFF', // Cyan vif
+    'FFCC00', // Or
+    '66FF66', // Vert clair
+    'FF3399', // Rose fuchsia
+    '9999FF', // Bleu lavande
   ];
   
   let colorIndex = 0;
@@ -881,16 +887,18 @@ export function exportVolunteerMissionGridExcel(
       // Cellules de données
       if (R > 1) {
         const category = C > 0 ? categoryHeaders[C] : '';
-        const isAssigned = ws[cellAddress].v === 'X';
+        const cellValue = ws[cellAddress]?.v;
+        // Vérifier si c'est une cellule affectée (contient un espace ou une valeur)
+        const isAssigned = cellValue && cellValue !== '';
         
         ws[cellAddress].s = {
           fill: isAssigned && category ? categoryColors[category] : { fgColor: { rgb: 'FFFFFF' } },
           alignment: { horizontal: C === 0 ? 'left' : 'center', vertical: 'center' },
           border: {
-            top: { style: 'thin' },
-            bottom: { style: 'thin' },
-            left: { style: 'thin' },
-            right: { style: 'thin' },
+            top: { style: 'thin', color: { rgb: 'CCCCCC' } },
+            bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+            left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+            right: { style: 'thin', color: { rgb: 'CCCCCC' } },
           },
         };
       }
@@ -908,6 +916,7 @@ export function exportVolunteerMissionGridExcel(
     ['', ''],
   ];
   
+  const categoryStartRow = 2;
   sortedCategories.forEach((category) => {
     const missionCount = missionsByCategory.get(category)!.length;
     legendData.push([category, `${missionCount} mission${missionCount > 1 ? 's' : ''}`]);
@@ -924,6 +933,26 @@ export function exportVolunteerMissionGridExcel(
 
   const wsLegend = XLSX.utils.aoa_to_sheet(legendData);
   wsLegend['!cols'] = [{ wch: 30 }, { wch: 20 }];
+  
+  // Appliquer les couleurs aux catégories dans la légende
+  sortedCategories.forEach((category, index) => {
+    const rowIndex = categoryStartRow + index;
+    const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
+    if (wsLegend[cellAddress]) {
+      wsLegend[cellAddress].s = {
+        fill: categoryColors[category],
+        font: { bold: true },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        border: {
+          top: { style: 'thin' },
+          bottom: { style: 'thin' },
+          left: { style: 'thin' },
+          right: { style: 'thin' },
+        },
+      };
+    }
+  });
+  
   XLSX.utils.book_append_sheet(wb, wsLegend, 'Légende');
 
   // Télécharger le fichier
