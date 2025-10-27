@@ -859,14 +859,13 @@ export function exportVolunteerMissionGridExcel(
           },
           font: { 
             bold: true, 
-            sz: 9,
+            sz: 8,
             color: { rgb: '000000' }
           },
           alignment: { 
             horizontal: 'center', 
             vertical: 'center',
-            textRotation: C === 0 ? 0 : 90, // Rotation à 90° pour les noms de bénévoles
-            wrapText: false
+            textRotation: C === 0 ? 0 : 90 // Rotation à 90° pour les noms de bénévoles
           },
           border: {
             top: { style: 'thin', color: { rgb: '000000' } },
