@@ -30,7 +30,12 @@ import {
   TrendingUpIcon,
   FolderIcon,
   PlusIcon,
+  Download,
+  Loader2,
 } from 'lucide-react';
+import { exportVolunteerMissionGridExcel } from '@/lib/utils/excel-export';
+import { toast } from 'sonner';
+import { getAllVolunteers } from '@/lib/firebase/volunteers';
 
 export default function DashboardOverviewPage() {
   const { user, loading } = useAuth();
@@ -46,6 +51,7 @@ export default function DashboardOverviewPage() {
   const [allVolunteersMap, setAllVolunteersMap] = useState<Map<string, UserClient>>(new Map());
   const [responsibleCategories, setResponsibleCategories] = useState<CategoryResponsibleClient[]>([]);
   const [categoryIdToValueMap, setCategoryIdToValueMap] = useState<Map<string, string>>(new Map());
+  const [isExportingGrid, setIsExportingGrid] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -140,6 +146,22 @@ export default function DashboardOverviewPage() {
     };
     loadMissions();
   }, [user]);
+
+  // Fonction pour exporter le planning visuel
+  const handleExportGrid = async () => {
+    setIsExportingGrid(true);
+    try {
+      // Charger tous les bénévoles pour l'export
+      const volunteersData = await getAllVolunteers();
+      exportVolunteerMissionGridExcel(volunteersData, allMissions);
+      toast.success('Planning visuel généré avec succès');
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      toast.error('Erreur lors de l\'export');
+    } finally {
+      setIsExportingGrid(false);
+    }
+  };
 
   // Charger les paramètres admin
   useEffect(() => {
@@ -640,6 +662,30 @@ export default function DashboardOverviewPage() {
                     Pour impression et réunions bénévoles
                   </p>
                   <FullProgramExportButton missions={allMissions} />
+                </div>
+
+                <div className="border-t pt-4">
+                  <Label className="text-sm font-semibold mb-2 block">Planning Visuel</Label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Tableau croisé bénévoles × missions avec couleurs par catégorie
+                  </p>
+                  <Button 
+                    onClick={handleExportGrid}
+                    disabled={isExportingGrid || allMissions.length === 0}
+                    className="w-full"
+                  >
+                    {isExportingGrid ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Export en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-4 w-4" />
+                        Planning visuel (Excel)
+                      </>
+                    )}
+                  </Button>
                 </div>
 
                 <div className="border-t pt-4">

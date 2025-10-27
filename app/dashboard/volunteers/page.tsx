@@ -65,7 +65,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { exportVolunteerAssignmentsExcel } from '@/lib/utils/excel-export';
+import { exportVolunteerAssignmentsExcel, exportVolunteerMissionGridExcel } from '@/lib/utils/excel-export';
 import { exportVolunteerAssignmentsPDF } from '@/lib/utils/pdf-export';
 
 export default function VolunteersPage() {
@@ -300,6 +300,19 @@ export default function VolunteersPage() {
     }
   };
 
+  const handleExportGrid = async () => {
+    setIsExporting(true);
+    try {
+      exportVolunteerMissionGridExcel(volunteers, missions);
+      toast.success('Planning visuel généré avec succès');
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      toast.error('Erreur lors de l\'export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (loading || isLoadingVolunteers) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -325,6 +338,23 @@ export default function VolunteersPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="default" 
+            onClick={handleExportGrid}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Export...
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Planning visuel
+              </>
+            )}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={isExporting}>
@@ -336,7 +366,7 @@ export default function VolunteersPage() {
                 ) : (
                   <>
                     <Download className="mr-2 h-4 w-4" />
-                    Affectations des bénévoles
+                    Affectations
                   </>
                 )}
               </Button>

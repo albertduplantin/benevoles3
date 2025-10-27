@@ -733,6 +733,204 @@ export function exportVolunteerAssignmentsExcel(
   XLSX.writeFile(wb, fileName);
 }
 
+/**
+ * Génère un tableau croisé Excel : bénévoles (lignes) × missions (colonnes) avec couleurs par catégorie
+ */
+export function exportVolunteerMissionGridExcel(
+  volunteers: UserClient[],
+  missions: MissionClient[]
+) {
+  const wb = XLSX.utils.book_new();
+
+  // Grouper les missions par catégorie
+  const missionsByCategory = new Map<string, MissionClient[]>();
+  missions.forEach((mission) => {
+    const category = mission.category || 'Sans catégorie';
+    if (!missionsByCategory.has(category)) {
+      missionsByCategory.set(category, []);
+    }
+    missionsByCategory.get(category)!.push(mission);
+  });
+
+  // Trier les missions par catégorie, puis par date
+  const sortedCategories = Array.from(missionsByCategory.keys()).sort();
+  sortedCategories.forEach((category) => {
+    missionsByCategory.get(category)!.sort((a, b) => {
+      if (!a.startDate && !b.startDate) return 0;
+      if (!a.startDate) return -1;
+      if (!b.startDate) return 1;
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    });
+  });
+
+  // Créer les en-têtes
+  const headers: string[] = ['Bénévole'];
+  const categoryHeaders: string[] = [''];
+  const allMissions: MissionClient[] = [];
+  
+  sortedCategories.forEach((category) => {
+    const categoryMissions = missionsByCategory.get(category)!;
+    categoryMissions.forEach((mission) => {
+      headers.push(mission.title);
+      categoryHeaders.push(category);
+      allMissions.push(mission);
+    });
+  });
+
+  // Créer les lignes de données
+  const data: any[][] = [categoryHeaders, headers];
+
+  // Trier les bénévoles par nom
+  const sortedVolunteers = [...volunteers].sort((a, b) =>
+    a.lastName.localeCompare(b.lastName)
+  );
+
+  sortedVolunteers.forEach((volunteer) => {
+    const row: any[] = [`${volunteer.firstName} ${volunteer.lastName}`];
+    
+    allMissions.forEach((mission) => {
+      const isAssigned = mission.volunteers.includes(volunteer.uid);
+      row.push(isAssigned ? 'X' : '');
+    });
+
+    data.push(row);
+  });
+
+  // Créer la feuille
+  const ws = XLSX.utils.aoa_to_sheet(data);
+
+  // Définir la largeur des colonnes
+  const colWidths = [{ wch: 25 }]; // Colonne des noms
+  allMissions.forEach(() => colWidths.push({ wch: 30 })); // Colonnes des missions
+  ws['!cols'] = colWidths;
+
+  // Appliquer les couleurs et styles
+  const categoryColors: Record<string, { fgColor: { rgb: string } }> = {};
+  const colors = [
+    'FFFF99', // Jaune clair
+    'FFD699', // Orange clair
+    '99CCFF', // Bleu clair
+    '99FF99', // Vert clair
+    'FF99CC', // Rose clair
+    'CC99FF', // Violet clair
+    'FFCC99', // Pêche
+    '99FFFF', // Cyan clair
+  ];
+  
+  let colorIndex = 0;
+  sortedCategories.forEach((category) => {
+    categoryColors[category] = { fgColor: { rgb: colors[colorIndex % colors.length] } };
+    colorIndex++;
+  });
+
+  // Fusionner les cellules de catégorie en en-tête
+  const merges: any[] = [];
+  let currentCol = 1;
+  sortedCategories.forEach((category) => {
+    const categoryMissions = missionsByCategory.get(category)!;
+    if (categoryMissions.length > 1) {
+      merges.push({
+        s: { r: 0, c: currentCol },
+        e: { r: 0, c: currentCol + categoryMissions.length - 1 },
+      });
+    }
+    currentCol += categoryMissions.length;
+  });
+  ws['!merges'] = merges;
+
+  // Appliquer les styles aux cellules
+  const range = XLSX.utils.decode_range(ws['!ref']!);
+  
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      
+      if (!ws[cellAddress]) continue;
+
+      // En-tête de catégorie (ligne 0)
+      if (R === 0 && C > 0) {
+        const category = categoryHeaders[C];
+        ws[cellAddress].s = {
+          fill: categoryColors[category],
+          font: { bold: true },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' },
+          },
+        };
+      }
+      
+      // En-tête de mission (ligne 1)
+      if (R === 1) {
+        ws[cellAddress].s = {
+          fill: { fgColor: { rgb: 'E0E0E0' } },
+          font: { bold: true },
+          alignment: { horizontal: C === 0 ? 'left' : 'center', vertical: 'center', wrapText: true },
+          border: {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' },
+          },
+        };
+      }
+
+      // Cellules de données
+      if (R > 1) {
+        const category = C > 0 ? categoryHeaders[C] : '';
+        const isAssigned = ws[cellAddress].v === 'X';
+        
+        ws[cellAddress].s = {
+          fill: isAssigned && category ? categoryColors[category] : { fgColor: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: C === 0 ? 'left' : 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' },
+          },
+        };
+      }
+    }
+  }
+
+  // Figer les volets (première ligne et première colonne)
+  ws['!freeze'] = { xSplit: 1, ySplit: 2 };
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Planning Visuel');
+
+  // Créer une feuille de légende
+  const legendData = [
+    ['LÉGENDE DES CATÉGORIES', ''],
+    ['', ''],
+  ];
+  
+  sortedCategories.forEach((category) => {
+    const missionCount = missionsByCategory.get(category)!.length;
+    legendData.push([category, `${missionCount} mission${missionCount > 1 ? 's' : ''}`]);
+  });
+
+  legendData.push(['', '']);
+  legendData.push(['STATISTIQUES', '']);
+  legendData.push(['Total bénévoles', volunteers.length]);
+  legendData.push(['Total missions', missions.length]);
+  legendData.push([
+    'Bénévoles avec missions',
+    volunteers.filter((v) => missions.some((m) => m.volunteers.includes(v.uid))).length,
+  ]);
+
+  const wsLegend = XLSX.utils.aoa_to_sheet(legendData);
+  wsLegend['!cols'] = [{ wch: 30 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsLegend, 'Légende');
+
+  // Télécharger le fichier
+  const fileName = `planning-visuel-benevoles-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
 // Helpers
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {

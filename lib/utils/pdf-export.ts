@@ -38,10 +38,10 @@ export async function exportMissionVolunteersPDF(
     doc.setFont('helvetica', 'normal');
     yPos += 5;
     doc.setFontSize(9);
-    doc.text(`📧 ${categoryResponsible.email}`, 25, yPos);
+    doc.text(`Email: ${categoryResponsible.email}`, 25, yPos);
     yPos += 5;
     if (categoryResponsible.phone) {
-      doc.text(`📱 ${categoryResponsible.phone}`, 25, yPos);
+      doc.text(`Tel: ${categoryResponsible.phone}`, 25, yPos);
       yPos += 5;
     }
     doc.setFontSize(10);
@@ -1159,10 +1159,10 @@ export async function exportVolunteerAssignmentsPDF(
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     yPos += 5;
-    doc.text(`📧 ${volunteer.email}`, 25, yPos);
+    doc.text(`Email: ${volunteer.email}`, 25, yPos);
     yPos += 5;
     if (volunteer.phone) {
-      doc.text(`📱 ${volunteer.phone}`, 25, yPos);
+      doc.text(`Tel: ${volunteer.phone}`, 25, yPos);
       yPos += 5;
     }
     doc.setFontSize(10);
