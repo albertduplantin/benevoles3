@@ -915,11 +915,11 @@ export function exportVolunteerMissionGridExcel(
 
   legendData.push(['', '']);
   legendData.push(['STATISTIQUES', '']);
-  legendData.push(['Total bénévoles', volunteers.length]);
-  legendData.push(['Total missions', missions.length]);
+  legendData.push(['Total bénévoles', volunteers.length.toString()]);
+  legendData.push(['Total missions', missions.length.toString()]);
   legendData.push([
     'Bénévoles avec missions',
-    volunteers.filter((v) => missions.some((m) => m.volunteers.includes(v.uid))).length,
+    volunteers.filter((v) => missions.some((m) => m.volunteers.includes(v.uid))).length.toString(),
   ]);
 
   const wsLegend = XLSX.utils.aoa_to_sheet(legendData);
