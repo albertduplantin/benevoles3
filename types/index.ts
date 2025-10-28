@@ -26,6 +26,21 @@ export type MissionType = 'scheduled' | 'ongoing';
 export type VolunteerRequestStatus = 'pending' | 'approved' | 'rejected';
 
 /**
+ * Volunteer Preferences
+ */
+export interface VolunteerPreferences {
+  availableDates?: string[]; // Dates disponibles (format YYYY-MM-DD)
+  preferredCategories?: string[]; // Catégories de missions préférées
+  preferredTimeSlots?: ('morning' | 'afternoon' | 'evening' | 'night')[]; // Créneaux horaires préférés
+  preferredPostType?: 'static' | 'dynamic' | 'both'; // Type de poste préféré
+  preferredDuration?: ('short' | 'medium' | 'long')[]; // Durée de mission préférée
+  skills?: string[]; // Compétences (permis, premiers secours, langues, etc.)
+  hasCar?: boolean; // Possède un véhicule
+  canTransportEquipment?: boolean; // Peut transporter du matériel
+  additionalInfo?: string; // Informations supplémentaires
+}
+
+/**
  * User Model
  */
 export interface User {
@@ -50,6 +65,7 @@ export interface User {
     email: boolean;
     sms: boolean;
   };
+  preferences?: VolunteerPreferences; // Préférences du bénévole
 }
 
 /**
@@ -114,6 +130,7 @@ export type UserClient = Omit<User, 'createdAt' | 'updatedAt' | 'consents'> & {
     communications: boolean;
     consentDate: Date;
   };
+  preferences?: VolunteerPreferences;
 };
 
 export type MissionClient = Omit<

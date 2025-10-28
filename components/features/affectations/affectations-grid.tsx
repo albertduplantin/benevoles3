@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { MissionClient, UserClient } from '@/types';
-import { format } from 'date-fns';
+import { MissionClient, UserClient, VolunteerPreferences } from '@/types';
+import { format, differenceInHours } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { adminRegisterVolunteer, adminUnregisterVolunteer } from '@/lib/firebase/volunteers';
 import { toast } from 'sonner';
-import { AlertTriangle, ZoomIn, ZoomOut, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, ZoomIn, ZoomOut, CheckCircle2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -39,6 +39,8 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
   } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100); // Pourcentage de zoom
+  const [selectedVolunteer, setSelectedVolunteer] = useState<UserClient | null>(null);
+  const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
 
   // Grouper et trier les missions par catégorie puis date
   const sortedMissions = [...missions].sort((a, b) => {
@@ -55,6 +57,66 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
   const sortedVolunteers = [...volunteers].sort((a, b) =>
     a.lastName.localeCompare(b.lastName)
   );
+
+  /**
+   * Vérifier si une mission correspond aux préférences d'un bénévole
+   * Retourne un score de correspondance (0 = pas de match, plus le score est élevé, meilleur est le match)
+   */
+  const getMissionMatchScore = (mission: MissionClient, volunteer: UserClient): number => {
+    if (!volunteer.preferences) return 0;
+
+    const prefs = volunteer.preferences;
+    let score = 0;
+
+    // 1. Vérifier la disponibilité par date (poids: 3 points)
+    if (prefs.availableDates && prefs.availableDates.length > 0 && mission.startDate) {
+      const missionDate = format(new Date(mission.startDate), 'yyyy-MM-dd');
+      if (prefs.availableDates.includes(missionDate)) {
+        score += 3;
+      }
+    }
+
+    // 2. Vérifier la catégorie préférée (poids: 2 points)
+    if (prefs.preferredCategories && prefs.preferredCategories.length > 0) {
+      if (mission.category && prefs.preferredCategories.includes(mission.category)) {
+        score += 2;
+      }
+    }
+
+    // 3. Vérifier le créneau horaire (poids: 1 point)
+    if (prefs.preferredTimeSlots && prefs.preferredTimeSlots.length > 0 && mission.startDate) {
+      const hour = new Date(mission.startDate).getHours();
+      let matchesTimeSlot = false;
+      
+      if (hour >= 6 && hour < 12 && prefs.preferredTimeSlots.includes('morning')) matchesTimeSlot = true;
+      if (hour >= 12 && hour < 18 && prefs.preferredTimeSlots.includes('afternoon')) matchesTimeSlot = true;
+      if (hour >= 18 && hour < 24 && prefs.preferredTimeSlots.includes('evening')) matchesTimeSlot = true;
+      if ((hour >= 0 && hour < 6) && prefs.preferredTimeSlots.includes('night')) matchesTimeSlot = true;
+      
+      if (matchesTimeSlot) score += 1;
+    }
+
+    // 4. Vérifier la durée (poids: 1 point)
+    if (prefs.preferredDuration && prefs.preferredDuration.length > 0 && mission.startDate && mission.endDate) {
+      const durationHours = differenceInHours(new Date(mission.endDate), new Date(mission.startDate));
+      let matchesDuration = false;
+      
+      if (durationHours < 3 && prefs.preferredDuration.includes('short')) matchesDuration = true;
+      if (durationHours >= 3 && durationHours <= 6 && prefs.preferredDuration.includes('medium')) matchesDuration = true;
+      if (durationHours > 6 && prefs.preferredDuration.includes('long')) matchesDuration = true;
+      
+      if (matchesDuration) score += 1;
+    }
+
+    return score;
+  };
+
+  /**
+   * Vérifier si une mission correspond aux préférences (score >= 2 pour être considéré comme match)
+   */
+  const doesMissionMatchPreferences = (mission: MissionClient, volunteer: UserClient): boolean => {
+    return getMissionMatchScore(mission, volunteer) >= 2;
+  };
 
   // Vérifier les conflits de créneaux
   const hasConflict = (volunteerId: string, mission: MissionClient): boolean => {
@@ -291,6 +353,26 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
           </div>
         </div>
 
+        {/* Légende des préférences */}
+        <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-900 mb-1">Système de préférences</p>
+              <div className="flex flex-wrap gap-4 text-xs text-blue-800">
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#d1f4d1' }}></div>
+                  <span>Mission correspondant aux préférences du bénévole</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Info className="h-3 w-3 text-green-600" />
+                  <span>Icône = match détecté (survolez pour plus d'infos)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       {/* Tableau */}
       <div className="overflow-auto border rounded-lg" style={{ maxHeight: 'calc(100vh - 320px)' }}>
         <table className="border-collapse" style={{ fontSize: `${getFontSize()}px` }}>
@@ -302,23 +384,35 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
               >
                 Mission
               </th>
-              {sortedVolunteers.map((volunteer) => (
-                <th
-                  key={volunteer.uid}
-                  className="border p-1 text-center bg-gray-100"
-                  style={{
-                    minWidth: `${getColumnWidth()}px`,
-                    maxWidth: `${getColumnWidth()}px`,
-                    writingMode: 'vertical-rl',
-                    transform: 'rotate(180deg)',
-                    height: '120px',
-                  }}
-                >
-                  <div className="font-medium whitespace-nowrap">
-                    {volunteer.firstName} {volunteer.lastName}
-                  </div>
-                </th>
-              ))}
+              {sortedVolunteers.map((volunteer) => {
+                const hasPreferences = volunteer.preferences && (
+                  (volunteer.preferences.availableDates && volunteer.preferences.availableDates.length > 0) ||
+                  (volunteer.preferences.preferredCategories && volunteer.preferences.preferredCategories.length > 0) ||
+                  (volunteer.preferences.preferredTimeSlots && volunteer.preferences.preferredTimeSlots.length > 0)
+                );
+
+                return (
+                  <th
+                    key={volunteer.uid}
+                    className="border p-1 text-center"
+                    style={{
+                      minWidth: `${getColumnWidth()}px`,
+                      maxWidth: `${getColumnWidth()}px`,
+                      writingMode: 'vertical-rl',
+                      transform: 'rotate(180deg)',
+                      height: '120px',
+                      backgroundColor: hasPreferences ? '#e8f5e9' : '#f5f5f5',
+                    }}
+                  >
+                    <div className="font-medium whitespace-nowrap flex items-center gap-1">
+                      {volunteer.firstName} {volunteer.lastName}
+                      {hasPreferences && (
+                        <span className="text-green-600 font-bold" title="Préférences renseignées">★</span>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -365,6 +459,17 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
                   {sortedVolunteers.map((volunteer) => {
                     const isAssigned = mission.volunteers.includes(volunteer.uid);
                     const hasConflictHere = isAssigned ? false : hasConflict(volunteer.uid, mission);
+                    const matchesPreferences = doesMissionMatchPreferences(mission, volunteer);
+                    const matchScore = getMissionMatchScore(mission, volunteer);
+
+                    // Déterminer la couleur de fond
+                    let bgColor = 'transparent';
+                    if (isAssigned) {
+                      bgColor = categoryColor;
+                    } else if (matchesPreferences) {
+                      // Vert pâle pour les missions qui correspondent aux préférences
+                      bgColor = '#d1f4d1'; // Vert pâle
+                    }
 
                     return (
                       <Tooltip key={`${mission.id}-${volunteer.uid}`}>
@@ -374,7 +479,7 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
                               isProcessing ? 'opacity-50 cursor-wait' : 'hover:bg-gray-100'
                             }`}
                             style={{
-                              backgroundColor: isAssigned ? categoryColor : 'transparent',
+                              backgroundColor: bgColor,
                               minWidth: `${getColumnWidth()}px`,
                               maxWidth: `${getColumnWidth()}px`,
                               padding: '4px',
@@ -391,18 +496,39 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
                             {hasConflictHere && (
                               <AlertTriangle className="h-3 w-3 text-red-500 mx-auto" />
                             )}
+                            {!isAssigned && matchesPreferences && !hasConflictHere && (
+                              <Info className="h-3 w-3 text-green-600 mx-auto" />
+                            )}
                           </td>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p className="text-xs">
-                            {isAssigned 
-                              ? 'Double-clic pour désaffecter' 
-                              : hasConflictHere 
-                                ? 'Conflit de créneaux !'
-                                : isComplete
-                                  ? 'Mission complète'
-                                  : 'Double-clic pour affecter'}
-                          </p>
+                          <div className="text-xs space-y-1">
+                            <p className="font-medium">
+                              {isAssigned 
+                                ? 'Double-clic pour désaffecter' 
+                                : hasConflictHere 
+                                  ? 'Conflit de créneaux !'
+                                  : isComplete
+                                    ? 'Mission complète'
+                                    : 'Double-clic pour affecter'}
+                            </p>
+                            {matchesPreferences && !isAssigned && (
+                              <p className="text-green-600 border-t pt-1 mt-1">
+                                ✓ Correspond aux préférences (score: {matchScore}/7)
+                              </p>
+                            )}
+                            {volunteer.preferences && (
+                              <div className="border-t pt-1 mt-1 text-gray-500 max-w-[200px]">
+                                <p className="font-medium mb-1">Préférences :</p>
+                                {volunteer.preferences.availableDates && volunteer.preferences.availableDates.length > 0 && (
+                                  <p>📅 {volunteer.preferences.availableDates.length} jour(s) dispo</p>
+                                )}
+                                {volunteer.preferences.preferredCategories && volunteer.preferences.preferredCategories.length > 0 && (
+                                  <p>🎯 {volunteer.preferences.preferredCategories.length} catégorie(s)</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </TooltipContent>
                       </Tooltip>
                     );

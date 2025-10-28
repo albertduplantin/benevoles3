@@ -29,6 +29,7 @@ import {
   CheckCircle2Icon,
   LayoutGridIcon,
   MailIcon,
+  HeartIcon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -62,6 +63,12 @@ const navigation: NavItem[] = [
     href: '/dashboard/missions?filter=my',
     icon: CheckCircle2Icon,
     roles: ['volunteer', 'category_responsible'],
+  },
+  {
+    label: 'Mes préférences',
+    href: '/dashboard/preferences',
+    icon: HeartIcon,
+    roles: ['volunteer', 'category_responsible', 'admin'],
   },
   {
     label: 'Responsables',
