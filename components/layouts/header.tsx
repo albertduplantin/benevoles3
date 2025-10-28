@@ -30,6 +30,8 @@ import {
   LayoutGridIcon,
   MailIcon,
   HeartIcon,
+  WrenchIcon,
+  SearchIcon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -171,7 +173,39 @@ export function Header() {
         </nav>
 
         {/* Profil utilisateur & Déconnexion Desktop */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-2">
+          {/* Recherche bénévoles (Admin only) */}
+          {user.role === 'admin' && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/admin/search-volunteers">
+                <SearchIcon className="h-4 w-4 mr-2" />
+                Recherche
+              </Link>
+            </Button>
+          )}
+          
+          {/* Maintenance (Admin only) */}
+          {user.role === 'admin' && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <WrenchIcon className="h-4 w-4 mr-2" />
+                  Maintenance
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Outils de maintenance</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/admin/cleanup-auth" className="cursor-pointer">
+                    <WrenchIcon className="mr-2 h-4 w-4" />
+                    Nettoyage Auth
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          
           <div className="hidden md:block">
             <InstallPWAButton />
           </div>
