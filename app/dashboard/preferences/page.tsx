@@ -281,9 +281,10 @@ export default function PreferencesPage() {
                   >
                     <Checkbox
                       checked={availableDates.includes(day.date)}
-                      onCheckedChange={() => toggleDate(day.date)}
+                      onCheckedChange={(checked) => toggleDate(day.date)}
+                      onClick={(e) => e.stopPropagation()}
                     />
-                    <Label className="cursor-pointer flex-1">{day.label}</Label>
+                    <Label className="cursor-pointer flex-1" onClick={() => toggleDate(day.date)}>{day.label}</Label>
                   </div>
                 ))}
               </div>
@@ -321,9 +322,10 @@ export default function PreferencesPage() {
                 >
                   <Checkbox
                     checked={preferredCategories.includes(category.value)}
-                    onCheckedChange={() => toggleCategory(category.value)}
+                    onCheckedChange={(checked) => toggleCategory(category.value)}
+                    onClick={(e) => e.stopPropagation()}
                   />
-                  <Label className="cursor-pointer flex-1">{category.label}</Label>
+                  <Label className="cursor-pointer flex-1" onClick={() => toggleCategory(category.value)}>{category.label}</Label>
                 </div>
               ))}
             </div>
@@ -365,9 +367,10 @@ export default function PreferencesPage() {
                 >
                   <Checkbox
                     checked={preferredTimeSlots.includes(slot.value as any)}
-                    onCheckedChange={() => toggleTimeSlot(slot.value as any)}
+                    onCheckedChange={(checked) => toggleTimeSlot(slot.value as any)}
+                    onClick={(e) => e.stopPropagation()}
                   />
-                  <Label className="cursor-pointer flex-1 text-sm">{slot.label}</Label>
+                  <Label className="cursor-pointer flex-1 text-sm" onClick={() => toggleTimeSlot(slot.value as any)}>{slot.label}</Label>
                 </div>
               ))}
             </div>
@@ -404,9 +407,10 @@ export default function PreferencesPage() {
                 >
                   <Checkbox
                     checked={preferredPostType === type.value}
-                    onCheckedChange={() => setPreferredPostType(type.value as any)}
+                    onCheckedChange={(checked) => setPreferredPostType(type.value as any)}
+                    onClick={(e) => e.stopPropagation()}
                   />
-                  <div className="flex-1">
+                  <div className="flex-1" onClick={() => setPreferredPostType(type.value as any)}>
                     <Label className="cursor-pointer font-medium">{type.label}</Label>
                     <p className="text-xs text-muted-foreground mt-1">{type.desc}</p>
                   </div>
@@ -443,9 +447,10 @@ export default function PreferencesPage() {
                 >
                   <Checkbox
                     checked={preferredDuration.includes(duration.value as any)}
-                    onCheckedChange={() => toggleDuration(duration.value as any)}
+                    onCheckedChange={(checked) => toggleDuration(duration.value as any)}
+                    onClick={(e) => e.stopPropagation()}
                   />
-                  <div className="flex-1">
+                  <div className="flex-1" onClick={() => toggleDuration(duration.value as any)}>
                     <Label className="cursor-pointer font-medium">{duration.label}</Label>
                     <p className="text-xs text-muted-foreground mt-1">{duration.desc}</p>
                   </div>
@@ -480,9 +485,10 @@ export default function PreferencesPage() {
                 >
                   <Checkbox
                     checked={skills.includes(skill)}
-                    onCheckedChange={() => toggleSkill(skill)}
+                    onCheckedChange={(checked) => toggleSkill(skill)}
+                    onClick={(e) => e.stopPropagation()}
                   />
-                  <Label className="cursor-pointer flex-1">{skill}</Label>
+                  <Label className="cursor-pointer flex-1" onClick={() => toggleSkill(skill)}>{skill}</Label>
                 </div>
               ))}
             </div>

@@ -9,7 +9,9 @@ import { getAllVolunteers } from '@/lib/firebase/volunteers';
 import { MissionClient, UserClient } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AffectationsGrid } from '@/components/features/affectations/affectations-grid';
-import { Users, Calendar } from 'lucide-react';
+import { Users, Calendar, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function AffectationsPage() {
   const { user, loading } = useAuth();
@@ -17,6 +19,7 @@ export default function AffectationsPage() {
   const [missions, setMissions] = useState<MissionClient[]>([]);
   const [volunteers, setVolunteers] = useState<UserClient[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -50,6 +53,26 @@ export default function AffectationsPage() {
     loadData();
   }, [user]);
 
+  const handleRefresh = async () => {
+    if (!user || user.role !== 'admin') return;
+    
+    try {
+      setIsRefreshing(true);
+      const [missionsData, volunteersData] = await Promise.all([
+        getAllMissions(),
+        getAllVolunteers(),
+      ]);
+      setMissions(missionsData);
+      setVolunteers(volunteersData);
+      toast.success('Données actualisées');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Erreur lors de l\'actualisation');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (loading || !user || user.role !== 'admin') {
     return null;
   }
@@ -57,11 +80,23 @@ export default function AffectationsPage() {
   return (
     <div className="w-full p-4 md:p-6 space-y-4">
       {/* Header */}
-      <div className="container mx-auto">
-        <h1 className="text-3xl font-bold">Gestion des Affectations</h1>
-        <p className="text-muted-foreground">
-          Cliquez sur une case pour affecter/désaffecter un bénévole. Glissez-déposez pour déplacer une affectation.
-        </p>
+      <div className="container mx-auto flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold">Gestion des Affectations</h1>
+          <p className="text-muted-foreground">
+            Cliquez sur une case pour affecter/désaffecter un bénévole. Glissez-déposez pour déplacer une affectation.
+          </p>
+        </div>
+        <Button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          variant="outline"
+          size="sm"
+          className="flex-shrink-0"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+        </Button>
       </div>
 
       {/* Stats */}
