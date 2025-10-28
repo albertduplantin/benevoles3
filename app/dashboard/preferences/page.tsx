@@ -35,7 +35,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { InfoIcon } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 
 // Compétences prédéfinies
 const PREDEFINED_SKILLS = [
@@ -405,39 +405,38 @@ export default function PreferencesPage() {
               <CardTitle>Catégories de missions préférées</CardTitle>
             </div>
             <CardDescription>
-              Sélectionnez les types de missions qui vous intéressent le plus (survolez ℹ️ pour plus d'infos)
+              Sélectionnez les types de missions qui vous intéressent le plus (survolez les cases pour plus d'infos)
             </CardDescription>
           </CardHeader>
           <CardContent>
             <TooltipProvider>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {categories.map((category) => (
-                  <div
-                    key={category.id}
-                    className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                      preferredCategories.includes(category.value)
-                        ? 'border-primary bg-primary/5'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => toggleCategory(category.value)}
-                  >
-                    <Checkbox
-                      checked={preferredCategories.includes(category.value)}
-                      onCheckedChange={(checked) => toggleCategory(category.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <Label className="cursor-pointer flex-1" onClick={() => toggleCategory(category.value)}>
-                      {category.label}
-                    </Label>
-                    <TooltipComponent>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-gray-400 hover:text-gray-600 flex-shrink-0" onClick={(e) => e.stopPropagation()} />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{getCategoryDescription(category.value)}</p>
-                      </TooltipContent>
-                    </TooltipComponent>
-                  </div>
+                  <TooltipComponent key={category.id}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                          preferredCategories.includes(category.value)
+                            ? 'border-primary bg-primary/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => toggleCategory(category.value)}
+                      >
+                        <Checkbox
+                          checked={preferredCategories.includes(category.value)}
+                          onCheckedChange={(checked) => toggleCategory(category.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <Label className="cursor-pointer flex-1" onClick={() => toggleCategory(category.value)}>
+                          {category.label}
+                        </Label>
+                        <HelpCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs" side="top">
+                      <p className="text-sm">{getCategoryDescription(category.value)}</p>
+                    </TooltipContent>
+                  </TooltipComponent>
                 ))}
               </div>
               {preferredCategories.length === 0 && (
