@@ -28,6 +28,14 @@ import { MissionCategoryClient, VolunteerPreferences } from '@/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Switch } from '@/components/ui/switch';
+import { getCategoryDescription } from '@/lib/constants/category-descriptions';
+import {
+  Tooltip as TooltipComponent,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { InfoIcon } from 'lucide-react';
 
 // Compétences prédéfinies
 const PREDEFINED_SKILLS = [
@@ -98,7 +106,8 @@ export default function PreferencesPage() {
   const [isSaving, setIsSaving] = useState(false);
   
   // États pour les préférences
-  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [availableDateSlots, setAvailableDateSlots] = useState<Record<string, ('morning' | 'afternoon' | 'evening')[]>>({});
+  const [availableForPreFestival, setAvailableForPreFestival] = useState(false);
   const [preferredCategories, setPreferredCategories] = useState<string[]>([]);
   const [preferredTimeSlots, setPreferredTimeSlots] = useState<Array<'morning' | 'afternoon' | 'evening' | 'night'>>([]);
   const [preferredPostType, setPreferredPostType] = useState<'static' | 'dynamic' | 'both'>('both');
@@ -138,7 +147,19 @@ export default function PreferencesPage() {
         // Charger les préférences existantes
         if (user.preferences) {
           const prefs = user.preferences;
-          setAvailableDates(prefs.availableDates || []);
+          
+          // Migration : si ancien format (availableDates), convertir en availableDateSlots
+          if (prefs.availableDates && prefs.availableDates.length > 0 && !prefs.availableDateSlots) {
+            const converted: Record<string, ('morning' | 'afternoon' | 'evening')[]> = {};
+            prefs.availableDates.forEach(date => {
+              converted[date] = ['morning', 'afternoon', 'evening']; // Toute la journée par défaut
+            });
+            setAvailableDateSlots(converted);
+          } else {
+            setAvailableDateSlots(prefs.availableDateSlots || {});
+          }
+          
+          setAvailableForPreFestival(prefs.availableForPreFestival || false);
           setPreferredCategories(prefs.preferredCategories || []);
           setPreferredTimeSlots(prefs.preferredTimeSlots || []);
           setPreferredPostType(prefs.preferredPostType || 'both');
@@ -159,13 +180,31 @@ export default function PreferencesPage() {
     loadData();
   }, [user]);
 
-  // Gestion du clic sur une date
-  const toggleDate = (date: string) => {
-    setAvailableDates(prev => 
-      prev.includes(date) 
-        ? prev.filter(d => d !== date)
-        : [...prev, date]
-    );
+  // Gestion de la sélection de créneau pour une date
+  const toggleDateSlot = (date: string, slot: 'morning' | 'afternoon' | 'evening') => {
+    setAvailableDateSlots(prev => {
+      const current = prev[date] || [];
+      const updated = current.includes(slot)
+        ? current.filter(s => s !== slot)
+        : [...current, slot];
+      
+      // Si tous les créneaux sont désélectionnés, retirer la date
+      if (updated.length === 0) {
+        const { [date]: _, ...rest } = prev;
+        return rest;
+      }
+      
+      return {
+        ...prev,
+        [date]: updated,
+      };
+    });
+  };
+
+  // Vérifier si une date a au moins un créneau sélectionné
+  const hasAnySlot = (date: string): boolean => {
+    const slots = availableDateSlots[date];
+    return slots && slots.length > 0;
   };
 
   // Gestion du clic sur une catégorie
@@ -211,7 +250,8 @@ export default function PreferencesPage() {
     setIsSaving(true);
     try {
       const preferences: VolunteerPreferences = {
-        availableDates,
+        availableDateSlots,
+        availableForPreFestival,
         preferredCategories,
         preferredTimeSlots,
         preferredPostType,
@@ -255,47 +295,107 @@ export default function PreferencesPage() {
       </div>
 
       <div className="grid gap-6">
-        {/* Disponibilités (dates) */}
+        {/* Disponibilités (dates avec créneaux) */}
         {festivalDays.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <CalendarIcon className="h-5 w-5 text-primary" />
-                <CardTitle>Disponibilités</CardTitle>
+                <CardTitle>Disponibilités pendant le festival</CardTitle>
               </div>
               <CardDescription>
-                Sélectionnez les jours où vous êtes disponible pendant le festival
+                Sélectionnez les jours ET les créneaux horaires où vous êtes disponible
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {festivalDays.map((day) => (
-                  <div
-                    key={day.date}
-                    className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                      availableDates.includes(day.date)
-                        ? 'border-primary bg-primary/5'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => toggleDate(day.date)}
-                  >
-                    <Checkbox
-                      checked={availableDates.includes(day.date)}
-                      onCheckedChange={(checked) => toggleDate(day.date)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <Label className="cursor-pointer flex-1" onClick={() => toggleDate(day.date)}>{day.label}</Label>
-                  </div>
-                ))}
-              </div>
-              {availableDates.length === 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Aucune date sélectionnée. Sélectionnez au moins une date pour aider à votre affectation.
-                </p>
-              )}
+              <TooltipProvider>
+                <div className="space-y-3">
+                  {festivalDays.map((day) => {
+                    const daySlots = availableDateSlots[day.date] || [];
+                    return (
+                      <div
+                        key={day.date}
+                        className={`p-4 border-2 rounded-lg transition-colors ${
+                          hasAnySlot(day.date)
+                            ? 'border-primary bg-primary/5'
+                            : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="font-medium mb-3">{day.label}</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { value: 'morning', label: 'Matin', emoji: '🌅', desc: 'Jusqu\'à 13h' },
+                            { value: 'afternoon', label: 'Après-midi', emoji: '☀️', desc: '13h-18h' },
+                            { value: 'evening', label: 'Soir', emoji: '🌆', desc: 'Après 18h' },
+                          ].map((slot) => (
+                            <TooltipComponent key={slot.value}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={`flex items-center gap-2 p-2 border-2 rounded cursor-pointer transition-colors text-sm ${
+                                    daySlots.includes(slot.value as any)
+                                      ? 'border-primary bg-primary/10'
+                                      : 'border-gray-300 hover:border-gray-400'
+                                  }`}
+                                  onClick={() => toggleDateSlot(day.date, slot.value as any)}
+                                >
+                                  <Checkbox
+                                    checked={daySlots.includes(slot.value as any)}
+                                    onCheckedChange={() => toggleDateSlot(day.date, slot.value as any)}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  <span>{slot.emoji}</span>
+                                  <span className="flex-1">{slot.label}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{slot.desc}</p>
+                              </TooltipContent>
+                            </TooltipComponent>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {Object.keys(availableDateSlots).length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-4">
+                    Aucune disponibilité sélectionnée. Sélectionnez au moins un créneau pour aider à votre affectation.
+                  </p>
+                )}
+              </TooltipProvider>
             </CardContent>
           </Card>
         )}
+
+        {/* Missions en amont du festival */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              <CardTitle>Missions en amont du festival</CardTitle>
+            </div>
+            <CardDescription>
+              Êtes-vous disponible pour des missions de préparation avant le festival ?
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border-2 rounded-lg">
+              <div className="flex-1">
+                <Label htmlFor="pre-festival" className="text-base font-medium cursor-pointer">
+                  Je suis disponible pour les missions en amont
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Montage, installation, préparation logistique, affichage...
+                </p>
+              </div>
+              <Switch
+                id="pre-festival"
+                checked={availableForPreFestival}
+                onCheckedChange={setAvailableForPreFestival}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Catégories préférées */}
         <Card>
@@ -305,35 +405,47 @@ export default function PreferencesPage() {
               <CardTitle>Catégories de missions préférées</CardTitle>
             </div>
             <CardDescription>
-              Sélectionnez les types de missions qui vous intéressent le plus
+              Sélectionnez les types de missions qui vous intéressent le plus (survolez ℹ️ pour plus d'infos)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {categories.map((category) => (
-                <div
-                  key={category.id}
-                  className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                    preferredCategories.includes(category.value)
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => toggleCategory(category.value)}
-                >
-                  <Checkbox
-                    checked={preferredCategories.includes(category.value)}
-                    onCheckedChange={(checked) => toggleCategory(category.value)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <Label className="cursor-pointer flex-1" onClick={() => toggleCategory(category.value)}>{category.label}</Label>
-                </div>
-              ))}
-            </div>
-            {preferredCategories.length === 0 && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Aucune catégorie sélectionnée. Toutes les missions peuvent vous être proposées.
-              </p>
-            )}
+            <TooltipProvider>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {categories.map((category) => (
+                  <div
+                    key={category.id}
+                    className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                      preferredCategories.includes(category.value)
+                        ? 'border-primary bg-primary/5'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => toggleCategory(category.value)}
+                  >
+                    <Checkbox
+                      checked={preferredCategories.includes(category.value)}
+                      onCheckedChange={(checked) => toggleCategory(category.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <Label className="cursor-pointer flex-1" onClick={() => toggleCategory(category.value)}>
+                      {category.label}
+                    </Label>
+                    <TooltipComponent>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-gray-400 hover:text-gray-600 flex-shrink-0" onClick={(e) => e.stopPropagation()} />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{getCategoryDescription(category.value)}</p>
+                      </TooltipContent>
+                    </TooltipComponent>
+                  </div>
+                ))}
+              </div>
+              {preferredCategories.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Aucune catégorie sélectionnée. Toutes les missions peuvent vous être proposées.
+                </p>
+              )}
+            </TooltipProvider>
           </CardContent>
         </Card>
 

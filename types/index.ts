@@ -29,7 +29,9 @@ export type VolunteerRequestStatus = 'pending' | 'approved' | 'rejected';
  * Volunteer Preferences
  */
 export interface VolunteerPreferences {
-  availableDates?: string[]; // Dates disponibles (format YYYY-MM-DD)
+  availableDates?: string[]; // Dates disponibles (format YYYY-MM-DD) - DEPRECATED, remplacé par availableDateSlots
+  availableDateSlots?: Record<string, ('morning' | 'afternoon' | 'evening')[]>; // Disponibilités par date avec créneaux (ex: {"2025-11-21": ["morning", "afternoon"]})
+  availableForPreFestival?: boolean; // Disponible pour les missions en amont du festival
   preferredCategories?: string[]; // Catégories de missions préférées
   preferredTimeSlots?: ('morning' | 'afternoon' | 'evening' | 'night')[]; // Créneaux horaires préférés
   preferredPostType?: 'static' | 'dynamic' | 'both'; // Type de poste préféré

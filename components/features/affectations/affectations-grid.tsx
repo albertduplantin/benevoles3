@@ -59,6 +59,36 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
   );
 
   /**
+   * Vérifier si un bénévole a renseigné des préférences
+   */
+  const hasPreferences = (volunteer: UserClient): boolean => {
+    if (!volunteer.preferences) return false;
+    const prefs = volunteer.preferences;
+    
+    return (
+      (prefs.availableDateSlots && Object.keys(prefs.availableDateSlots).length > 0) ||
+      (prefs.availableDates && prefs.availableDates.length > 0) ||
+      (prefs.preferredCategories && prefs.preferredCategories.length > 0) ||
+      (prefs.preferredTimeSlots && prefs.preferredTimeSlots.length > 0) ||
+      prefs.availableForPreFestival === true
+    );
+  };
+
+  /**
+   * Déterminer le créneau horaire d'une mission
+   * Matin: jusqu'à 13h, Après-midi: 13h-18h, Soir: après 18h
+   */
+  const getMissionTimeSlot = (mission: MissionClient): 'morning' | 'afternoon' | 'evening' | null => {
+    if (!mission.startDate) return null;
+    
+    const hour = new Date(mission.startDate).getHours();
+    
+    if (hour < 13) return 'morning';
+    if (hour >= 13 && hour < 18) return 'afternoon';
+    return 'evening';
+  };
+
+  /**
    * Vérifier si une mission correspond aux préférences d'un bénévole
    * Retourne un score de correspondance (0 = pas de match, plus le score est élevé, meilleur est le match)
    */
@@ -68,11 +98,25 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
     const prefs = volunteer.preferences;
     let score = 0;
 
-    // 1. Vérifier la disponibilité par date (poids: 3 points)
-    if (prefs.availableDates && prefs.availableDates.length > 0 && mission.startDate) {
+    // 1. Vérifier la disponibilité par date ET créneau (poids: 4 points)
+    if (mission.startDate) {
       const missionDate = format(new Date(mission.startDate), 'yyyy-MM-dd');
-      if (prefs.availableDates.includes(missionDate)) {
-        score += 3;
+      const missionSlot = getMissionTimeSlot(mission);
+      
+      // Nouveau format : availableDateSlots
+      if (prefs.availableDateSlots && Object.keys(prefs.availableDateSlots).length > 0) {
+        const availableSlots = prefs.availableDateSlots[missionDate];
+        if (availableSlots && missionSlot && availableSlots.includes(missionSlot)) {
+          score += 4; // Match parfait : date ET créneau
+        } else if (availableSlots && availableSlots.length > 0) {
+          score += 1; // Disponible ce jour mais pas ce créneau
+        }
+      }
+      // Ancien format : availableDates (rétrocompatibilité)
+      else if (prefs.availableDates && prefs.availableDates.length > 0) {
+        if (prefs.availableDates.includes(missionDate)) {
+          score += 3;
+        }
       }
     }
 
@@ -83,17 +127,12 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
       }
     }
 
-    // 3. Vérifier le créneau horaire (poids: 1 point)
+    // 3. Vérifier le créneau horaire général (poids: 1 point)
     if (prefs.preferredTimeSlots && prefs.preferredTimeSlots.length > 0 && mission.startDate) {
-      const hour = new Date(mission.startDate).getHours();
-      let matchesTimeSlot = false;
-      
-      if (hour >= 6 && hour < 12 && prefs.preferredTimeSlots.includes('morning')) matchesTimeSlot = true;
-      if (hour >= 12 && hour < 18 && prefs.preferredTimeSlots.includes('afternoon')) matchesTimeSlot = true;
-      if (hour >= 18 && hour < 24 && prefs.preferredTimeSlots.includes('evening')) matchesTimeSlot = true;
-      if ((hour >= 0 && hour < 6) && prefs.preferredTimeSlots.includes('night')) matchesTimeSlot = true;
-      
-      if (matchesTimeSlot) score += 1;
+      const missionSlot = getMissionTimeSlot(mission);
+      if (missionSlot && prefs.preferredTimeSlots.includes(missionSlot)) {
+        score += 1;
+      }
     }
 
     // 4. Vérifier la durée (poids: 1 point)
@@ -112,10 +151,10 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
   };
 
   /**
-   * Vérifier si une mission correspond aux préférences (score >= 2 pour être considéré comme match)
+   * Vérifier si une mission correspond aux préférences (score >= 3 pour être considéré comme match)
    */
   const doesMissionMatchPreferences = (mission: MissionClient, volunteer: UserClient): boolean => {
-    return getMissionMatchScore(mission, volunteer) >= 2;
+    return getMissionMatchScore(mission, volunteer) >= 3;
   };
 
   // Vérifier les conflits de créneaux
@@ -358,17 +397,24 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
           <div className="flex items-start gap-2">
             <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900 mb-1">Système de préférences</p>
+              <p className="text-sm font-medium text-blue-900 mb-1">Système de préférences amélioré</p>
               <div className="flex flex-wrap gap-4 text-xs text-blue-800">
                 <div className="flex items-center gap-1">
                   <div className="w-4 h-4 rounded" style={{ backgroundColor: '#d1f4d1' }}></div>
-                  <span>Mission correspondant aux préférences du bénévole</span>
+                  <span>Mission correspondant aux préférences (date + créneau + catégorie)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Info className="h-3 w-3 text-green-600" />
-                  <span>Icône = match détecté (survolez pour plus d'infos)</span>
+                  <span>Match détecté - survolez pour voir le score /8</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600 font-bold">★</span>
+                  <span>Bénévole avec préférences renseignées</span>
                 </div>
               </div>
+              <p className="text-xs text-blue-700 mt-2">
+                💡 Nouveautés : créneaux horaires détaillés (matin/après-midi/soir) et missions en amont du festival
+              </p>
             </div>
           </div>
         </div>
@@ -385,11 +431,7 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
                 Mission
               </th>
               {sortedVolunteers.map((volunteer) => {
-                const hasPreferences = volunteer.preferences && (
-                  (volunteer.preferences.availableDates && volunteer.preferences.availableDates.length > 0) ||
-                  (volunteer.preferences.preferredCategories && volunteer.preferences.preferredCategories.length > 0) ||
-                  (volunteer.preferences.preferredTimeSlots && volunteer.preferences.preferredTimeSlots.length > 0)
-                );
+                const volunteerHasPreferences = hasPreferences(volunteer);
 
                 return (
                   <th
@@ -401,12 +443,12 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
                       writingMode: 'vertical-rl',
                       transform: 'rotate(180deg)',
                       height: '120px',
-                      backgroundColor: hasPreferences ? '#e8f5e9' : '#f5f5f5',
+                      backgroundColor: volunteerHasPreferences ? '#e8f5e9' : '#f5f5f5',
                     }}
                   >
                     <div className="font-medium whitespace-nowrap flex items-center gap-1">
                       {volunteer.firstName} {volunteer.lastName}
-                      {hasPreferences && (
+                      {volunteerHasPreferences && (
                         <span className="text-green-600 font-bold" title="Préférences renseignées">★</span>
                       )}
                     </div>
@@ -514,17 +556,23 @@ export function AffectationsGrid({ missions, volunteers, onUpdate }: Affectation
                             </p>
                             {matchesPreferences && !isAssigned && (
                               <p className="text-green-600 border-t pt-1 mt-1">
-                                ✓ Correspond aux préférences (score: {matchScore}/7)
+                                ✓ Correspond aux préférences (score: {matchScore}/8)
                               </p>
                             )}
                             {volunteer.preferences && (
                               <div className="border-t pt-1 mt-1 text-gray-500 max-w-[200px]">
                                 <p className="font-medium mb-1">Préférences :</p>
-                                {volunteer.preferences.availableDates && volunteer.preferences.availableDates.length > 0 && (
+                                {volunteer.preferences.availableDateSlots && Object.keys(volunteer.preferences.availableDateSlots).length > 0 && (
+                                  <p>📅 {Object.keys(volunteer.preferences.availableDateSlots).length} jour(s) + créneaux</p>
+                                )}
+                                {volunteer.preferences.availableDates && volunteer.preferences.availableDates.length > 0 && !volunteer.preferences.availableDateSlots && (
                                   <p>📅 {volunteer.preferences.availableDates.length} jour(s) dispo</p>
                                 )}
                                 {volunteer.preferences.preferredCategories && volunteer.preferences.preferredCategories.length > 0 && (
                                   <p>🎯 {volunteer.preferences.preferredCategories.length} catégorie(s)</p>
+                                )}
+                                {volunteer.preferences.availableForPreFestival && (
+                                  <p>🔧 Dispo en amont</p>
                                 )}
                               </div>
                             )}
