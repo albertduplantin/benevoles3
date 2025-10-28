@@ -44,6 +44,7 @@ export async function getAllVolunteers(): Promise<UserClient[]> {
           consentDate: data.consents.consentDate instanceof Date ? data.consents.consentDate : (data.consents.consentDate as any).toDate(),
         },
         notificationPreferences: data.notificationPreferences,
+        preferences: data.preferences, // Ajouter les préférences du bénévole
       };
     });
   } catch (error) {
