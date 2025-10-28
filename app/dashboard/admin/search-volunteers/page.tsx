@@ -124,7 +124,7 @@ export default function SearchVolunteersPage() {
     if (!volunteer.preferences) return false;
     const prefs = volunteer.preferences;
     
-    return (
+    return Boolean(
       (prefs.availableDateSlots && Object.keys(prefs.availableDateSlots).length > 0) ||
       (prefs.availableDates && prefs.availableDates.length > 0) ||
       (prefs.preferredCategories && prefs.preferredCategories.length > 0) ||
