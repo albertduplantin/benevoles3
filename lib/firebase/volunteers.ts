@@ -15,6 +15,7 @@ import { db } from './config';
 import { User, UserClient, Mission } from '@/types';
 import { COLLECTIONS } from './collections';
 import { checkUserMissionConflicts } from './registrations';
+import { notifyVolunteerAssignment, notifyVolunteerUnassignment } from '@/lib/notifications/send';
 
 const USERS = COLLECTIONS.USERS;
 const MISSIONS = COLLECTIONS.MISSIONS;
@@ -185,6 +186,34 @@ export async function adminRegisterVolunteer(
     await updateDoc(missionRef, {
       volunteers: [...(missionData.volunteers || []), volunteerId],
     });
+
+    // Récupérer les informations du bénévole pour la notification
+    const volunteerRef = doc(db, USERS, volunteerId);
+    const volunteerDoc = await getDoc(volunteerRef);
+    
+    if (volunteerDoc.exists()) {
+      const volunteerData = volunteerDoc.data() as User;
+      const volunteerClient: UserClient = {
+        uid: volunteerId,
+        email: volunteerData.email,
+        firstName: volunteerData.firstName,
+        lastName: volunteerData.lastName,
+        phone: volunteerData.phone,
+        role: volunteerData.role,
+        photoURL: volunteerData.photoURL,
+        createdAt: volunteerData.createdAt instanceof Date ? volunteerData.createdAt : (volunteerData.createdAt as any).toDate(),
+        consents: {
+          dataProcessing: volunteerData.consents.dataProcessing,
+          communications: volunteerData.consents.communications,
+          consentDate: volunteerData.consents.consentDate instanceof Date ? volunteerData.consents.consentDate : (volunteerData.consents.consentDate as any).toDate(),
+        },
+      };
+
+      // Envoyer la notification (ne pas bloquer si ça échoue)
+      notifyVolunteerAssignment(volunteerId, { ...missionData, id: missionId }, volunteerClient).catch((error) => {
+        console.error('Erreur lors de l\'envoi de la notification:', error);
+      });
+    }
   } catch (error) {
     console.error('Error admin registering volunteer:', error);
     throw error;
@@ -200,10 +229,29 @@ export async function adminUnregisterVolunteer(
 ): Promise<void> {
   try {
     const missionRef = doc(db, MISSIONS, missionId);
-    await updateDoc(missionRef, {
-      volunteers: arrayRemove(volunteerId),
-      responsibles: arrayRemove(volunteerId),
-    });
+    
+    // Récupérer la mission avant de désinscrire (pour la notification)
+    const missionDoc = await getDoc(missionRef);
+    if (missionDoc.exists()) {
+      const missionData = missionDoc.data() as Mission;
+      
+      // Désinscrire le bénévole
+      await updateDoc(missionRef, {
+        volunteers: arrayRemove(volunteerId),
+        responsibles: arrayRemove(volunteerId),
+      });
+
+      // Envoyer la notification (ne pas bloquer si ça échoue)
+      notifyVolunteerUnassignment(volunteerId, { ...missionData, id: missionId }).catch((error) => {
+        console.error('Erreur lors de l\'envoi de la notification:', error);
+      });
+    } else {
+      // Mission introuvable, désinscrire quand même
+      await updateDoc(missionRef, {
+        volunteers: arrayRemove(volunteerId),
+        responsibles: arrayRemove(volunteerId),
+      });
+    }
   } catch (error) {
     console.error('Error admin unregistering volunteer:', error);
     throw new Error('Erreur lors de la désinscription du bénévole');

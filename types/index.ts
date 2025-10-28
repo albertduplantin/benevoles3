@@ -43,6 +43,44 @@ export interface VolunteerPreferences {
 }
 
 /**
+ * Notification Settings
+ */
+export interface NotificationSettings {
+  pushEnabled: boolean; // Notifications push activées
+  emailEnabled: boolean; // Notifications email activées
+  newAssignment: boolean; // Notification pour nouvelle affectation
+  missionUpdate: boolean; // Notification pour modification de mission
+  missionReminder: boolean; // Rappel avant mission
+  missionCancellation: boolean; // Notification pour annulation
+  categoryMessages: boolean; // Messages du responsable de catégorie
+  generalAnnouncements: boolean; // Annonces générales
+}
+
+/**
+ * Notification Type
+ */
+export type NotificationType = 
+  | 'new_assignment'
+  | 'mission_update'
+  | 'mission_reminder'
+  | 'mission_cancellation'
+  | 'category_message'
+  | 'general_announcement';
+
+/**
+ * Notification Payload
+ */
+export interface NotificationPayload {
+  type: NotificationType;
+  title: string;
+  body: string;
+  url?: string;
+  missionId?: string;
+  categoryId?: string;
+  data?: Record<string, string>;
+}
+
+/**
  * User Model
  */
 export interface User {
@@ -68,6 +106,8 @@ export interface User {
     sms: boolean;
   };
   preferences?: VolunteerPreferences; // Préférences du bénévole
+  fcmTokens?: string[]; // Tokens FCM pour notifications push (peut avoir plusieurs appareils)
+  notificationSettings?: NotificationSettings; // Paramètres détaillés de notifications
 }
 
 /**

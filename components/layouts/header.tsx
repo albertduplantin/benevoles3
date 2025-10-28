@@ -32,6 +32,7 @@ import {
   HeartIcon,
   WrenchIcon,
   SearchIcon,
+  BellIcon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -197,6 +198,12 @@ export function Header() {
                 <DropdownMenuLabel>Outils de maintenance</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
+                  <Link href="/dashboard/admin/notifications" className="cursor-pointer">
+                    <BellIcon className="mr-2 h-4 w-4" />
+                    Envoyer notifications
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/dashboard/admin/cleanup-auth" className="cursor-pointer">
                     <WrenchIcon className="mr-2 h-4 w-4" />
                     Nettoyage Auth
@@ -239,6 +246,12 @@ export function Header() {
                 <Link href="/dashboard/profile" className="cursor-pointer">
                   <UserIcon className="mr-2 h-4 w-4" />
                   Mon profil
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile/notifications" className="cursor-pointer">
+                  <BellIcon className="mr-2 h-4 w-4" />
+                  Notifications
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
