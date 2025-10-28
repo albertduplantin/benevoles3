@@ -114,12 +114,31 @@ export async function deleteVolunteer(volunteerId: string): Promise<void> {
       });
     });
 
-    // 3. Supprimer le compte utilisateur
+    // 3. Supprimer le document utilisateur de Firestore
     const userRef = doc(db, USERS, volunteerId);
     batch.delete(userRef);
 
-    // 4. Exécuter toutes les opérations
+    // 4. Exécuter toutes les opérations Firestore
     await batch.commit();
+
+    // 5. Supprimer le compte Firebase Authentication via API
+    try {
+      const response = await fetch('/api/delete-user-auth', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: volunteerId }),
+      });
+
+      if (!response.ok) {
+        // Log l'erreur mais ne bloque pas la suppression (Firestore est déjà fait)
+        console.warn('Erreur lors de la suppression du compte Auth:', await response.text());
+      }
+    } catch (authError) {
+      // Log l'erreur mais ne bloque pas (Firestore est déjà supprimé)
+      console.warn('Erreur lors de la suppression du compte Auth:', authError);
+    }
   } catch (error) {
     console.error('Error deleting volunteer:', error);
     throw new Error('Erreur lors de la suppression du bénévole');
