@@ -204,6 +204,12 @@ export function Header() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link href="/dashboard/debug-notifications" className="cursor-pointer">
+                    <SearchIcon className="mr-2 h-4 w-4" />
+                    Debug notifications
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/dashboard/admin/cleanup-auth" className="cursor-pointer">
                     <WrenchIcon className="mr-2 h-4 w-4" />
                     Nettoyage Auth
