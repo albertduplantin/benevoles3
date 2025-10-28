@@ -45,8 +45,8 @@ export default function SearchVolunteersPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   
   // Filtres
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('all');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('all');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [availableForPreFestival, setAvailableForPreFestival] = useState<boolean | null>(null);
   const [hasVehicle, setHasVehicle] = useState<boolean | null>(null);
@@ -140,14 +140,14 @@ export default function SearchVolunteersPage() {
     let results = volunteers.filter(v => hasPreferences(v));
     
     // Filtre par date + créneau
-    if (selectedDate) {
+    if (selectedDate && selectedDate !== 'all') {
       results = results.filter(v => {
         if (!v.preferences) return false;
         const prefs = v.preferences;
         
         // Nouveau format avec créneaux
         if (prefs.availableDateSlots && prefs.availableDateSlots[selectedDate]) {
-          if (!selectedTimeSlot) return true;
+          if (!selectedTimeSlot || selectedTimeSlot === 'all') return true;
           return prefs.availableDateSlots[selectedDate].includes(selectedTimeSlot as any);
         }
         
@@ -192,8 +192,8 @@ export default function SearchVolunteersPage() {
 
   // Réinitialiser les filtres
   const resetFilters = () => {
-    setSelectedDate('');
-    setSelectedTimeSlot('');
+    setSelectedDate('all');
+    setSelectedTimeSlot('all');
     setSelectedCategories([]);
     setAvailableForPreFestival(null);
     setHasVehicle(null);
@@ -245,7 +245,7 @@ export default function SearchVolunteersPage() {
                   <SelectValue placeholder="Toutes les dates" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les dates</SelectItem>
+                  <SelectItem value="all">Toutes les dates</SelectItem>
                   {festivalDays.map((day) => (
                     <SelectItem key={day.date} value={day.date}>
                       {day.label}
@@ -257,12 +257,12 @@ export default function SearchVolunteersPage() {
 
             <div className="space-y-2">
               <Label>Créneau horaire</Label>
-              <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot} disabled={!selectedDate}>
+              <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot} disabled={selectedDate === 'all'}>
                 <SelectTrigger>
                   <SelectValue placeholder="Tous les créneaux" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tous les créneaux</SelectItem>
+                  <SelectItem value="all">Tous les créneaux</SelectItem>
                   <SelectItem value="morning">Matin (jusqu'à 13h)</SelectItem>
                   <SelectItem value="afternoon">Après-midi (13h-18h)</SelectItem>
                   <SelectItem value="evening">Soir (après 18h)</SelectItem>
@@ -301,14 +301,14 @@ export default function SearchVolunteersPage() {
             <div className="space-y-2">
               <Label>Missions en amont</Label>
               <Select 
-                value={availableForPreFestival === null ? '' : availableForPreFestival.toString()} 
-                onValueChange={(v) => setAvailableForPreFestival(v === '' ? null : v === 'true')}
+                value={availableForPreFestival === null ? 'none' : availableForPreFestival.toString()} 
+                onValueChange={(v) => setAvailableForPreFestival(v === 'none' ? null : v === 'true')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Peu importe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Peu importe</SelectItem>
+                  <SelectItem value="none">Peu importe</SelectItem>
                   <SelectItem value="true">Disponible</SelectItem>
                   <SelectItem value="false">Non disponible</SelectItem>
                 </SelectContent>
@@ -318,14 +318,14 @@ export default function SearchVolunteersPage() {
             <div className="space-y-2">
               <Label>Possède un véhicule</Label>
               <Select 
-                value={hasVehicle === null ? '' : hasVehicle.toString()} 
-                onValueChange={(v) => setHasVehicle(v === '' ? null : v === 'true')}
+                value={hasVehicle === null ? 'none' : hasVehicle.toString()} 
+                onValueChange={(v) => setHasVehicle(v === 'none' ? null : v === 'true')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Peu importe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Peu importe</SelectItem>
+                  <SelectItem value="none">Peu importe</SelectItem>
                   <SelectItem value="true">Oui</SelectItem>
                   <SelectItem value="false">Non</SelectItem>
                 </SelectContent>
@@ -335,9 +335,9 @@ export default function SearchVolunteersPage() {
             <div className="space-y-2">
               <Label>Compétences</Label>
               <Select 
-                value={selectedSkills[0] || ''} 
+                value="add-skill" 
                 onValueChange={(v) => {
-                  if (v && !selectedSkills.includes(v)) {
+                  if (v && v !== 'add-skill' && !selectedSkills.includes(v)) {
                     setSelectedSkills([...selectedSkills, v]);
                   }
                 }}
@@ -346,6 +346,7 @@ export default function SearchVolunteersPage() {
                   <SelectValue placeholder="Ajouter une compétence" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="add-skill" disabled>Ajouter une compétence</SelectItem>
                   {commonSkills.map((skill) => (
                     <SelectItem key={skill} value={skill}>
                       {skill}
