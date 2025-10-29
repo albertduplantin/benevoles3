@@ -567,7 +567,7 @@ export async function exportVolunteerPlanningPDF(
     // Titre de la mission
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${index + 1}. ${mission.title}`, 20, yPos);
+    doc.text(`${index + 1}. ${cleanTextForPDF(mission.title)}`, 20, yPos);
     yPos += 8;
 
     // Infos de la mission
@@ -575,28 +575,29 @@ export async function exportVolunteerPlanningPDF(
     doc.setFont('helvetica', 'normal');
 
     if (mission.category) {
-      doc.text(`Catégorie: ${mission.category}`, 25, yPos);
+      doc.text(`Categorie: ${cleanTextForPDF(mission.category)}`, 25, yPos);
       yPos += 6;
     }
 
     if (mission.startDate) {
       const dateStr = format(
         new Date(mission.startDate),
-        "EEEE d MMMM yyyy 'à' HH'h'mm",
+        "EEEE d MMMM yyyy 'a' HH'h'mm",
         { locale: fr }
       );
-      doc.text(`Date: ${dateStr}`, 25, yPos);
+      doc.text(`Date: ${cleanTextForPDF(dateStr)}`, 25, yPos);
       yPos += 6;
     }
 
-    doc.text(`Lieu: ${mission.location}`, 25, yPos);
+    doc.text(`Lieu: ${cleanTextForPDF(mission.location)}`, 25, yPos);
     yPos += 6;
 
     doc.text(`Statut: ${getStatusLabel(mission.status)}`, 25, yPos);
     yPos += 6;
 
     // Description
-    const descLines = doc.splitTextToSize(mission.description, 160);
+    const cleanedDescription = cleanTextForPDF(mission.description);
+    const descLines = doc.splitTextToSize(cleanedDescription, 160);
     doc.text(descLines, 25, yPos);
     yPos += descLines.length * 5 + 5;
 
@@ -615,7 +616,7 @@ export async function exportVolunteerPlanningPDF(
           for (const categoryResponsible of categoryResponsibles) {
             doc.setTextColor(59, 130, 246); // Bleu pour le distinguer
             doc.setFont('helvetica', 'bold');
-            const responsibleContact = `• ${categoryResponsible.firstName} ${categoryResponsible.lastName} (Responsable) - ${categoryResponsible.phone || 'N/A'} - ${categoryResponsible.email}`;
+            const responsibleContact = `- ${cleanTextForPDF(categoryResponsible.firstName)} ${cleanTextForPDF(categoryResponsible.lastName)} (Responsable) - ${categoryResponsible.phone || 'N/A'} - ${categoryResponsible.email}`;
             const responsibleLines = doc.splitTextToSize(responsibleContact, 155);
             doc.text(responsibleLines, 30, yPos);
             yPos += responsibleLines.length * 5;
@@ -632,14 +633,14 @@ export async function exportVolunteerPlanningPDF(
     const participants = allParticipants.get(mission.id) || [];
     if (participants.length > 0) {
       participants.slice(0, 3).forEach((participant) => {
-        const contact = `• ${participant.firstName} ${participant.lastName} - ${participant.phone || 'N/A'} - ${participant.email}`;
+        const contact = `- ${cleanTextForPDF(participant.firstName)} ${cleanTextForPDF(participant.lastName)} - ${participant.phone || 'N/A'} - ${participant.email}`;
         const contactLines = doc.splitTextToSize(contact, 155);
         doc.text(contactLines, 30, yPos);
         yPos += contactLines.length * 5;
       });
 
       if (participants.length > 3) {
-        doc.text(`+ ${participants.length - 3} autre(s) bénévole(s)`, 30, yPos);
+        doc.text(`+ ${participants.length - 3} autre(s) benevole(s)`, 30, yPos);
         yPos += 5;
       }
     }
@@ -679,21 +680,58 @@ export async function exportVolunteerPlanningPDF(
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
     draft: 'Brouillon',
-    published: 'Publiée',
-    full: 'Complète',
-    cancelled: 'Annulée',
-    completed: 'Terminée',
+    published: 'Publiee',
+    full: 'Complete',
+    cancelled: 'Annulee',
+    completed: 'Terminee',
   };
   return labels[status] || status;
 }
 
 function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
-    volunteer: 'Bénévole',
+    volunteer: 'Benevole',
     mission_responsible: 'Responsable',
     admin: 'Administrateur',
   };
   return labels[role] || role;
+}
+
+/**
+ * Nettoie le texte pour l'export PDF en remplaçant les caractères spéciaux
+ * et les symboles qui ne sont pas supportés par jsPDF
+ */
+function cleanTextForPDF(text: string): string {
+  if (!text) return '';
+  
+  return text
+    // Remplacer les cases à cocher et symboles
+    .replace(/[☑✓✔]/g, '- ')
+    .replace(/[☐✗✘]/g, '- ')
+    .replace(/[•●]/g, '- ')
+    // Remplacer les accents et caractères spéciaux français
+    .replace(/[éèêë]/g, 'e')
+    .replace(/[àâä]/g, 'a')
+    .replace(/[îï]/g, 'i')
+    .replace(/[ôö]/g, 'o')
+    .replace(/[ùûü]/g, 'u')
+    .replace(/[ÿ]/g, 'y')
+    .replace(/[ç]/g, 'c')
+    .replace(/[ÉÈÊË]/g, 'E')
+    .replace(/[ÀÂÄÅ]/g, 'A')
+    .replace(/[ÎÏ]/g, 'I')
+    .replace(/[ÔÖ]/g, 'O')
+    .replace(/[ÙÛÜ]/g, 'U')
+    .replace(/[Ç]/g, 'C')
+    // Remplacer les apostrophes typographiques
+    .replace(/['']/g, "'")
+    .replace(/[""]/g, '"')
+    // Remplacer les tirets spéciaux
+    .replace(/[–—]/g, '-')
+    // Remplacer les espaces insécables
+    .replace(/\u00A0/g, ' ')
+    // Supprimer les autres caractères non ASCII
+    .replace(/[^\x00-\x7F]/g, '');
 }
 
 /**
