@@ -57,8 +57,18 @@ export async function requestNotificationPermission(): Promise<string | null> {
       console.log('Pas de token disponible');
       return null;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la demande de permission:', error);
+    
+    // Erreurs spécifiques avec messages clairs
+    if (error?.code === 'messaging/invalid-vapid-key') {
+      console.error('❌ VAPID KEY INVALIDE : Vérifiez NEXT_PUBLIC_FIREBASE_VAPID_KEY dans .env.local');
+    } else if (error?.message?.includes('atob') || error?.name === 'InvalidCharacterError') {
+      console.error('❌ TOKEN MAL ENCODÉ : La clé VAPID contient des caractères invalides');
+    } else if (error?.code === 'messaging/permission-blocked') {
+      console.warn('⚠️ Notifications bloquées par l\'utilisateur');
+    }
+    
     return null;
   }
 }
@@ -86,4 +96,5 @@ export function getNotificationPermission(): NotificationPermission | null {
   }
   return Notification.permission;
 }
+
 
