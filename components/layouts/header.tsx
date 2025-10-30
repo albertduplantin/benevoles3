@@ -340,6 +340,16 @@ export function Header() {
                   Mon profil
                 </Link>
 
+                {/* Notifications */}
+                <Link
+                  href="/dashboard/profile/notifications"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  <BellIcon className="h-5 w-5" />
+                  Notifications
+                </Link>
+
                 {/* Déconnexion */}
                 <button
                   onClick={() => {
