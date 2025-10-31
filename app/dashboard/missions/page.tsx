@@ -857,6 +857,24 @@ function MissionsPageContent() {
                                 <UserMinusIcon className="w-4 h-4" />
                               )}
                             </button>
+                          ) : mission.status === 'published' && isFull && mission.waitlist?.includes(user!.uid) ? (
+                            <button
+                              onClick={() => handleLeaveWaitlist(mission.id)}
+                              disabled={isJoiningWaitlist === mission.id}
+                              className="px-2 py-0.5 text-[10px] rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors disabled:opacity-50"
+                              title="Quitter la liste d'attente"
+                            >
+                              {isJoiningWaitlist === mission.id ? '...' : `Attente (${(mission.waitlist || []).indexOf(user!.uid) + 1})`}
+                            </button>
+                          ) : mission.status === 'published' && isFull ? (
+                            <button
+                              onClick={() => handleJoinWaitlist(mission.id)}
+                              disabled={isJoiningWaitlist === mission.id}
+                              className="px-2 py-0.5 text-[10px] rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors disabled:opacity-50"
+                              title="Rejoindre la liste d'attente"
+                            >
+                              {isJoiningWaitlist === mission.id ? '...' : 'Liste'}
+                            </button>
                           ) : (
                             <button
                               onClick={() => handleRegister(mission.id)}
