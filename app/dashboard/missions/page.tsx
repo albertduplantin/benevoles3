@@ -814,6 +814,7 @@ function MissionsPageContent() {
             {sortedMissions.map((mission) => {
               const isRegistered = user && mission.volunteers.includes(user.uid);
               const isFull = mission.volunteers.length >= mission.maxVolunteers;
+              const isOnWaitlist = user && mission.waitlist?.includes(user.uid);
               const canRegister = mission.status === 'published' && !isFull;
               
               return (
@@ -870,7 +871,7 @@ function MissionsPageContent() {
                             <button
                               onClick={() => handleJoinWaitlist(mission.id)}
                               disabled={isJoiningWaitlist === mission.id}
-                              className="p-1 rounded-full hover:bg-blue-100 text-blue-600 transition-colors disabled:opacity-50"
+                              className="p-1 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 transition-colors disabled:opacity-50"
                               title="Rejoindre la liste d'attente"
                             >
                               {isJoiningWaitlist === mission.id ? (
@@ -1087,14 +1088,14 @@ function MissionsPageContent() {
                           En attente ({(mission.waitlist || []).indexOf(user!.uid) + 1})
                         </Button>
                       ) : mission.status === 'published' && isFull ? (
-                        // Mission complète : bouton bleu pour rejoindre liste d'attente
+                        // Mission complète : bouton BLEU pour rejoindre liste d'attente
                         <Button
                           variant="outline"
                           size="icon"
                           onClick={() => handleJoinWaitlist(mission.id)}
                           disabled={isJoiningWaitlist === mission.id}
                           title="Rejoindre la liste d'attente"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
                         >
                           {isJoiningWaitlist === mission.id ? (
                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
