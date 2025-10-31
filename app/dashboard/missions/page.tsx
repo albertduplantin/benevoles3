@@ -870,10 +870,14 @@ function MissionsPageContent() {
                             <button
                               onClick={() => handleJoinWaitlist(mission.id)}
                               disabled={isJoiningWaitlist === mission.id}
-                              className="px-2 py-0.5 text-[10px] rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors disabled:opacity-50"
+                              className="p-1 rounded-full hover:bg-blue-100 text-blue-600 transition-colors disabled:opacity-50"
                               title="Rejoindre la liste d'attente"
                             >
-                              {isJoiningWaitlist === mission.id ? '...' : 'Liste'}
+                              {isJoiningWaitlist === mission.id ? (
+                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <UserPlusIcon className="w-4 h-4" />
+                              )}
                             </button>
                           ) : (
                             <button
@@ -914,14 +918,6 @@ function MissionsPageContent() {
             const isRegistered = user && mission.volunteers.includes(user.uid);
             const isFull = mission.volunteers.length >= mission.maxVolunteers;
             const isOnWaitlist = user && mission.waitlist?.includes(user.uid);
-            const canEdit = missionPermissions.get(mission.id)?.canEdit;
-            
-            // Debug: afficher l'état de la mission dans la console
-            console.log(`🔍 Mission: ${mission.title}`);
-            console.log(`   Status: ${mission.status}, Registered: ${isRegistered}, Full: ${isFull}, OnWaitlist: ${isOnWaitlist}`);
-            console.log(`   Volunteers: ${mission.volunteers.length}/${mission.maxVolunteers}`);
-            console.log(`   canEdit: ${canEdit}, userRole: ${user?.role}`);
-            console.log(`   Should show waitlist button: ${!isRegistered && mission.status === 'published' && isFull && !canEdit}`);
             
             return (
             <Card key={mission.id} className={mission.isUrgent ? 'border-red-500 border-2' : ''}>
@@ -1076,7 +1072,7 @@ function MissionsPageContent() {
                           )}
                         </Button>
                       ) : mission.status === 'published' && isFull && isOnWaitlist ? (
-                        // Sur la liste d'attente : bouton quitter
+                        // Sur la liste d'attente : afficher position
                         <Button
                           variant="outline"
                           size="sm"
@@ -1091,22 +1087,23 @@ function MissionsPageContent() {
                           En attente ({(mission.waitlist || []).indexOf(user!.uid) + 1})
                         </Button>
                       ) : mission.status === 'published' && isFull ? (
-                        // Mission complète : bouton liste d'attente
+                        // Mission complète : bouton bleu pour rejoindre liste d'attente
                         <Button
                           variant="outline"
-                          size="sm"
+                          size="icon"
                           onClick={() => handleJoinWaitlist(mission.id)}
                           disabled={isJoiningWaitlist === mission.id}
                           title="Rejoindre la liste d'attente"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           {isJoiningWaitlist === mission.id ? (
-                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mr-1"></div>
-                          ) : null}
-                          Liste d'attente
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                          ) : (
+                            <UserPlusIcon className="h-4 w-4" />
+                          )}
                         </Button>
                       ) : (
-                        // Places disponibles : bouton s'inscrire
+                        // Places disponibles : bouton vert pour s'inscrire
                         <Button
                           variant="outline"
                           size="icon"
