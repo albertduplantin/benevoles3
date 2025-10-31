@@ -318,11 +318,18 @@ export function MissionCalendar({ missions, currentUserId, currentUser, isAdmin,
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Badge variant={
-                  selectedMission.status === 'published' && selectedMission.volunteers.length < selectedMission.maxVolunteers
+                  selectedMission.status === 'published' && selectedMission.volunteers.length < selectedMission.maxVolunteers - 2
+                    ? 'default'
+                    : selectedMission.status === 'published' && selectedMission.volunteers.length >= selectedMission.maxVolunteers - 2 && selectedMission.volunteers.length < selectedMission.maxVolunteers
                     ? 'default'
                     : 'secondary'
+                } className={
+                  selectedMission.status === 'published' && selectedMission.volunteers.length >= selectedMission.maxVolunteers - 2 && selectedMission.volunteers.length < selectedMission.maxVolunteers
+                    ? 'bg-yellow-500'
+                    : ''
                 }>
-                  {selectedMission.status === 'published' && selectedMission.volunteers.length < selectedMission.maxVolunteers && 'Libre'}
+                  {selectedMission.status === 'published' && selectedMission.volunteers.length < selectedMission.maxVolunteers - 2 && 'Libre'}
+                  {selectedMission.status === 'published' && selectedMission.volunteers.length >= selectedMission.maxVolunteers - 2 && selectedMission.volunteers.length < selectedMission.maxVolunteers && 'Presque complète'}
                   {((selectedMission.status === 'published' && selectedMission.volunteers.length >= selectedMission.maxVolunteers) || selectedMission.status === 'full') && 'Complète'}
                   {selectedMission.status === 'draft' && 'Brouillon'}
                   {selectedMission.status === 'cancelled' && 'Annulée'}

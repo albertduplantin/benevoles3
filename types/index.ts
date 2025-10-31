@@ -130,6 +130,7 @@ export interface Mission {
   createdAt: Timestamp | Date;
   updatedAt?: Timestamp | Date;
   volunteers: string[]; // Array of User UIDs
+  waitlist?: string[]; // Array of User UIDs waiting for a spot
   // DEPRECATED: Use category-responsibles system instead
   responsibles: string[]; // DEPRECATED - Old per-mission responsible system
   pendingResponsibles: string[]; // DEPRECATED - Old responsibility request system

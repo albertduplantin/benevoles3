@@ -202,6 +202,10 @@ export async function unregisterFromMission(
 
       transaction.update(missionRef, updates);
     });
+    
+    // Après la désinscription, vérifier s'il y a des personnes en liste d'attente
+    // Note: On pourrait automatiquement inscrire le premier, mais c'est mieux de le notifier
+    // et le laisser s'inscrire lui-même pour confirmer sa disponibilité
   } catch (error: any) {
     console.error('Error unregistering from mission:', error);
     throw error;
@@ -246,6 +250,93 @@ export async function getAvailableSpots(missionId: string): Promise<number> {
   } catch (error) {
     console.error('Error getting available spots:', error);
     return 0;
+  }
+}
+
+/**
+ * Ajouter un bénévole à la liste d'attente d'une mission complète
+ */
+export async function joinWaitlist(
+  missionId: string,
+  userId: string
+): Promise<void> {
+  try {
+    const missionRef = doc(db, COLLECTIONS.MISSIONS, missionId);
+
+    await runTransaction(db, async (transaction) => {
+      const missionDoc = await transaction.get(missionRef);
+
+      if (!missionDoc.exists()) {
+        throw new Error('Mission introuvable');
+      }
+
+      const mission = missionDoc.data() as Mission;
+
+      // Vérifications
+      if (mission.volunteers.includes(userId)) {
+        throw new Error('Vous êtes déjà inscrit à cette mission');
+      }
+
+      if (mission.volunteers.length < mission.maxVolunteers) {
+        throw new Error('Cette mission a encore des places disponibles, vous pouvez vous inscrire directement');
+      }
+
+      const waitlist = mission.waitlist || [];
+      if (waitlist.includes(userId)) {
+        throw new Error('Vous êtes déjà sur la liste d\'attente');
+      }
+
+      // Ajouter à la liste d'attente
+      transaction.update(missionRef, {
+        waitlist: [...waitlist, userId],
+        updatedAt: serverTimestamp(),
+      });
+    });
+  } catch (error: any) {
+    console.error('Error joining waitlist:', error);
+    throw error;
+  }
+}
+
+/**
+ * Retirer un bénévole de la liste d'attente
+ */
+export async function leaveWaitlist(
+  missionId: string,
+  userId: string
+): Promise<void> {
+  try {
+    const missionRef = doc(db, COLLECTIONS.MISSIONS, missionId);
+
+    await updateDoc(missionRef, {
+      waitlist: arrayRemove(userId),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error: any) {
+    console.error('Error leaving waitlist:', error);
+    throw error;
+  }
+}
+
+/**
+ * Vérifier si un utilisateur est sur la liste d'attente
+ */
+export async function isUserOnWaitlist(
+  missionId: string,
+  userId: string
+): Promise<boolean> {
+  try {
+    const missionDoc = await getDoc(doc(db, COLLECTIONS.MISSIONS, missionId));
+
+    if (!missionDoc.exists()) {
+      return false;
+    }
+
+    const mission = missionDoc.data() as Mission;
+    return mission.waitlist?.includes(userId) || false;
+  } catch (error) {
+    console.error('Error checking waitlist:', error);
+    return false;
   }
 }
 

@@ -150,6 +150,7 @@ function MissionsPageContent() {
   const [showMyMissionsOnly, setShowMyMissionsOnly] = useState(false);
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [festivalDays, setFestivalDays] = useState<Array<{ date: string; label: string }>>([]);
+  const [searchQuery, setSearchQuery] = useState<string>(''); // Recherche textuelle
   
   // Filtres intelligents
   const [smartFilter, setSmartFilter] = useState<string | null>(null);
@@ -395,6 +396,18 @@ function MissionsPageContent() {
         return false;
       }
 
+      // Recherche textuelle
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchTitle = mission.title.toLowerCase().includes(query);
+        const matchDescription = mission.description.toLowerCase().includes(query);
+        const matchLocation = mission.location.toLowerCase().includes(query);
+        
+        if (!matchTitle && !matchDescription && !matchLocation) {
+          return false;
+        }
+      }
+
       // Filtres intelligents
       if (smartFilter) {
         const now = new Date();
@@ -438,7 +451,7 @@ function MissionsPageContent() {
 
       return true;
     });
-  }, [missions, filterCategory, filterDay, showMyMissionsOnly, showUrgentOnly, smartFilter, user, categoryIdToValueMap]);
+  }, [missions, filterCategory, filterDay, showMyMissionsOnly, showUrgentOnly, searchQuery, smartFilter, user, categoryIdToValueMap]);
 
   // Trier les missions : au long cours en premier, puis par date
   const sortedMissions = useMemo(() => {
@@ -460,12 +473,13 @@ function MissionsPageContent() {
     setShowMyMissionsOnly(false);
     setShowUrgentOnly(false);
     setSmartFilter(null);
+    setSearchQuery(''); // Reset recherche
     // Retirer le paramètre URL
     router.push('/dashboard/missions');
   };
 
   // Vérifier si des filtres sont actifs
-  const hasActiveFilters = filterCategory !== 'all' || filterDay !== 'all' || showMyMissionsOnly || showUrgentOnly || smartFilter !== null;
+  const hasActiveFilters = filterCategory !== 'all' || filterDay !== 'all' || showMyMissionsOnly || showUrgentOnly || smartFilter !== null || searchQuery.trim() !== '';
 
   // Handler pour exporter vers le calendrier
   const handleExportToCalendar = () => {
@@ -625,6 +639,33 @@ function MissionsPageContent() {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Recherche textuelle */}
+          <div className="space-y-2 mt-4">
+            <Label htmlFor="search" className="flex items-center gap-2">
+              <SearchIcon className="w-4 h-4" />
+              Recherche
+            </Label>
+            <div className="relative">
+              <Input
+                id="search"
+                type="text"
+                placeholder="Rechercher par titre, description ou lieu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pr-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="Effacer la recherche"
+                >
+                  <XIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Filtres Rapides - Sans encadré */}
@@ -846,8 +887,10 @@ function MissionsPageContent() {
                   </div>
                   <span
                     className={`text-xs px-2 py-1 rounded ${
-                      mission.status === 'published' && mission.volunteers.length < mission.maxVolunteers
+                      mission.status === 'published' && mission.volunteers.length < mission.maxVolunteers - 2
                         ? 'bg-green-100 text-green-800'
+                        : mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers - 2 && mission.volunteers.length < mission.maxVolunteers
+                        ? 'bg-yellow-100 text-yellow-800'
                         : (mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers) || mission.status === 'full'
                         ? 'bg-orange-100 text-orange-800'
                         : mission.status === 'draft'
@@ -855,7 +898,8 @@ function MissionsPageContent() {
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {mission.status === 'published' && mission.volunteers.length < mission.maxVolunteers && 'Libre'}
+                    {mission.status === 'published' && mission.volunteers.length < mission.maxVolunteers - 2 && 'Libre'}
+                    {mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers - 2 && mission.volunteers.length < mission.maxVolunteers && 'Presque complète'}
                     {((mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers) || mission.status === 'full') && 'Complète'}
                     {mission.status === 'draft' && 'Brouillon'}
                     {mission.status === 'cancelled' && 'Annulée'}
