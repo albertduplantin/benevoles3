@@ -317,10 +317,14 @@ export function MissionCalendar({ missions, currentUserId, currentUser, isAdmin,
             </DialogHeader>
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Badge variant={selectedMission.status === 'published' ? 'default' : 'secondary'}>
-                  {selectedMission.status === 'published' && 'Publiée'}
+                <Badge variant={
+                  selectedMission.status === 'published' && selectedMission.volunteers.length < selectedMission.maxVolunteers
+                    ? 'default'
+                    : 'secondary'
+                }>
+                  {selectedMission.status === 'published' && selectedMission.volunteers.length < selectedMission.maxVolunteers && 'Libre'}
+                  {((selectedMission.status === 'published' && selectedMission.volunteers.length >= selectedMission.maxVolunteers) || selectedMission.status === 'full') && 'Complète'}
                   {selectedMission.status === 'draft' && 'Brouillon'}
-                  {selectedMission.status === 'full' && 'Complète'}
                   {selectedMission.status === 'cancelled' && 'Annulée'}
                   {selectedMission.status === 'completed' && 'Terminée'}
                 </Badge>

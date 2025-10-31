@@ -846,18 +846,18 @@ function MissionsPageContent() {
                   </div>
                   <span
                     className={`text-xs px-2 py-1 rounded ${
-                      mission.status === 'published'
+                      mission.status === 'published' && mission.volunteers.length < mission.maxVolunteers
                         ? 'bg-green-100 text-green-800'
+                        : (mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers) || mission.status === 'full'
+                        ? 'bg-orange-100 text-orange-800'
                         : mission.status === 'draft'
                         ? 'bg-gray-100 text-gray-800'
-                        : mission.status === 'full'
-                        ? 'bg-orange-100 text-orange-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {mission.status === 'published' && 'Publiée'}
+                    {mission.status === 'published' && mission.volunteers.length < mission.maxVolunteers && 'Libre'}
+                    {((mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers) || mission.status === 'full') && 'Complète'}
                     {mission.status === 'draft' && 'Brouillon'}
-                    {mission.status === 'full' && 'Complète'}
                     {mission.status === 'cancelled' && 'Annulée'}
                     {mission.status === 'completed' && 'Terminée'}
                   </span>

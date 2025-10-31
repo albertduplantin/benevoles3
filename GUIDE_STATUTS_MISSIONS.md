@@ -86,13 +86,25 @@ Une mission peut avoir 5 statuts différents :
 
 Dans l'interface :
 
-| Statut | Badge | Couleur |
-|--------|-------|---------|
-| `draft` | Brouillon | Gris |
-| `published` | Publiée | Vert |
-| `full` | Complète | Orange |
-| `cancelled` | Annulée | Rouge |
-| `completed` | Terminée | Bleu |
+| Statut | Badge | Couleur | Condition |
+|--------|-------|---------|-----------|
+| `draft` | Brouillon | Gris | Mission en brouillon |
+| `published` | **Libre** | Vert | Mission publiée avec places disponibles |
+| `published` / `full` | **Complète** | Orange | Mission publiée sans place disponible |
+| `cancelled` | Annulée | Rouge | Mission annulée |
+| `completed` | Terminée | Bleu | Mission terminée |
+
+### 📊 Logique d'Affichage
+
+**"Libre" (Vert)** s'affiche quand :
+- Statut = `published`
+- ET nombre de bénévoles < places maximum
+- → Il reste des places, les bénévoles peuvent s'inscrire
+
+**"Complète" (Orange)** s'affiche quand :
+- Statut = `published` ET nombre de bénévoles ≥ places maximum
+- OU statut = `full`
+- → Plus de place disponible
 
 ---
 
