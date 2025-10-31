@@ -914,9 +914,14 @@ function MissionsPageContent() {
             const isRegistered = user && mission.volunteers.includes(user.uid);
             const isFull = mission.volunteers.length >= mission.maxVolunteers;
             const isOnWaitlist = user && mission.waitlist?.includes(user.uid);
+            const canEdit = missionPermissions.get(mission.id)?.canEdit;
             
             // Debug: afficher l'état de la mission dans la console
-            console.log(`Mission: ${mission.title}, Status: ${mission.status}, Registered: ${isRegistered}, Full: ${isFull}, OnWaitlist: ${isOnWaitlist}, Volunteers: ${mission.volunteers.length}/${mission.maxVolunteers}`);
+            console.log(`🔍 Mission: ${mission.title}`);
+            console.log(`   Status: ${mission.status}, Registered: ${isRegistered}, Full: ${isFull}, OnWaitlist: ${isOnWaitlist}`);
+            console.log(`   Volunteers: ${mission.volunteers.length}/${mission.maxVolunteers}`);
+            console.log(`   canEdit: ${canEdit}, userRole: ${user?.role}`);
+            console.log(`   Should show waitlist button: ${!isRegistered && mission.status === 'published' && isFull && !canEdit}`);
             
             return (
             <Card key={mission.id} className={mission.isUrgent ? 'border-red-500 border-2' : ''}>
