@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getPublishedMissions, getVisibleMissions, getAllMissions, deleteMission, duplicateMission } from '@/lib/firebase/missions';
-import { registerToMission, unregisterFromMission } from '@/lib/firebase/registrations';
+import { registerToMission, unregisterFromMission, joinWaitlist, leaveWaitlist } from '@/lib/firebase/registrations';
 import { MissionClient, MissionStatus, MissionType, UserClient } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -164,6 +164,9 @@ function MissionsPageContent() {
   
   // État pour l'inscription/désinscription
   const [isRegistering, setIsRegistering] = useState<string | null>(null);
+  
+  // État pour la liste d'attente
+  const [isJoiningWaitlist, setIsJoiningWaitlist] = useState<string | null>(null);
   
   // État pour l'export de planning
   const [missionParticipants, setMissionParticipants] = useState<Map<string, UserClient[]>>(new Map());
@@ -342,6 +345,50 @@ function MissionsPageContent() {
       toast.error(error.message || 'Erreur lors de la désinscription');
     } finally {
       setIsRegistering(null);
+    }
+  };
+
+  // Fonction pour rejoindre la liste d'attente
+  const handleJoinWaitlist = async (missionId: string) => {
+    if (!user) return;
+    
+    setIsJoiningWaitlist(missionId);
+    try {
+      await joinWaitlist(missionId, user.uid);
+      // Mettre à jour la mission dans l'état local
+      setMissions(missions.map(m => 
+        m.id === missionId 
+          ? { ...m, waitlist: [...(m.waitlist || []), user.uid] }
+          : m
+      ));
+      toast.success('Ajouté à la liste d\'attente ! Vous serez notifié si une place se libère.');
+    } catch (error: any) {
+      console.error('Error joining waitlist:', error);
+      toast.error(error.message || 'Erreur lors de l\'ajout à la liste d\'attente');
+    } finally {
+      setIsJoiningWaitlist(null);
+    }
+  };
+
+  // Fonction pour quitter la liste d'attente
+  const handleLeaveWaitlist = async (missionId: string) => {
+    if (!user) return;
+    
+    setIsJoiningWaitlist(missionId);
+    try {
+      await leaveWaitlist(missionId, user.uid);
+      // Mettre à jour la mission dans l'état local
+      setMissions(missions.map(m => 
+        m.id === missionId 
+          ? { ...m, waitlist: (m.waitlist || []).filter(id => id !== user.uid) }
+          : m
+      ));
+      toast.success('Retiré de la liste d\'attente');
+    } catch (error: any) {
+      console.error('Error leaving waitlist:', error);
+      toast.error(error.message || 'Erreur lors du retrait de la liste d\'attente');
+    } finally {
+      setIsJoiningWaitlist(null);
     }
   };
 
@@ -924,6 +971,11 @@ function MissionsPageContent() {
                   <p className="text-muted-foreground">
                     👥 {mission.volunteers.length}/{mission.maxVolunteers} bénévoles
                   </p>
+                  {mission.waitlist && mission.waitlist.length > 0 && (
+                    <p className="text-muted-foreground text-xs text-blue-600">
+                      📋 {mission.waitlist.length} personne{mission.waitlist.length > 1 ? 's' : ''} en attente
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" asChild>
@@ -977,6 +1029,7 @@ function MissionsPageContent() {
                   ) : (
                     <>
                       {user && mission.volunteers.includes(user.uid) ? (
+                        // Déjà inscrit : bouton désinscrire
                         <Button
                           variant="outline"
                           size="icon"
@@ -991,21 +1044,49 @@ function MissionsPageContent() {
                             <UserMinusIcon className="h-4 w-4" />
                           )}
                         </Button>
+                      ) : mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers && mission.waitlist?.includes(user!.uid) ? (
+                        // Sur la liste d'attente : bouton quitter
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLeaveWaitlist(mission.id)}
+                          disabled={isJoiningWaitlist === mission.id}
+                          title="Quitter la liste d'attente"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
+                        >
+                          {isJoiningWaitlist === mission.id ? (
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mr-1"></div>
+                          ) : null}
+                          En attente ({(mission.waitlist || []).indexOf(user!.uid) + 1})
+                        </Button>
+                      ) : mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers ? (
+                        // Mission complète : bouton liste d'attente
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleJoinWaitlist(mission.id)}
+                          disabled={isJoiningWaitlist === mission.id}
+                          title="Rejoindre la liste d'attente"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
+                        >
+                          {isJoiningWaitlist === mission.id ? (
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mr-1"></div>
+                          ) : null}
+                          Liste d'attente
+                        </Button>
                       ) : (
+                        // Places disponibles : bouton s'inscrire
                         <Button
                           variant="outline"
                           size="icon"
                           onClick={() => handleRegister(mission.id)}
                           disabled={
                             isRegistering === mission.id ||
-                            mission.status !== 'published' ||
-                            mission.volunteers.length >= mission.maxVolunteers
+                            mission.status !== 'published'
                           }
                           title={
                             mission.status !== 'published'
                               ? 'Mission non publiée'
-                              : mission.volunteers.length >= mission.maxVolunteers
-                              ? 'Mission complète'
                               : 'S\'inscrire'
                           }
                           className="text-green-600 hover:text-green-700 hover:bg-green-50"
