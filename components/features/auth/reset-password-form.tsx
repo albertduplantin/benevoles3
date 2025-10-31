@@ -73,6 +73,17 @@ export function ResetPasswordForm() {
             </ul>
           </div>
 
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
+            <p className="text-sm text-amber-900">
+              <strong>💡 Vous ne voyez pas l&apos;email ?</strong>
+            </p>
+            <ul className="text-sm text-amber-800 mt-2 space-y-1 list-disc list-inside">
+              <li>Vérifiez votre dossier <strong>SPAM / Indésirables</strong></li>
+              <li>Cherchez un email de &quot;Festival Films Courts&quot;</li>
+              <li>Si vous le trouvez, marquez-le comme &quot;Non spam&quot;</li>
+            </ul>
+          </div>
+
           <div className="text-sm text-muted-foreground text-center">
             Vous n&apos;avez pas reçu l&apos;email ? Vérifiez vos spams ou
             <button

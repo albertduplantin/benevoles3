@@ -324,3 +324,7 @@ Aucune modification des règles Firestore n'est nécessaire. Les préférences f
 
 **Fonctionnalité créée le 28 Octobre 2025**
 
+
+
+
+

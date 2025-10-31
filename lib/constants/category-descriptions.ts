@@ -48,3 +48,7 @@ export function getCategoryDescription(categoryValue: string): string {
   return CATEGORY_DESCRIPTIONS[categoryValue] || 'Mission pour le festival';
 }
 
+
+
+
+
