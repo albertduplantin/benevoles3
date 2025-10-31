@@ -910,7 +910,15 @@ function MissionsPageContent() {
 
           {/* Vue desktop (grille) */}
           <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {sortedMissions.map((mission) => (
+          {sortedMissions.map((mission) => {
+            const isRegistered = user && mission.volunteers.includes(user.uid);
+            const isFull = mission.volunteers.length >= mission.maxVolunteers;
+            const isOnWaitlist = user && mission.waitlist?.includes(user.uid);
+            
+            // Debug: afficher l'état de la mission dans la console
+            console.log(`Mission: ${mission.title}, Status: ${mission.status}, Registered: ${isRegistered}, Full: ${isFull}, OnWaitlist: ${isOnWaitlist}, Volunteers: ${mission.volunteers.length}/${mission.maxVolunteers}`);
+            
+            return (
             <Card key={mission.id} className={mission.isUrgent ? 'border-red-500 border-2' : ''}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -1046,7 +1054,7 @@ function MissionsPageContent() {
                     </>
                   ) : (
                     <>
-                      {user && mission.volunteers.includes(user.uid) ? (
+                      {isRegistered ? (
                         // Déjà inscrit : bouton désinscrire
                         <Button
                           variant="outline"
@@ -1062,7 +1070,7 @@ function MissionsPageContent() {
                             <UserMinusIcon className="h-4 w-4" />
                           )}
                         </Button>
-                      ) : mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers && mission.waitlist?.includes(user!.uid) ? (
+                      ) : mission.status === 'published' && isFull && isOnWaitlist ? (
                         // Sur la liste d'attente : bouton quitter
                         <Button
                           variant="outline"
@@ -1077,7 +1085,7 @@ function MissionsPageContent() {
                           ) : null}
                           En attente ({(mission.waitlist || []).indexOf(user!.uid) + 1})
                         </Button>
-                      ) : mission.status === 'published' && mission.volunteers.length >= mission.maxVolunteers ? (
+                      ) : mission.status === 'published' && isFull ? (
                         // Mission complète : bouton liste d'attente
                         <Button
                           variant="outline"
@@ -1121,7 +1129,8 @@ function MissionsPageContent() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
         </>
       )}
