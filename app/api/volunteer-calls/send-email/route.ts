@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from '@/lib/firebase/admin';
+import { Resend } from 'resend';
 
 export const runtime = 'nodejs';
+
+// Initialiser Resend avec la clé API
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * API pour envoyer un appel à bénévoles par email
@@ -151,33 +155,107 @@ export async function POST(req: NextRequest) {
       status: 'sending',
     });
 
-    // Envoyer les emails (en arrière-plan)
-    // Note: Dans un environnement de production, utilisez un service comme SendGrid, Mailgun, ou Resend
-    // Pour l'instant, on simule l'envoi et on log
-    console.log(`📧 Envoi d'appel à ${recipients.length} bénévoles`);
-    console.log(`Sujet: ${subject}`);
-    console.log(`Destinataires:`, recipients.map(r => `${r.firstName} <${r.email}>`).join(', '));
+    // Vérifier que la clé API Resend est configurée
+    if (!process.env.RESEND_API_KEY) {
+      console.warn('⚠️ RESEND_API_KEY non configurée - Envoi simulé');
+      console.log(`📧 Simulation d'envoi à ${recipients.length} bénévoles`);
+      console.log(`Sujet: ${subject}`);
+      console.log(`Destinataires:`, recipients.map(r => `${r.firstName} <${r.email}>`).join(', '));
+      
+      // Mettre à jour le statut comme "simulé"
+      await db.collection('volunteer-calls').doc(callDoc.id).update({
+        status: 'simulated',
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      
+      return NextResponse.json({
+        success: true,
+        callId: callDoc.id,
+        recipientCount: recipients.length,
+        recipients: recipients.map(r => ({
+          email: r.email,
+          firstName: r.firstName,
+        })),
+        message: `⚠️ Envoi simulé à ${recipients.length} bénévole(s) (RESEND_API_KEY non configurée)`,
+        simulated: true,
+      });
+    }
 
-    // TODO: Intégrer avec un vrai service d'email
-    // Exemple avec SendGrid:
-    // const sgMail = require('@sendgrid/mail');
-    // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    // 
-    // const messages = recipients.map(r => ({
-    //   to: r.email,
-    //   from: 'noreply@benevoles3.vercel.app',
-    //   subject: subject,
-    //   html: htmlContent.replace('{{firstName}}', r.firstName),
-    //   text: textContent,
-    // }));
-    // 
-    // await sgMail.send(messages);
+    // Envoyer les emails avec Resend
+    console.log(`📧 Envoi réel d'emails à ${recipients.length} bénévoles via Resend`);
+    
+    try {
+      // Resend permet d'envoyer en batch (max 100 à la fois)
+      const batchSize = 100;
+      const batches = [];
+      
+      for (let i = 0; i < recipients.length; i += batchSize) {
+        const batch = recipients.slice(i, i + batchSize);
+        batches.push(batch);
+      }
 
-    // Mettre à jour le statut
-    await db.collection('volunteer-calls').doc(callDoc.id).update({
-      status: 'sent',
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      let totalSent = 0;
+      const errors: any[] = [];
+
+      for (const batch of batches) {
+        try {
+          // Envoyer chaque email individuellement pour personnaliser le prénom
+          const sendPromises = batch.map(recipient => 
+            resend.emails.send({
+              from: 'Festival Films Courts <noreply@updates.resend.dev>', // À remplacer par votre domaine vérifié
+              to: recipient.email,
+              subject: subject,
+              html: htmlContent.replace(/{{firstName}}/g, recipient.firstName),
+              text: textContent,
+            })
+          );
+
+          const results = await Promise.allSettled(sendPromises);
+          
+          results.forEach((result, index) => {
+            if (result.status === 'fulfilled') {
+              totalSent++;
+            } else {
+              errors.push({
+                email: batch[index].email,
+                error: result.reason,
+              });
+            }
+          });
+        } catch (batchError) {
+          console.error('Erreur lors de l\'envoi d\'un batch:', batchError);
+          errors.push({ batch: true, error: batchError });
+        }
+      }
+
+      console.log(`✅ ${totalSent}/${recipients.length} emails envoyés avec succès`);
+      if (errors.length > 0) {
+        console.error(`❌ ${errors.length} erreurs d'envoi:`, errors);
+      }
+
+      // Mettre à jour le statut
+      await db.collection('volunteer-calls').doc(callDoc.id).update({
+        status: totalSent > 0 ? 'sent' : 'failed',
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        sentCount: totalSent,
+        errorCount: errors.length,
+        errors: errors.slice(0, 10), // Garder max 10 erreurs
+      });
+
+    } catch (emailError: any) {
+      console.error('Erreur lors de l\'envoi des emails:', emailError);
+      
+      // Mettre à jour le statut comme "failed"
+      await db.collection('volunteer-calls').doc(callDoc.id).update({
+        status: 'failed',
+        error: emailError.message,
+      });
+
+      return NextResponse.json(
+        { error: `Erreur d'envoi: ${emailError.message}` },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
