@@ -61,6 +61,7 @@ export default function VolunteerCallPage() {
 
   // Sélection des missions
   const [selectedMissionIds, setSelectedMissionIds] = useState<Set<string>>(new Set());
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Personnalisation
   const [customIntro, setCustomIntro] = useState('');
@@ -109,12 +110,13 @@ export default function VolunteerCallPage() {
   // Récupérer toutes les missions incomplètes
   const allIncompleteMissions = useMemo(() => getIncompleteMissions(missions), [missions]);
 
-  // Initialiser la sélection avec toutes les missions
+  // Initialiser la sélection avec toutes les missions (une seule fois au chargement)
   useEffect(() => {
-    if (allIncompleteMissions.length > 0 && selectedMissionIds.size === 0) {
+    if (allIncompleteMissions.length > 0 && !hasInitialized) {
       setSelectedMissionIds(new Set(allIncompleteMissions.map(m => m.id)));
+      setHasInitialized(true);
     }
-  }, [allIncompleteMissions, selectedMissionIds.size]);
+  }, [allIncompleteMissions, hasInitialized]);
 
   // Extraire toutes les catégories uniques
   const allCategories = useMemo(() => {
