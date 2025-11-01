@@ -1,9 +1,18 @@
 import { MissionClient } from '@/types';
 
+interface MessageOptions {
+  customIntro?: string;
+  festivalName?: string;
+  festivalDates?: string;
+}
+
 /**
  * Générer un message d'appel aux bénévoles pour les missions incomplètes
  */
-export function generateVolunteerCallMessage(incompleteMissions: MissionClient[]): string {
+export function generateVolunteerCallMessage(
+  incompleteMissions: MissionClient[],
+  options?: MessageOptions
+): string {
   if (incompleteMissions.length === 0) {
     return "Toutes les missions sont complètes ! Aucun appel nécessaire pour le moment.";
   }
@@ -13,8 +22,11 @@ export function generateVolunteerCallMessage(incompleteMissions: MissionClient[]
     0
   );
 
-  let message = `Bonjour à tous,\n\n`;
-  message += `Nous avons encore besoin de ${totalPlacesNeeded} bénévole${totalPlacesNeeded > 1 ? 's' : ''} pour compléter nos missions du Festival Films Courts de Dinan (19-23 novembre 2025).\n\n`;
+  const festivalName = options?.festivalName || 'Festival Films Courts de Dinan';
+  const festivalDates = options?.festivalDates || '19-23 novembre 2025';
+
+  let message = options?.customIntro || `Bonjour à tous,\n\n`;
+  message += `Nous avons encore besoin de ${totalPlacesNeeded} bénévole${totalPlacesNeeded > 1 ? 's' : ''} pour compléter nos missions du ${festivalName} (${festivalDates}).\n\n`;
   message += `Voici les missions qui ont besoin de vous :\n\n`;
 
   incompleteMissions.forEach((mission, index) => {
@@ -53,7 +65,10 @@ export function generateVolunteerCallMessage(incompleteMissions: MissionClient[]
 /**
  * Générer un message HTML pour email
  */
-export function generateVolunteerCallHTML(incompleteMissions: MissionClient[]): string {
+export function generateVolunteerCallHTML(
+  incompleteMissions: MissionClient[],
+  options?: MessageOptions
+): string {
   if (incompleteMissions.length === 0) {
     return "<p>Toutes les missions sont complètes !</p>";
   }
@@ -63,11 +78,17 @@ export function generateVolunteerCallHTML(incompleteMissions: MissionClient[]): 
     0
   );
 
+  const festivalName = options?.festivalName || 'Festival Films Courts de Dinan';
+  const festivalDates = options?.festivalDates || '19-23 novembre 2025';
+  const customIntro = options?.customIntro 
+    ? `<p>${options.customIntro.replace(/\n/g, '<br>')}</p>` 
+    : `<p>Bonjour à tous,</p>`;
+
   let html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #2563eb;">🎬 Appel aux Bénévoles</h2>
-      <p>Bonjour à tous,</p>
-      <p>Nous avons encore besoin de <strong>${totalPlacesNeeded} bénévole${totalPlacesNeeded > 1 ? 's' : ''}</strong> pour compléter nos missions du Festival Films Courts de Dinan (19-23 novembre 2025).</p>
+      ${customIntro}
+      <p>Nous avons encore besoin de <strong>${totalPlacesNeeded} bénévole${totalPlacesNeeded > 1 ? 's' : ''}</strong> pour compléter nos missions du ${festivalName} (${festivalDates}).</p>
       
       <h3 style="color: #1d4ed8;">Missions disponibles :</h3>
   `;

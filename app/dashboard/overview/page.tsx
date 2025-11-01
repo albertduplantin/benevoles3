@@ -14,7 +14,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
 import { FullProgramExportButton } from '@/components/features/exports/full-program-export-button';
-import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
+// 🚧 MODE PREVIEW : Page dédiée pour le générateur d'appel aux bénévoles (plus d'import de modal)
+// Pour revenir à l'ancienne version, décommentez la ligne ci-dessous
+// import { VolunteerCallModal } from '@/components/features/admin/volunteer-call-modal';
 import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
 import { ResponsibleCategoriesBanner } from '@/components/features/category-responsibles/responsible-categories-banner';
 import { PostFestivalReport } from '@/components/features/admin/post-festival-report';
@@ -32,6 +34,7 @@ import {
   PlusIcon,
   Download,
   Loader2,
+  MegaphoneIcon,
 } from 'lucide-react';
 import { exportVolunteerMissionGridExcel } from '@/lib/utils/excel-export';
 import { toast } from 'sonner';
@@ -636,11 +639,26 @@ export default function DashboardOverviewPage() {
                   Communication
                 </CardTitle>
                 <CardDescription>
-                  Générez des appels aux bénévoles
+                  Générez des appels aux bénévoles (Version Améliorée 🚀)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <VolunteerCallModal missions={allMissions} />
+                {/* 🚧 MODE PREVIEW : Nouvelle version - page dédiée au lieu d'un modal */}
+                {/* Pour revenir à l'ancienne version, commentez les 3 lignes ci-dessous et décommentez celle d'après */}
+                <Button 
+                  onClick={() => router.push('/dashboard/volunteer-call')}
+                  className="w-full"
+                  size="lg"
+                >
+                  <MegaphoneIcon className="h-5 w-5 mr-2" />
+                  Générer un appel aux bénévoles
+                  {allMissions.filter(m => m.status === 'published' && m.volunteers.length < m.maxVolunteers && m.isUrgent).length > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {allMissions.filter(m => m.status === 'published' && m.volunteers.length < m.maxVolunteers && m.isUrgent).length} urgent{allMissions.filter(m => m.status === 'published' && m.volunteers.length < m.maxVolunteers && m.isUrgent).length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </Button>
+                {/* <VolunteerCallModal missions={allMissions} /> */}
               </CardContent>
             </Card>
 
@@ -770,7 +788,20 @@ export default function DashboardOverviewPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VolunteerCallModal missions={coordinatingMissions} />
+              {/* 🚧 MODE PREVIEW : Nouvelle version - page dédiée au lieu d'un modal */}
+              <Button 
+                onClick={() => router.push('/dashboard/volunteer-call')}
+                className="w-full"
+                size="lg"
+              >
+                <MegaphoneIcon className="h-5 w-5 mr-2" />
+                Générer un appel aux bénévoles
+                {coordinatingMissions.filter(m => m.status === 'published' && m.volunteers.length < m.maxVolunteers && m.isUrgent).length > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {coordinatingMissions.filter(m => m.status === 'published' && m.volunteers.length < m.maxVolunteers && m.isUrgent).length} urgent{coordinatingMissions.filter(m => m.status === 'published' && m.volunteers.length < m.maxVolunteers && m.isUrgent).length > 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </Button>
             </CardContent>
           </Card>
 
