@@ -20,6 +20,7 @@ import { FullProgramExportButton } from '@/components/features/exports/full-prog
 import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
 import { ResponsibleCategoriesBanner } from '@/components/features/category-responsibles/responsible-categories-banner';
 import { PostFestivalReport } from '@/components/features/admin/post-festival-report';
+import { TestResendButton } from '@/components/features/admin/test-resend-button';
 import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
 import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
 import { MissionCategoryClient } from '@/types/category';
@@ -659,6 +660,13 @@ export default function DashboardOverviewPage() {
                   )}
                 </Button>
                 {/* <VolunteerCallModal missions={allMissions} /> */}
+              </CardContent>
+            </Card>
+
+            {/* Test Resend */}
+            <Card>
+              <CardContent className="pt-6">
+                <TestResendButton />
               </CardContent>
             </Card>
 
