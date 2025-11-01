@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     
     // 3. Préparer l'email de test
     const testEmail = {
-      from: 'Festival Films Courts <noreply@updates.resend.dev>',
+      from: 'Festival Films Courts <onboarding@resend.dev>',
       to: 'topinambour124@gmail.com',
       subject: '🧪 Test Resend - Appel Bénévoles Fonctionnel',
       html: `

@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
           // Envoyer chaque email individuellement pour personnaliser le prénom
           const sendPromises = batch.map(recipient => 
             resend.emails.send({
-              from: 'Festival Films Courts <noreply@updates.resend.dev>', // À remplacer par votre domaine vérifié
+              from: 'Festival Films Courts <onboarding@resend.dev>', // Domaine vérifié par défaut Resend
               to: recipient.email,
               subject: subject,
               html: htmlContent.replace(/{{firstName}}/g, recipient.firstName),
