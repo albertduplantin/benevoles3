@@ -25,8 +25,10 @@ export function generateVolunteerCallMessage(
   const festivalName = options?.festivalName || 'Festival Films Courts de Dinan';
   const festivalDates = options?.festivalDates || '19-23 novembre 2025';
 
-  let message = options?.customIntro || `Bonjour à tous,\n\n`;
-  message += `Nous avons encore besoin de ${totalPlacesNeeded} bénévole${totalPlacesNeeded > 1 ? 's' : ''} pour compléter nos missions du ${festivalName} (${festivalDates}).\n\n`;
+  // Message par défaut avec calcul dynamique des places restantes
+  const defaultIntro = `Bonjour à tous,\n\nIl reste encore ${totalPlacesNeeded} place${totalPlacesNeeded > 1 ? 's' : ''} restante${totalPlacesNeeded > 1 ? 's' : ''} pour compléter nos missions du ${festivalName} (${festivalDates}).\n\n`;
+  
+  let message = options?.customIntro || defaultIntro;
   message += `Voici les missions qui ont besoin de vous :\n\n`;
 
   incompleteMissions.forEach((mission, index) => {
@@ -80,15 +82,18 @@ export function generateVolunteerCallHTML(
 
   const festivalName = options?.festivalName || 'Festival Films Courts de Dinan';
   const festivalDates = options?.festivalDates || '19-23 novembre 2025';
+  
+  // Message par défaut HTML avec calcul dynamique
+  const defaultIntroHTML = `<p>Bonjour à tous,</p><p>Il reste encore <strong>${totalPlacesNeeded} place${totalPlacesNeeded > 1 ? 's' : ''} restante${totalPlacesNeeded > 1 ? 's' : ''}</strong> pour compléter nos missions du ${festivalName} (${festivalDates}).</p>`;
+  
   const customIntro = options?.customIntro 
     ? `<p>${options.customIntro.replace(/\n/g, '<br>')}</p>` 
-    : `<p>Bonjour à tous,</p>`;
+    : defaultIntroHTML;
 
   let html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #2563eb;">🎬 Appel aux Bénévoles</h2>
       ${customIntro}
-      <p>Nous avons encore besoin de <strong>${totalPlacesNeeded} bénévole${totalPlacesNeeded > 1 ? 's' : ''}</strong> pour compléter nos missions du ${festivalName} (${festivalDates}).</p>
       
       <h3 style="color: #1d4ed8;">Missions disponibles :</h3>
   `;
@@ -142,13 +147,33 @@ export function generateVolunteerCallHTML(
 }
 
 /**
- * Obtenir les missions incomplètes
+ * Obtenir les missions incomplètes (publiées, avec places disponibles, et non terminées)
  */
 export function getIncompleteMissions(missions: MissionClient[]): MissionClient[] {
-  return missions.filter(
-    (mission) =>
-      mission.status === 'published' && mission.volunteers.length < mission.maxVolunteers
-  );
+  const now = new Date();
+  
+  return missions.filter((mission) => {
+    // Doit être publiée et avoir des places disponibles
+    if (mission.status !== 'published' || mission.volunteers.length >= mission.maxVolunteers) {
+      return false;
+    }
+    
+    // Exclure les missions terminées (dans le passé)
+    if (mission.endDate) {
+      const endDate = new Date(mission.endDate);
+      if (endDate < now) {
+        return false; // Mission terminée
+      }
+    } else if (mission.startDate) {
+      // Si pas de endDate, on considère que la mission se termine à startDate
+      const startDate = new Date(mission.startDate);
+      if (startDate < now) {
+        return false; // Mission passée
+      }
+    }
+    
+    return true;
+  });
 }
 
 /**
@@ -167,5 +192,19 @@ export function getVolunteerCallStats(missions: MissionClient[]) {
     totalPlacesNeeded,
     urgentMissions: urgentMissions.length,
   };
+}
+
+/**
+ * Générer le message d'introduction par défaut pré-rempli
+ */
+export function generateDefaultIntroMessage(
+  totalPlaces: number,
+  festivalName?: string,
+  festivalDates?: string
+): string {
+  const festival = festivalName || 'Festival Films Courts de Dinan';
+  const dates = festivalDates || '19-23 novembre 2025';
+  
+  return `Bonjour à tous,\n\nIl reste encore ${totalPlaces} place${totalPlaces > 1 ? 's' : ''} restante${totalPlaces > 1 ? 's' : ''} pour compléter nos missions du ${festival} (${dates}).`;
 }
 

@@ -73,5 +73,18 @@ service cloud.firestore {
       allow create: if true; // Permettre la création depuis l'API (via Admin SDK si nécessaire)
       allow update, delete: if false; // Les logs ne peuvent pas être modifiés ou supprimés
     }
+    
+    match /notifications/{notificationId} {
+      // Lecture : uniquement ses propres notifications
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      // Création : depuis l'API (via Admin SDK)
+      allow create: if true;
+      // Mise à jour : uniquement pour marquer comme lu (champ 'read')
+      allow update: if isAuthenticated() 
+                    && request.auth.uid == resource.data.userId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+      // Suppression : ses propres notifications ou admin
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+    }
   }
 }

@@ -37,7 +37,7 @@ Cette clé API est **CONFIDENTIELLE** :
 
    **Value** :
    ```
-   re_jJaA821r_2zSBLxehxUNFjAtsiLGw4hGv
+   [COLLEZ VOTRE CLE RESEND ICI - Elle commence par re_]
    ```
 
 3. **Environments** - Cochez les 3 cases :
@@ -172,7 +172,7 @@ Si vous voulez tester en local aussi :
 
 1. **Créez ou modifiez** `.env.local` dans `benevoles3/` :
    ```bash
-   RESEND_API_KEY=re_jJaA821r_2zSBLxehxUNFjAtsiLGw4hGv
+   RESEND_API_KEY=[VOTRE_CLE_RESEND_ICI]
    ```
 
 2. **Redémarrez** le serveur :

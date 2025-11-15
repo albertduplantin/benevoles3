@@ -18,6 +18,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar';
 import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
+import { NotificationBell } from '@/components/features/notifications/notification-bell';
 import {
   MenuIcon,
   HomeIcon,
@@ -218,6 +219,9 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          
+          {/* Notifications en temps réel (admins et responsables) */}
+          <NotificationBell />
           
           <div className="hidden md:block">
             <InstallPWAButton />

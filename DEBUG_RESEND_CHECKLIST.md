@@ -234,7 +234,7 @@ Si vous voyez une erreur, copiez le message complet.
 1. Vercel → Settings → Environment Variables
 2. Modifiez `RESEND_API_KEY`
 3. Vérifiez qu'il n'y a pas d'espaces avant/après
-4. La clé doit être : `re_jJaA821r_2zSBLxehxUNFjAtsiLGw4hGv`
+4. La clé doit commencer par : `re_` suivi de votre clé complète de Resend
 5. Save et redéployez
 
 ### Problème 4 : "Rate limit exceeded"

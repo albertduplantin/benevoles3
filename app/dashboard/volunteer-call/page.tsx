@@ -8,6 +8,7 @@ import {
   generateVolunteerCallMessage,
   generateVolunteerCallHTML,
   getIncompleteMissions,
+  generateDefaultIntroMessage,
 } from '@/lib/utils/volunteer-call-generator';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -110,13 +111,24 @@ export default function VolunteerCallPage() {
   // Récupérer toutes les missions incomplètes
   const allIncompleteMissions = useMemo(() => getIncompleteMissions(missions), [missions]);
 
-  // Initialiser la sélection avec toutes les missions (une seule fois au chargement)
+  // Initialiser la sélection avec toutes les missions et le message par défaut (une seule fois au chargement)
   useEffect(() => {
     if (allIncompleteMissions.length > 0 && !hasInitialized) {
       setSelectedMissionIds(new Set(allIncompleteMissions.map(m => m.id)));
+      
+      // Calculer le total de places restantes pour le message par défaut
+      const totalPlaces = allIncompleteMissions.reduce(
+        (sum, m) => sum + (m.maxVolunteers - m.volunteers.length),
+        0
+      );
+      
+      // Pré-remplir le message d'introduction
+      const defaultMessage = generateDefaultIntroMessage(totalPlaces, festivalName, festivalDates);
+      setCustomIntro(defaultMessage);
+      
       setHasInitialized(true);
     }
-  }, [allIncompleteMissions, hasInitialized]);
+  }, [allIncompleteMissions, hasInitialized, festivalName, festivalDates]);
 
   // Extraire toutes les catégories uniques
   const allCategories = useMemo(() => {
@@ -161,6 +173,18 @@ export default function VolunteerCallPage() {
       urgentCount,
     };
   }, [selectedMissions]);
+
+  // Mettre à jour le message quand les missions sélectionnées changent
+  useEffect(() => {
+    if (hasInitialized && selectedStats.totalPlaces > 0) {
+      const updatedMessage = generateDefaultIntroMessage(
+        selectedStats.totalPlaces,
+        festivalName,
+        festivalDates
+      );
+      setCustomIntro(updatedMessage);
+    }
+  }, [selectedStats.totalPlaces, festivalName, festivalDates, hasInitialized]);
 
   // Générer les messages avec les options
   const textMessage = useMemo(() => {
@@ -240,6 +264,11 @@ export default function VolunteerCallPage() {
   const handleSendEmail = async () => {
     if (selectedMissions.length === 0) {
       toast.error('Veuillez sélectionner au moins une mission');
+      return;
+    }
+
+    if (!customIntro || customIntro.trim() === '') {
+      toast.error('Le message d\'introduction est obligatoire');
       return;
     }
 
@@ -510,15 +539,18 @@ export default function VolunteerCallPage() {
                 </div>
               </div>
               <div>
-                <Label>Message d'introduction personnalisé (optionnel)</Label>
+                <Label className="flex items-center gap-1">
+                  Message d'introduction <span className="text-red-500">*</span>
+                </Label>
                 <Textarea
                   value={customIntro}
                   onChange={e => setCustomIntro(e.target.value)}
                   placeholder="Bonjour à tous,&#10;&#10;J'espère que vous allez bien..."
                   className="mt-1 h-24"
+                  required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Si vide, le message par défaut sera utilisé
+                  Le nombre de places est calculé automatiquement selon les missions sélectionnées
                 </p>
               </div>
             </CardContent>

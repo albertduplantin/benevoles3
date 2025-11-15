@@ -14,6 +14,7 @@ import {
 import { db } from './config';
 import { COLLECTIONS } from './collections';
 import { Mission } from '@/types';
+import { notifyRegistration } from './notifications-helper';
 
 /**
  * Vérifier si deux missions se chevauchent temporellement
@@ -142,6 +143,27 @@ export async function registerToMission(
 
       transaction.update(missionRef, updates);
     });
+
+    // Après l'inscription réussie, envoyer les notifications
+    try {
+      // Récupérer les informations du bénévole
+      const userRef = doc(db, COLLECTIONS.USERS, userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const volunteerName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+        
+        // Appeler la fonction de notification (ne pas bloquer si ça échoue)
+        notifyRegistration(missionId, userId, volunteerName || 'Bénévole').catch(err => {
+          console.error('Erreur lors de l\'envoi des notifications:', err);
+          // Ne pas bloquer l'inscription si les notifications échouent
+        });
+      }
+    } catch (notifError) {
+      console.error('Erreur lors de la préparation des notifications:', notifError);
+      // Ne pas bloquer l'inscription si les notifications échouent
+    }
   } catch (error: any) {
     console.error('Error registering to mission:', error);
     throw error;
