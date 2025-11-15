@@ -17,7 +17,14 @@ export function generateVolunteerCallMessage(
     return "Toutes les missions sont complètes ! Aucun appel nécessaire pour le moment.";
   }
 
-  const totalPlacesNeeded = incompleteMissions.reduce(
+  // Trier les missions par date (les plus proches en premier)
+  const sortedMissions = [...incompleteMissions].sort((a, b) => {
+    const dateA = a.startDate ? new Date(a.startDate).getTime() : Infinity;
+    const dateB = b.startDate ? new Date(b.startDate).getTime() : Infinity;
+    return dateA - dateB;
+  });
+
+  const totalPlacesNeeded = sortedMissions.reduce(
     (sum, mission) => sum + (mission.maxVolunteers - mission.volunteers.length),
     0
   );
@@ -31,7 +38,7 @@ export function generateVolunteerCallMessage(
   let message = options?.customIntro || defaultIntro;
   message += `Voici les missions qui ont besoin de vous :\n\n`;
 
-  incompleteMissions.forEach((mission, index) => {
+  sortedMissions.forEach((mission, index) => {
     const placesRemaining = mission.maxVolunteers - mission.volunteers.length;
     const dateStr = mission.startDate
       ? new Date(mission.startDate).toLocaleDateString('fr-FR', {
@@ -75,7 +82,14 @@ export function generateVolunteerCallHTML(
     return "<p>Toutes les missions sont complètes !</p>";
   }
 
-  const totalPlacesNeeded = incompleteMissions.reduce(
+  // Trier les missions par date (les plus proches en premier)
+  const sortedMissions = [...incompleteMissions].sort((a, b) => {
+    const dateA = a.startDate ? new Date(a.startDate).getTime() : Infinity;
+    const dateB = b.startDate ? new Date(b.startDate).getTime() : Infinity;
+    return dateA - dateB;
+  });
+
+  const totalPlacesNeeded = sortedMissions.reduce(
     (sum, mission) => sum + (mission.maxVolunteers - mission.volunteers.length),
     0
   );
@@ -98,7 +112,7 @@ export function generateVolunteerCallHTML(
       <h3 style="color: #1d4ed8;">Missions disponibles :</h3>
   `;
 
-  incompleteMissions.forEach((mission, index) => {
+  sortedMissions.forEach((mission, index) => {
     const placesRemaining = mission.maxVolunteers - mission.volunteers.length;
     const dateStr = mission.startDate
       ? new Date(mission.startDate).toLocaleDateString('fr-FR', {

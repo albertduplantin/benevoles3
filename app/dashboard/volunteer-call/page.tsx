@@ -136,9 +136,9 @@ export default function VolunteerCallPage() {
     return Array.from(categories).sort();
   }, [missions]);
 
-  // Filtrer les missions selon les critères
+  // Filtrer et trier les missions selon les critères
   const filteredMissions = useMemo(() => {
-    return allIncompleteMissions.filter(mission => {
+    const filtered = allIncompleteMissions.filter(mission => {
       if (categoryFilter !== 'all' && mission.category !== categoryFilter) return false;
       if (urgencyFilter === 'urgent' && !mission.isUrgent) return false;
       if (urgencyFilter === 'normal' && mission.isUrgent) return false;
@@ -152,6 +152,13 @@ export default function VolunteerCallPage() {
       }
 
       return true;
+    });
+
+    // Trier par date (les plus proches en premier)
+    return filtered.sort((a, b) => {
+      const dateA = a.startDate ? new Date(a.startDate).getTime() : Infinity;
+      const dateB = b.startDate ? new Date(b.startDate).getTime() : Infinity;
+      return dateA - dateB;
     });
   }, [allIncompleteMissions, categoryFilter, urgencyFilter, dateFilter]);
 
