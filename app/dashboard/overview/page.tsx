@@ -20,6 +20,7 @@ import { FullProgramExportButton } from '@/components/features/exports/full-prog
 import { InstallPWAButton } from '@/components/features/pwa/install-pwa-button';
 import { ResponsibleCategoriesBanner } from '@/components/features/category-responsibles/responsible-categories-banner';
 import { PostFestivalReport } from '@/components/features/admin/post-festival-report';
+import { RegistrationControl } from '@/components/features/admin/registration-control';
 import { ALL_CATEGORIES_WITH_LABELS } from '@/lib/constants/mission-categories';
 import { getGroupedCategories } from '@/lib/firebase/mission-categories-db';
 import { MissionCategoryClient } from '@/types/category';
@@ -720,6 +721,11 @@ export default function DashboardOverviewPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Contrôle des Inscriptions */}
+          <div className="space-y-4">
+            <RegistrationControl />
           </div>
 
           {/* Rapports et Analyses */}

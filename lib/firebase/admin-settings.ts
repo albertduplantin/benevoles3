@@ -12,6 +12,8 @@ export interface AdminSettings {
   autoApproveResponsibility: boolean;
   festivalStartDate?: Date;
   festivalEndDate?: Date;
+  registrationsBlocked: boolean;
+  registrationBlockedMessage?: string;
   updatedAt?: Date;
   updatedBy?: string;
 }
@@ -30,6 +32,8 @@ export async function getAdminSettings(): Promise<AdminSettings> {
         autoApproveResponsibility: data.autoApproveResponsibility || false,
         festivalStartDate: data.festivalStartDate?.toDate(),
         festivalEndDate: data.festivalEndDate?.toDate(),
+        registrationsBlocked: data.registrationsBlocked || false,
+        registrationBlockedMessage: data.registrationBlockedMessage || '',
         updatedAt: data.updatedAt?.toDate(),
         updatedBy: data.updatedBy,
       };
@@ -38,11 +42,15 @@ export async function getAdminSettings(): Promise<AdminSettings> {
     // Valeurs par défaut
     return {
       autoApproveResponsibility: false,
+      registrationsBlocked: false,
+      registrationBlockedMessage: '',
     };
   } catch (error) {
     console.error('Error getting admin settings:', error);
     return {
       autoApproveResponsibility: false,
+      registrationsBlocked: false,
+      registrationBlockedMessage: '',
     };
   }
 }

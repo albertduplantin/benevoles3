@@ -15,6 +15,7 @@ import { db } from './config';
 import { COLLECTIONS } from './collections';
 import { Mission } from '@/types';
 import { notifyRegistration } from './notifications-helper';
+import { getAdminSettings } from './admin-settings';
 
 /**
  * Vérifier si deux missions se chevauchent temporellement
@@ -77,6 +78,12 @@ export async function registerToMission(
   userId: string
 ): Promise<void> {
   try {
+    // Vérifier d'abord si les inscriptions sont bloquées
+    const settings = await getAdminSettings();
+    if (settings.registrationsBlocked) {
+      throw new Error('Les inscriptions aux missions sont temporairement fermées. Veuillez contacter l\'équipe d\'organisation.');
+    }
+
     const missionRef = doc(db, COLLECTIONS.MISSIONS, missionId);
     
     // Récupérer d'abord la mission pour la vérification des chevauchements

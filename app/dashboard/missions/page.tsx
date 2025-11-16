@@ -35,6 +35,7 @@ import { MissionListSkeleton, MissionListSkeletonMobile } from '@/components/ui/
 import { getAdminSettings } from '@/lib/firebase/admin-settings';
 import { ExportButtons } from '@/components/features/exports/export-buttons';
 import { getUserById } from '@/lib/firebase/users';
+import { RegistrationBlockedBanner } from '@/components/features/admin/registration-blocked-banner';
 import { ResponsibleCategoriesBanner } from '@/components/features/category-responsibles/responsible-categories-banner';
 import { exportMissionsToCalendar } from '@/lib/utils/calendar';
 
@@ -578,6 +579,9 @@ function MissionsPageContent() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Bandeau rouge si inscriptions bloquées */}
+      <RegistrationBlockedBanner />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
