@@ -112,15 +112,15 @@ export default function MissionsPage() {
   };
 
   const isRegistered = (mission: Mission) => {
-    return mission.volunteers.includes(user?.id || '');
+    return (mission.volunteers || []).includes(user?.id || '');
   };
 
   const isOnWaitlist = (mission: Mission) => {
-    return mission.waitlist.includes(user?.id || '');
+    return (mission.waitlist || []).includes(user?.id || '');
   };
 
   const getSpotsLeft = (mission: Mission) => {
-    return mission.maxVolunteers - mission.volunteers.length;
+    return mission.maxVolunteers - (mission.volunteers || []).length;
   };
 
   const getStatusBadge = (mission: Mission) => {
@@ -216,7 +216,7 @@ export default function MissionsPage() {
                   </div>
                   <div className="flex items-center text-gray-600">
                     <UsersIcon className="h-4 w-4 mr-2" />
-                    {mission.volunteers.length} / {mission.maxVolunteers} bénévoles
+                    {(mission.volunteers || []).length} / {mission.maxVolunteers} bénévoles
                   </div>
                   {mission.type === 'ongoing' && (
                     <div className="flex items-center text-gray-600">
