@@ -4,10 +4,10 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md space-y-4">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-          <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> Si vous rencontrez des problèmes avec Google OAuth,
-            veuillez utiliser votre email et mot de passe pour vous connecter.
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-blue-800">
+            <strong>✓ OAuth Réparé:</strong> Le problème Google OAuth a été résolu.
+            Vous pouvez maintenant vous connecter avec Google sans problème!
           </p>
         </div>
         <SignIn
